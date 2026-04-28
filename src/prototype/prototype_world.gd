@@ -3,6 +3,7 @@ extends Node3D
 const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
 const CAMERA_SCRIPT := preload("res://src/camera/third_person_camera.gd")
 const DEBUG_OVERLAY_SCENE := preload("res://scenes/ui/debug_overlay.tscn")
+const BOOST_PICKUP_SCENE := preload("res://scenes/pickups/boost_pickup.tscn")
 const WMB_MANIFEST_SCRIPT := preload("res://src/levels/wmb_manifest.gd")
 const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
 const WMB_MANIFEST_PATH := "res://assets/metadata/wmb_manifest.json"
@@ -76,7 +77,7 @@ func _spawn_camera() -> void:
 
 func _spawn_props() -> void:
 	_spawn_asset_prop("model.cactus1", Vector3(-4.0, 0.0, -2.0))
-	_spawn_asset_prop("model.boost", Vector3(3.5, 0.0, -1.5))
+	_spawn_boost_pickup(Vector3(3.5, 0.0, -1.5))
 	_spawn_asset_prop("model.rasta.animated", Vector3(-2.0, 0.0, -4.5))
 	_spawn_asset_prop("model.punk.animated", Vector3(2.0, 0.0, -4.5))
 	_spawn_asset_prop("model.sky3", Vector3(0.0, -0.2, 0.0))
@@ -99,6 +100,16 @@ func _spawn_asset_prop(asset_id: String, position: Vector3) -> void:
 	if assets.should_ground_model(asset_id):
 		assets.align_model_instance_to_ground(instance, position.y)
 	_configure_prop_animation(instance, assets, asset_id)
+
+
+func _spawn_boost_pickup(position: Vector3) -> void:
+	var pickup := BOOST_PICKUP_SCENE.instantiate()
+	pickup.name = "BoostPickup"
+	pickup.position = position
+	if player != null:
+		var movement_config: Resource = player.get("movement_config")
+		pickup.set("boost_amount", float(movement_config.get("boost_pickup_capacity")))
+	add_child(pickup)
 
 
 func _configure_prop_animation(instance: Node3D, assets: Node, asset_id: String) -> void:

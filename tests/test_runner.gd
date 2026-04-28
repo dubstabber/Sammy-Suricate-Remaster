@@ -114,6 +114,7 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.get_model_default_animation("model.rasta.animated") == "stand", "Rasta should expose a default stand animation.")
     _expect(assets.has_asset("music.sammy01"), "Asset catalog is missing copied music resource.")
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
+    _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")
 
 
 func _test_animation_libraries() -> void:
@@ -253,9 +254,43 @@ func _test_player_scene() -> void:
         var movement_config: Resource = player.get("movement_config")
         _expect(is_equal_approx(float(movement_config.get("boost_speed_multiplier")), 2.0), "Boost should expose the original acceleration control hook.")
         _expect(is_equal_approx(float(movement_config.get("boost_turn_multiplier")), 0.75), "Boost should reduce turn input like the original scripts.")
+        _expect(is_equal_approx(float(movement_config.get("boost_capacity_max")), 150.0), "Boost capacity should use the original panel width.")
+        _expect(is_equal_approx(float(movement_config.get("boost_initial_capacity")), 0.0), "Player should start without stored boost capacity.")
+        _expect(is_equal_approx(float(movement_config.get("boost_pickup_capacity")), 150.0), "Prototype boost pickup should fill one full boost meter.")
+        _expect(is_equal_approx(float(movement_config.get("boost_consumption_per_second")), 16.0), "Boost consumption should mirror original ConsoBoost/time units.")
         _expect(is_equal_approx(float(movement_config.get("animation_blend_seconds")), 0.18), "Player animation blends should be slower than the initial scaffold blend.")
         _expect(is_equal_approx(float(movement_config.get("walk_stop_blend_seconds")), 0.35), "Stopping from walk should use the original-style slower walk-to-stand transition.")
         _expect(is_equal_approx(float(movement_config.get("walk_animation_speed_multiplier")), 1.75), "Gameplay walk animation should use the faster original in-game playback rate.")
+        _expect(player.has_method("add_boost_capacity"), "Player controller should expose boost refill for pickups.")
+        _expect(player.has_method("get_boost_capacity"), "Player controller should expose current boost capacity.")
+        _expect(player.has_method("get_boost_capacity_max"), "Player controller should expose max boost capacity.")
+        _expect(player.has_method("get_boost_capacity_ratio"), "Player controller should expose boost capacity ratio.")
+        _expect(player.has_method("is_boosting"), "Player controller should expose active boost state.")
+        if player.has_method("add_boost_capacity") and player.has_method("get_boost_capacity") and player.has_method("get_boost_capacity_max") and player.has_method("get_boost_capacity_ratio") and player.has_method("is_boosting"):
+            var boost_capacity_max := float(player.call("get_boost_capacity_max"))
+            _expect(is_equal_approx(float(player.call("get_boost_capacity")), 0.0), "Player should start with an empty boost meter.")
+            _expect(is_equal_approx(float(player.call("get_boost_capacity_ratio")), 0.0), "Empty boost meter ratio should be zero.")
+            _expect(is_equal_approx(float(player.call("add_boost_capacity", boost_capacity_max)), boost_capacity_max), "Boost refill should report the amount added.")
+            _expect(is_equal_approx(float(player.call("get_boost_capacity")), boost_capacity_max), "Boost refill should fill the meter.")
+            _expect(is_equal_approx(float(player.call("add_boost_capacity", boost_capacity_max)), 0.0), "Boost refill should clamp at the max meter.")
+            _expect(is_equal_approx(float(player.call("get_boost_capacity_ratio")), 1.0), "Full boost meter ratio should be one.")
+            player.call("_update_boost_state_from_input", 0.25, 0.0, true)
+            _expect(not bool(player.call("is_boosting")), "Boost should not activate without forward movement.")
+            _expect(is_equal_approx(float(player.call("get_boost_capacity")), boost_capacity_max), "Boost should not consume capacity without forward movement.")
+            var boost_before_drain := float(player.call("get_boost_capacity"))
+            player.call("_update_boost_state_from_input", 0.25, 1.0, true)
+            _expect(bool(player.call("is_boosting")), "Holding boost while moving forward should activate stored boost.")
+            _expect(float(player.call("get_boost_capacity")) < boost_before_drain, "Active boost should consume stored capacity.")
+            var boost_after_release := float(player.call("get_boost_capacity"))
+            player.call("_update_boost_state_from_input", 0.25, 1.0, false)
+            _expect(not bool(player.call("is_boosting")), "Releasing Shift should stop active boost.")
+            _expect(is_equal_approx(float(player.call("get_boost_capacity")), boost_after_release), "Released boost should stop consuming capacity.")
+            player.call("add_boost_capacity", boost_capacity_max)
+            movement_config.set("boost_consumption_per_second", boost_capacity_max * 120.0)
+            player.call("_update_boost_state_from_input", 1.0, 1.0, true)
+            player.call("_update_boost_state_from_input", 1.0, 1.0, true)
+            _expect(is_equal_approx(float(player.call("get_boost_capacity")), 0.0), "Boost should clamp to zero after depletion.")
+            _expect(not bool(player.call("is_boosting")), "Boost should stop once capacity is depleted.")
         _expect(player.has_method("get_walk_animation_speed_for_horizontal_speed"), "Player controller should expose gameplay walk animation speed for validation.")
         if player.has_method("get_walk_animation_speed_for_horizontal_speed"):
             var walk_speed := float(movement_config.get("walk_speed"))
@@ -297,7 +332,7 @@ func _test_prototype_world() -> void:
             if model != null:
                 var bounds: AABB = assets.get_model_global_bounds(model)
                 _expect(absf(bounds.position.y) < 0.01, "Prototype character model should be grounded: %s" % node_name)
-        for node_name in ["model_rasta_animated", "model_punk_animated", "model_boost", "model_cactus1"]:
+        for node_name in ["model_rasta_animated", "model_punk_animated", "model_cactus1"]:
             var model := world.get_node_or_null(node_name) as Node3D
             _expect(model != null, "Prototype world should spawn animated catalog model: %s" % node_name)
             if model != null:
@@ -306,6 +341,29 @@ func _test_prototype_world() -> void:
                 if controller != null:
                     _expect(bool(controller.call("has_action", "stand")), "Prototype model should expose stand animation: %s" % node_name)
                     _expect(String(controller.call("get_current_action")) == "stand", "Prototype model should autoplay stand animation: %s" % node_name)
+        var boost_pickup := world.get_node_or_null("BoostPickup") as Area3D
+        _expect(boost_pickup != null, "Prototype world should spawn the boost pickup as an Area3D.")
+        if boost_pickup != null:
+            _expect(boost_pickup.has_method("collect"), "Boost pickup should expose a collection hook for tests/importers.")
+            _expect(boost_pickup.has_method("was_collected"), "Boost pickup should expose collected state.")
+            _expect(is_equal_approx(float(boost_pickup.call("get_boost_amount")), 150.0), "Prototype boost pickup should fill the meter.")
+            _expect(String(boost_pickup.get("collect_sound_asset_id")) == "sfx.boost_pickup", "Boost pickup should use the original chimes2 sound.")
+            var boost_model := boost_pickup.get_node_or_null("model_boost") as Node3D
+            _expect(boost_model != null, "Boost pickup should spawn the animated boost model.")
+            if boost_model != null:
+                var boost_controller := boost_model.get_node_or_null("ModelAnimationController")
+                _expect(boost_controller != null, "Boost pickup model should have generated animation controller.")
+                if boost_controller != null:
+                    _expect(bool(boost_controller.call("has_action", "stand")), "Boost pickup model should expose stand animation.")
+                    _expect(String(boost_controller.call("get_current_action")) == "stand", "Boost pickup model should autoplay stand animation.")
+            var player := world.get_node_or_null("Player")
+            if player != null and player.has_method("get_boost_capacity") and player.has_method("get_boost_capacity_max"):
+                _expect(is_equal_approx(float(player.call("get_boost_capacity")), 0.0), "Prototype player should start with empty boost before pickup collection.")
+                boost_pickup.set("collect_sound_asset_id", "")
+                _expect(bool(boost_pickup.call("collect", player)), "Boost pickup should collect when given the player.")
+                _expect(is_equal_approx(float(player.call("get_boost_capacity")), float(player.call("get_boost_capacity_max"))), "Boost pickup should fill the player meter.")
+                _expect(bool(boost_pickup.call("was_collected")), "Boost pickup should mark itself collected.")
+                _expect(not boost_pickup.visible, "Boost pickup should hide after collection.")
     var audio := root.get_node_or_null("Audio")
     if audio != null:
         audio.stop_music()

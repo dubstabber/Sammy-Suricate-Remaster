@@ -80,6 +80,12 @@ const CATALOG := {
         "kind": "audio",
         "description": "Gem pickup sound"
     },
+    "sfx.boost_pickup": {
+        "path": "res://assets/audio/Chimes2.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/Chimes2.wav",
+        "kind": "audio",
+        "description": "Original speed boost pickup chime"
+    },
     "sfx.hit": {
         "path": "res://assets/audio/Hit1.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/Hit1.wav",

@@ -25,6 +25,11 @@ func _physics_process(_delta: float) -> void:
     if _player != null:
         var p := _player.global_position
         lines.append("Player: %.2f, %.2f, %.2f" % [p.x, p.y, p.z])
+        if _player.has_method("get_boost_capacity") and _player.has_method("get_boost_capacity_max"):
+            lines.append("Boost: %.0f / %.0f" % [
+                    float(_player.call("get_boost_capacity")),
+                    float(_player.call("get_boost_capacity_max"))
+            ])
     _label.text = "\n".join(lines)
 
 

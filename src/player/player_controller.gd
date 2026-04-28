@@ -14,21 +14,24 @@ var _animation_controller: Node
 var _animation_sequence: Array[StringName] = []
 var _animation_sequence_index: int = -1
 var _fire_requests: int = 0
+var _boost_capacity: float = 0.0
+var _boosting: bool = false
 
 
 func _ready() -> void:
     add_to_group("player")
+    _boost_capacity = clampf(movement_config.boost_initial_capacity, 0.0, movement_config.boost_capacity_max)
     _spawn_model()
 
 
 func _physics_process(delta: float) -> void:
     var was_on_floor := is_on_floor()
-    _apply_turn(delta)
-
     var forward_input: float = Input.get_axis("move_back", "move_forward")
     var turn_input: float = Input.get_axis("turn_left", "turn_right")
-    var boosting: bool = forward_input > 0.0 and Input.is_action_pressed("boost")
-    var target_velocity: Vector3 = get_facing_direction() * forward_input * _current_walk_speed(boosting)
+    _update_boost_state(delta, forward_input)
+    _apply_turn(delta, forward_input, turn_input)
+
+    var target_velocity: Vector3 = get_facing_direction() * forward_input * _current_walk_speed(_boosting)
     var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
     var rate: float = movement_config.acceleration if absf(forward_input) > 0.0 else movement_config.deceleration
     horizontal_velocity = horizontal_velocity.move_toward(target_velocity, rate * delta)
@@ -100,6 +103,32 @@ func get_animation_blend_seconds_for_transition(from_action: StringName, to_acti
     return _animation_blend_seconds_for_transition(from_action, to_action)
 
 
+func add_boost_capacity(amount: float) -> float:
+    if amount <= 0.0:
+        return 0.0
+    var previous_capacity := _boost_capacity
+    _boost_capacity = clampf(_boost_capacity + amount, 0.0, movement_config.boost_capacity_max)
+    return _boost_capacity - previous_capacity
+
+
+func get_boost_capacity() -> float:
+    return _boost_capacity
+
+
+func get_boost_capacity_max() -> float:
+    return movement_config.boost_capacity_max
+
+
+func get_boost_capacity_ratio() -> float:
+    if movement_config.boost_capacity_max <= 0.0:
+        return 0.0
+    return clampf(_boost_capacity / movement_config.boost_capacity_max, 0.0, 1.0)
+
+
+func is_boosting() -> bool:
+    return _boosting
+
+
 func apply_quick_turn() -> void:
     rotation.y = wrapf(rotation.y + PI, -PI, PI)
 
@@ -109,19 +138,29 @@ func fire_wasp() -> void:
     _start_animation_sequence([&"tirA", &"tirB"])
 
 
-func _apply_turn(delta: float) -> void:
-    var turn_input: float = Input.get_axis("turn_left", "turn_right")
+func _apply_turn(delta: float, forward_input: float, turn_input: float) -> void:
     if is_zero_approx(turn_input):
         return
 
-    var forward_input: float = Input.get_axis("move_back", "move_forward")
     var turn_speed: float = movement_config.turn_speed_degrees
     if absf(forward_input) > 0.0:
         turn_speed = movement_config.moving_turn_speed_degrees
-    if Input.is_action_pressed("boost"):
+    if _boosting:
         turn_speed *= movement_config.boost_turn_multiplier
 
     rotation.y -= deg_to_rad(turn_speed) * turn_input * delta
+
+
+func _update_boost_state(delta: float, forward_input: float) -> void:
+    _update_boost_state_from_input(delta, forward_input, Input.is_action_pressed("boost"))
+
+
+func _update_boost_state_from_input(delta: float, forward_input: float, boost_pressed: bool) -> void:
+    _boosting = forward_input > 0.0 and boost_pressed and _boost_capacity > 0.0
+    if not _boosting:
+        return
+
+    _boost_capacity = maxf(0.0, _boost_capacity - movement_config.boost_consumption_per_second * delta)
 
 
 func _current_walk_speed(boosting: bool) -> float:

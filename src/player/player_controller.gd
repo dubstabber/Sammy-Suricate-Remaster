@@ -64,6 +64,8 @@ func _spawn_model() -> void:
     _model_instance.scale = model_scale * movement_config.visual_scale_multiplier
     _model_instance.rotation_degrees = model_rotation_degrees
     visual_pivot.add_child(_model_instance)
+    if assets != null and assets.should_ground_model(model_asset_id):
+        assets.align_model_instance_to_ground(_model_instance, global_position.y)
 
 
 func get_facing_direction() -> Vector3:

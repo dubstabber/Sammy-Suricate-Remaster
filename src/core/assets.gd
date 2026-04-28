@@ -3,6 +3,7 @@ extends Node
 const AssetEntryScript := preload("res://src/resources/asset_entry.gd")
 
 const ACKNEX_TO_GODOT_SCALE := 0.01
+const ACKNEX_CHARACTER_FORWARD_ROTATION := Vector3(0.0, 90.0, 0.0)
 
 const CATALOG := {
     "model.sammy.static": {
@@ -10,26 +11,34 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/models/suricat1/suricat1.gltf",
         "kind": "model",
         "description": "Sammy first-frame model",
-        "acknex_entity_scale": Vector3(8.0, 8.0, 8.0)
+        "acknex_entity_scale": Vector3(8.0, 8.0, 8.0),
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
+        "ground_to_floor": true
     },
     "model.sammy.animated": {
         "path": "res://assets/models/suricat1/suricat1_animated.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/suricat1/suricat1_animated.gltf",
         "kind": "model",
         "description": "Sammy morph-target animation preview model",
-        "acknex_entity_scale": Vector3(8.0, 8.0, 8.0)
+        "acknex_entity_scale": Vector3(8.0, 8.0, 8.0),
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
+        "ground_to_floor": true
     },
     "model.rasta.animated": {
         "path": "res://assets/models/rasta/rasta_animated.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/rasta/rasta_animated.gltf",
         "kind": "model",
-        "description": "Rasta enemy morph-target animation preview model"
+        "description": "Rasta enemy morph-target animation preview model",
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
+        "ground_to_floor": true
     },
     "model.punk.animated": {
         "path": "res://assets/models/Punk/Punk_animated.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/Punk/Punk_animated.gltf",
         "kind": "model",
-        "description": "Punk enemy morph-target animation preview model"
+        "description": "Punk enemy morph-target animation preview model",
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
+        "ground_to_floor": true
     },
     "model.sky3": {
         "path": "res://assets/models/sky3/sky3.gltf",
@@ -105,7 +114,8 @@ func rebuild() -> void:
                 raw.get("kind", ""),
                 raw.get("description", ""),
                 raw.get("acknex_entity_scale", Vector3.ONE),
-                raw.get("rotation_degrees", Vector3.ZERO)
+                raw.get("rotation_degrees", Vector3.ZERO),
+                bool(raw.get("ground_to_floor", false))
         )
 
 
@@ -148,6 +158,33 @@ func get_model_rotation_degrees(entry_id: String) -> Vector3:
     return entry.rotation_degrees
 
 
+func should_ground_model(entry_id: String) -> bool:
+    var entry := get_entry(entry_id)
+    if entry == null:
+        return false
+    return bool(entry.ground_to_floor)
+
+
+func align_model_instance_to_ground(model_root: Node3D, ground_y: float = 0.0) -> void:
+    var bounds := get_model_global_bounds(model_root)
+    if bounds.size == Vector3.ZERO:
+        return
+
+    var lift := ground_y - bounds.position.y
+    if is_zero_approx(lift):
+        return
+    model_root.global_position.y += lift
+
+
+func get_model_global_bounds(model_root: Node3D) -> AABB:
+    var state := {
+        "has_bounds": false,
+        "bounds": AABB()
+    }
+    _accumulate_mesh_bounds(model_root, state)
+    return state["bounds"] if state["has_bounds"] else AABB()
+
+
 func verify_required_assets() -> Array[String]:
     _ensure_built()
     var missing: Array[String] = []
@@ -169,3 +206,35 @@ func all_entries() -> Array[Resource]:
 func _ensure_built() -> void:
     if entries.is_empty():
         rebuild()
+
+
+func _accumulate_mesh_bounds(node: Node, state: Dictionary) -> void:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null:
+        var mesh_bounds := _transform_aabb(mesh_instance.global_transform, mesh_instance.get_aabb())
+        if state["has_bounds"]:
+            state["bounds"] = (state["bounds"] as AABB).merge(mesh_bounds)
+        else:
+            state["bounds"] = mesh_bounds
+            state["has_bounds"] = true
+
+    for child in node.get_children():
+        _accumulate_mesh_bounds(child, state)
+
+
+func _transform_aabb(transform: Transform3D, bounds: AABB) -> AABB:
+    var points: Array[Vector3] = [
+        bounds.position,
+        bounds.position + Vector3(bounds.size.x, 0.0, 0.0),
+        bounds.position + Vector3(0.0, bounds.size.y, 0.0),
+        bounds.position + Vector3(0.0, 0.0, bounds.size.z),
+        bounds.position + Vector3(bounds.size.x, bounds.size.y, 0.0),
+        bounds.position + Vector3(bounds.size.x, 0.0, bounds.size.z),
+        bounds.position + Vector3(0.0, bounds.size.y, bounds.size.z),
+        bounds.position + bounds.size
+    ]
+
+    var transformed := AABB(transform * points[0], Vector3.ZERO)
+    for index in range(1, points.size()):
+        transformed = transformed.expand(transform * points[index])
+    return transformed

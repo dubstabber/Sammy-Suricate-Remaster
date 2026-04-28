@@ -8,6 +8,7 @@ class_name AssetEntry
 @export var description: String = ""
 @export var acknex_entity_scale: Vector3 = Vector3.ONE
 @export var rotation_degrees: Vector3 = Vector3.ZERO
+@export var ground_to_floor: bool = false
 
 
 func _init(
@@ -17,7 +18,8 @@ func _init(
         asset_kind: String = "",
         asset_description: String = "",
         original_entity_scale: Vector3 = Vector3.ONE,
-        model_rotation_degrees: Vector3 = Vector3.ZERO
+        model_rotation_degrees: Vector3 = Vector3.ZERO,
+        should_ground_to_floor: bool = false
 ) -> void:
     id = entry_id
     path = resource_path
@@ -26,3 +28,4 @@ func _init(
     description = asset_description
     acknex_entity_scale = original_entity_scale
     rotation_degrees = model_rotation_degrees
+    ground_to_floor = should_ground_to_floor

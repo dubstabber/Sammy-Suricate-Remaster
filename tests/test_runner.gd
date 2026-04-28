@@ -99,6 +99,14 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("model.punk.animated") != null, "Unable to load copied punk model resource.")
     _expect(assets.get_model_scale("model.sammy.animated").is_equal_approx(Vector3(0.08, 0.08, 0.08)), "Sammy model scale should include original WDL scale 8.")
     _expect(assets.get_model_scale("model.rasta.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Rasta model should use default Acknex entity scale.")
+    _expect(assets.get_model_rotation_degrees("model.sammy.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Sammy model should rotate Acknex +X forward to Godot -Z forward.")
+    _expect(assets.get_model_rotation_degrees("model.rasta.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Rasta model should use the Acknex character forward correction.")
+    _expect(assets.get_model_rotation_degrees("model.punk.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Punk model should use the Acknex character forward correction.")
+    _expect(assets.get_model_rotation_degrees("model.cactus1").is_equal_approx(Vector3.ZERO), "Static props should not inherit the character forward correction.")
+    _expect(assets.should_ground_model("model.sammy.animated"), "Sammy model should be grounded to the floor.")
+    _expect(assets.should_ground_model("model.rasta.animated"), "Rasta model should be grounded to the floor.")
+    _expect(assets.should_ground_model("model.punk.animated"), "Punk model should be grounded to the floor.")
+    _expect(not assets.should_ground_model("model.cactus1"), "Static props should not use character grounding.")
     _expect(assets.has_asset("music.sammy01"), "Asset catalog is missing copied music resource.")
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
 
@@ -151,6 +159,14 @@ func _test_player_scene() -> void:
     _expect(player.has_method("get_facing_direction"), "Player controller did not expose tank-control helpers.")
     _expect(player.get_node_or_null("CollisionShape3D") != null, "Player scene is missing collision shape.")
     _expect(player.get_node_or_null("VisualPivot") != null, "Player scene is missing visual pivot.")
+    var sammy_model := player.get_node_or_null("VisualPivot/SammyModel") as Node3D
+    _expect(sammy_model != null, "Player scene did not spawn the Sammy model.")
+    if sammy_model != null:
+        _expect(sammy_model.rotation_degrees.is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Player visual should apply the Acknex character forward correction.")
+        var assets := root.get_node_or_null("Assets")
+        if assets != null:
+            var bounds: AABB = assets.get_model_global_bounds(sammy_model)
+            _expect(absf(bounds.position.y - (player as Node3D).global_position.y) < 0.01, "Player visual should be grounded on the player floor.")
     if player.has_method("get_facing_direction"):
         _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, -1.0)), "Player should move along its facing direction by default.")
         player.call("apply_quick_turn")
@@ -182,6 +198,14 @@ func _test_prototype_world() -> void:
         _expect(not camera.global_position.is_equal_approx(camera_position), "Camera change should cycle the prototype camera offset.")
     _expect(world.get_node_or_null("Sun") != null, "Prototype world did not create lighting.")
     _expect(world.has_meta("wmb_manifest_counts"), "Prototype world did not read WMB manifest metadata.")
+    var assets := root.get_node_or_null("Assets")
+    if assets != null:
+        for node_name in ["model_rasta_animated", "model_punk_animated"]:
+            var model := world.get_node_or_null(node_name) as Node3D
+            _expect(model != null, "Prototype world should spawn grounded character model: %s" % node_name)
+            if model != null:
+                var bounds: AABB = assets.get_model_global_bounds(model)
+                _expect(absf(bounds.position.y) < 0.01, "Prototype character model should be grounded: %s" % node_name)
     var audio := root.get_node_or_null("Audio")
     if audio != null:
         audio.stop_music()

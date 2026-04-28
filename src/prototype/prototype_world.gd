@@ -4,6 +4,7 @@ const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
 const CAMERA_SCRIPT := preload("res://src/camera/third_person_camera.gd")
 const DEBUG_OVERLAY_SCENE := preload("res://scenes/ui/debug_overlay.tscn")
 const WMB_MANIFEST_SCRIPT := preload("res://src/levels/wmb_manifest.gd")
+const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
 const WMB_MANIFEST_PATH := "res://assets/metadata/wmb_manifest.json"
 
 var player: CharacterBody3D
@@ -97,6 +98,18 @@ func _spawn_asset_prop(asset_id: String, position: Vector3) -> void:
 	add_child(instance)
 	if assets.should_ground_model(asset_id):
 		assets.align_model_instance_to_ground(instance, position.y)
+	_configure_prop_animation(instance, assets, asset_id)
+
+
+func _configure_prop_animation(instance: Node3D, assets: Node, asset_id: String) -> void:
+	var library_path: String = assets.get_model_animation_library_path(asset_id)
+	if library_path.is_empty():
+		return
+
+	var controller := MODEL_ANIMATION_CONTROLLER_SCRIPT.new()
+	controller.name = "ModelAnimationController"
+	instance.add_child(controller)
+	controller.configure(instance, library_path, assets.get_model_default_animation(asset_id))
 
 
 func _spawn_debug_overlay() -> void:

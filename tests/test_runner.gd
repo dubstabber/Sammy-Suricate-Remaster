@@ -19,6 +19,7 @@ func _run() -> void:
     _test_input_actions()
     _test_display_settings()
     _test_asset_catalog(assets)
+    _test_animation_libraries()
     _test_model_skin_alpha()
     _test_wmb_manifest()
     await _test_player_scene()
@@ -97,6 +98,8 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("model.sammy.animated") != null, "Unable to load Sammy animated model resource.")
     _expect(assets.load_asset("model.rasta.animated") != null, "Unable to load copied rasta model resource.")
     _expect(assets.load_asset("model.punk.animated") != null, "Unable to load copied punk model resource.")
+    _expect(assets.load_asset("model.boost") != null, "Unable to load copied boost model resource.")
+    _expect(assets.load_asset("model.cactus1") != null, "Unable to load copied cactus model resource.")
     _expect(assets.get_model_scale("model.sammy.animated").is_equal_approx(Vector3(0.08, 0.08, 0.08)), "Sammy model scale should include original WDL scale 8.")
     _expect(assets.get_model_scale("model.rasta.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Rasta model should use default Acknex entity scale.")
     _expect(assets.get_model_rotation_degrees("model.sammy.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Sammy model should rotate Acknex +X forward to Godot -Z forward.")
@@ -107,8 +110,64 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.should_ground_model("model.rasta.animated"), "Rasta model should be grounded to the floor.")
     _expect(assets.should_ground_model("model.punk.animated"), "Punk model should be grounded to the floor.")
     _expect(not assets.should_ground_model("model.cactus1"), "Static props should not use character grounding.")
+    _expect(assets.get_model_animation_library_path("model.sammy.animated") == "res://assets/animations/suricat1_clips.tres", "Sammy should use the generated animation library.")
+    _expect(assets.get_model_default_animation("model.rasta.animated") == "stand", "Rasta should expose a default stand animation.")
     _expect(assets.has_asset("music.sammy01"), "Asset catalog is missing copied music resource.")
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
+
+
+func _test_animation_libraries() -> void:
+    _expect_animation_library(
+            "res://assets/animations/suricat1_clips.tres",
+            ["stand", "walkA", "walkAB", "walkB", "sautA", "sautB", "sautC", "tirA", "tirB", "turn", "death", "kaputt", "finkaputt", "Iwin", "loopjambes", "salut"],
+            ["stand", "walkB", "turn"]
+    )
+    _expect_animation_library(
+            "res://assets/animations/rasta_clips.tres",
+            ["stand", "AltStand", "rugit", "attack", "hit", "walk", "run", "death"],
+            ["stand", "walk", "run"]
+    )
+    _expect_animation_library(
+            "res://assets/animations/punk_clips.tres",
+            ["stand", "AltStand", "rugit", "attack", "hit", "walk", "run", "death"],
+            ["stand", "walk", "run"]
+    )
+    _expect_animation_library("res://assets/animations/boost_clips.tres", ["stand"], ["stand"])
+    _expect_animation_library("res://assets/animations/cactus1_clips.tres", ["stand"], ["stand"])
+    _expect_clip_length("res://assets/animations/suricat1_clips.tres", "sautA", 100.0 / (30.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/suricat1_clips.tres", "tirA", 100.0 / (20.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/suricat1_clips.tres", "turn", 100.0 / (14.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/rasta_clips.tres", "attack", 100.0 / (6.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/punk_clips.tres", "stand", 100.0 / (3.0 * 16.0 * 1.12))
+
+
+func _expect_animation_library(path: String, expected_clips: Array[String], looping_clips: Array[String]) -> void:
+    var library := load(path) as AnimationLibrary
+    _expect(library != null, "Unable to load generated animation library: %s" % path)
+    if library == null:
+        return
+
+    for clip_name in expected_clips:
+        _expect(library.has_animation(clip_name), "Generated library %s is missing clip: %s" % [path, clip_name])
+        if library.has_animation(clip_name):
+            var animation := library.get_animation(clip_name)
+            _expect(animation.get_track_count() > 0, "Generated clip should contain morph-target tracks: %s/%s" % [path, clip_name])
+            _expect(animation.track_get_interpolation_type(0) == Animation.INTERPOLATION_LINEAR, "Generated clip should smoothly interpolate morph frames: %s/%s" % [path, clip_name])
+            if looping_clips.has(clip_name):
+                _expect(animation.loop_mode == Animation.LOOP_LINEAR, "Generated clip should loop: %s/%s" % [path, clip_name])
+    _expect(not library.has_animation("toto"), "Placeholder toto ranges should not become gameplay clips: %s" % path)
+
+
+func _expect_clip_length(path: String, clip_name: String, expected_length: float) -> void:
+    var library := load(path) as AnimationLibrary
+    _expect(library != null, "Unable to load generated animation library for length check: %s" % path)
+    if library == null:
+        return
+    _expect(library.has_animation(clip_name), "Generated library %s is missing timed clip: %s" % [path, clip_name])
+    if not library.has_animation(clip_name):
+        return
+    var animation := library.get_animation(clip_name)
+    _expect(absf(animation.length - expected_length) < 0.01, "Generated clip should use original WDL timing: %s/%s" % [path, clip_name])
 
 
 func _test_wmb_manifest() -> void:
@@ -167,6 +226,14 @@ func _test_player_scene() -> void:
         if assets != null:
             var bounds: AABB = assets.get_model_global_bounds(sammy_model)
             _expect(absf(bounds.position.y - (player as Node3D).global_position.y) < 0.01, "Player visual should be grounded on the player floor.")
+        var animation_controller := sammy_model.get_node_or_null("ModelAnimationController")
+        _expect(animation_controller != null, "Player model should have a generated animation controller.")
+        if animation_controller != null:
+            _expect(bool(animation_controller.call("has_action", "stand")), "Player animation controller should expose stand.")
+            _expect(bool(animation_controller.call("has_action", "walkB")), "Player animation controller should expose original walkB.")
+            _expect(bool(animation_controller.call("has_action", "tirA")), "Player animation controller should expose original tirA.")
+            _expect(not String(animation_controller.call("get_current_action")).is_empty(), "Player animation controller should select an initial action.")
+            _expect(bool(animation_controller.call("play_action", "walkB")), "Player animation controller should play generated walkB.")
     if player.has_method("get_facing_direction"):
         _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, -1.0)), "Player should move along its facing direction by default.")
         player.call("apply_quick_turn")
@@ -174,6 +241,9 @@ func _test_player_scene() -> void:
         var fire_requests := int(player.call("get_fire_request_count"))
         player.call("fire_wasp")
         _expect(int(player.call("get_fire_request_count")) == fire_requests + 1, "Fire action hook should record a wasp-fire request placeholder.")
+        var controller := player.call("get_animation_controller") as Node
+        if controller != null:
+            _expect(String(controller.call("get_current_action")) == "tirA", "Fire action should start Sammy's original tirA animation.")
         var movement_config: Resource = player.get("movement_config")
         _expect(is_equal_approx(float(movement_config.get("boost_speed_multiplier")), 2.0), "Boost should expose the original acceleration control hook.")
         _expect(is_equal_approx(float(movement_config.get("boost_turn_multiplier")), 0.75), "Boost should reduce turn input like the original scripts.")
@@ -206,6 +276,15 @@ func _test_prototype_world() -> void:
             if model != null:
                 var bounds: AABB = assets.get_model_global_bounds(model)
                 _expect(absf(bounds.position.y) < 0.01, "Prototype character model should be grounded: %s" % node_name)
+        for node_name in ["model_rasta_animated", "model_punk_animated", "model_boost", "model_cactus1"]:
+            var model := world.get_node_or_null(node_name) as Node3D
+            _expect(model != null, "Prototype world should spawn animated catalog model: %s" % node_name)
+            if model != null:
+                var controller := model.get_node_or_null("ModelAnimationController")
+                _expect(controller != null, "Prototype model should have generated animation controller: %s" % node_name)
+                if controller != null:
+                    _expect(bool(controller.call("has_action", "stand")), "Prototype model should expose stand animation: %s" % node_name)
+                    _expect(String(controller.call("get_current_action")) == "stand", "Prototype model should autoplay stand animation: %s" % node_name)
     var audio := root.get_node_or_null("Audio")
     if audio != null:
         audio.stop_music()

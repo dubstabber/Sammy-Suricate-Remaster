@@ -22,7 +22,9 @@ const CATALOG := {
         "description": "Sammy morph-target animation preview model",
         "acknex_entity_scale": Vector3(8.0, 8.0, 8.0),
         "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
-        "ground_to_floor": true
+        "ground_to_floor": true,
+        "animation_library": "res://assets/animations/suricat1_clips.tres",
+        "default_animation": "stand"
     },
     "model.rasta.animated": {
         "path": "res://assets/models/rasta/rasta_animated.gltf",
@@ -30,7 +32,9 @@ const CATALOG := {
         "kind": "model",
         "description": "Rasta enemy morph-target animation preview model",
         "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
-        "ground_to_floor": true
+        "ground_to_floor": true,
+        "animation_library": "res://assets/animations/rasta_clips.tres",
+        "default_animation": "stand"
     },
     "model.punk.animated": {
         "path": "res://assets/models/Punk/Punk_animated.gltf",
@@ -38,7 +42,9 @@ const CATALOG := {
         "kind": "model",
         "description": "Punk enemy morph-target animation preview model",
         "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
-        "ground_to_floor": true
+        "ground_to_floor": true,
+        "animation_library": "res://assets/animations/punk_clips.tres",
+        "default_animation": "stand"
     },
     "model.sky3": {
         "path": "res://assets/models/sky3/sky3.gltf",
@@ -47,16 +53,20 @@ const CATALOG := {
         "description": "Original sky reference model"
     },
     "model.cactus1": {
-        "path": "res://assets/models/cactus1/cactus1.gltf",
-        "source": "extract-sammy-assets/extracted/godot/models/cactus1/cactus1.gltf",
+        "path": "res://assets/models/cactus1/cactus1_animated.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/cactus1/cactus1_animated.gltf",
         "kind": "model",
-        "description": "Prototype level prop"
+        "description": "Prototype level prop",
+        "animation_library": "res://assets/animations/cactus1_clips.tres",
+        "default_animation": "stand"
     },
     "model.boost": {
         "path": "res://assets/models/boost/boost_animated.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/boost/boost_animated.gltf",
         "kind": "model",
-        "description": "Prototype collectible prop"
+        "description": "Prototype collectible prop",
+        "animation_library": "res://assets/animations/boost_clips.tres",
+        "default_animation": "stand"
     },
     "music.sammy01": {
         "path": "res://assets/audio/sammy01.ogg",
@@ -115,7 +125,9 @@ func rebuild() -> void:
                 raw.get("description", ""),
                 raw.get("acknex_entity_scale", Vector3.ONE),
                 raw.get("rotation_degrees", Vector3.ZERO),
-                bool(raw.get("ground_to_floor", false))
+                bool(raw.get("ground_to_floor", false)),
+                raw.get("animation_library", ""),
+                raw.get("default_animation", "")
         )
 
 
@@ -165,6 +177,20 @@ func should_ground_model(entry_id: String) -> bool:
     return bool(entry.ground_to_floor)
 
 
+func get_model_animation_library_path(entry_id: String) -> String:
+    var entry := get_entry(entry_id)
+    if entry == null:
+        return ""
+    return entry.animation_library_path
+
+
+func get_model_default_animation(entry_id: String) -> String:
+    var entry := get_entry(entry_id)
+    if entry == null:
+        return ""
+    return entry.default_animation
+
+
 func align_model_instance_to_ground(model_root: Node3D, ground_y: float = 0.0) -> void:
     var bounds := get_model_global_bounds(model_root)
     if bounds.size == Vector3.ZERO:
@@ -192,6 +218,9 @@ func verify_required_assets() -> Array[String]:
         var entry: Resource = entries[entry_id]
         if not ResourceLoader.exists(entry.path) and not FileAccess.file_exists(entry.path):
             missing.append("%s -> %s" % [entry_id, entry.path])
+        if not entry.animation_library_path.is_empty():
+            if not ResourceLoader.exists(entry.animation_library_path) and not FileAccess.file_exists(entry.animation_library_path):
+                missing.append("%s animation -> %s" % [entry_id, entry.animation_library_path])
     return missing
 
 

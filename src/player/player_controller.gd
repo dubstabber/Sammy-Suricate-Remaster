@@ -2,6 +2,7 @@ extends CharacterBody3D
 class_name SammyPlayerController
 
 const PLAYER_MOVEMENT_CONFIG_SCRIPT := preload("res://src/resources/player_movement_config.gd")
+const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
@@ -9,6 +10,9 @@ const PLAYER_MOVEMENT_CONFIG_SCRIPT := preload("res://src/resources/player_movem
 @onready var visual_pivot: Node3D = $VisualPivot
 
 var _model_instance: Node3D
+var _animation_controller: Node
+var _animation_sequence: Array[StringName] = []
+var _animation_sequence_index: int = -1
 var _fire_requests: int = 0
 
 
@@ -18,9 +22,11 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+    var was_on_floor := is_on_floor()
     _apply_turn(delta)
 
     var forward_input: float = Input.get_axis("move_back", "move_forward")
+    var turn_input: float = Input.get_axis("turn_left", "turn_right")
     var boosting: bool = forward_input > 0.0 and Input.is_action_pressed("boost")
     var target_velocity: Vector3 = get_facing_direction() * forward_input * _current_walk_speed(boosting)
     var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
@@ -30,9 +36,11 @@ func _physics_process(delta: float) -> void:
     velocity.x = horizontal_velocity.x
     velocity.z = horizontal_velocity.z
 
+    var jumped := false
     if is_on_floor():
         if Input.is_action_just_pressed("jump"):
             velocity.y = movement_config.jump_velocity
+            jumped = true
     else:
         velocity.y -= movement_config.gravity * delta
 
@@ -43,6 +51,7 @@ func _physics_process(delta: float) -> void:
         fire_wasp()
 
     move_and_slide()
+    _update_model_animation(forward_input, turn_input, jumped, was_on_floor, is_on_floor())
 
 
 func _spawn_model() -> void:
@@ -66,6 +75,7 @@ func _spawn_model() -> void:
     visual_pivot.add_child(_model_instance)
     if assets != null and assets.should_ground_model(model_asset_id):
         assets.align_model_instance_to_ground(_model_instance, global_position.y)
+    _configure_model_animation(assets)
 
 
 func get_facing_direction() -> Vector3:
@@ -78,12 +88,17 @@ func get_fire_request_count() -> int:
     return _fire_requests
 
 
+func get_animation_controller() -> Node:
+    return _animation_controller
+
+
 func apply_quick_turn() -> void:
     rotation.y = wrapf(rotation.y + PI, -PI, PI)
 
 
 func fire_wasp() -> void:
     _fire_requests += 1
+    _start_animation_sequence([&"tirA", &"tirB"])
 
 
 func _apply_turn(delta: float) -> void:
@@ -106,6 +121,86 @@ func _current_walk_speed(boosting: bool) -> float:
     if boosting:
         speed *= movement_config.boost_speed_multiplier
     return speed
+
+
+func _configure_model_animation(assets: Node) -> void:
+    if assets == null:
+        return
+
+    var library_path: String = assets.get_model_animation_library_path(model_asset_id)
+    if library_path.is_empty():
+        return
+
+    _animation_controller = MODEL_ANIMATION_CONTROLLER_SCRIPT.new()
+    _animation_controller.name = "ModelAnimationController"
+    _model_instance.add_child(_animation_controller)
+    var default_animation: String = assets.get_model_default_animation(model_asset_id)
+    _animation_controller.call("configure", _model_instance, library_path, default_animation)
+
+
+func _update_model_animation(forward_input: float, turn_input: float, jumped: bool, was_on_floor: bool, on_floor: bool) -> void:
+    if _animation_controller == null:
+        return
+
+    if jumped:
+        _start_animation_sequence([&"sautA"])
+    elif not was_on_floor and on_floor:
+        _start_animation_sequence([&"sautC"])
+
+    if _advance_animation_sequence():
+        return
+
+    if _animation_sequence_index >= 0:
+        return
+
+    if not on_floor:
+        _play_animation_action(&"sautB")
+    elif absf(forward_input) > 0.01:
+        var speed := 1.0 if forward_input > 0.0 else -1.0
+        _play_animation_action(&"walkB", speed, speed < 0.0)
+    elif absf(turn_input) > 0.01:
+        _play_animation_action(&"turn")
+    else:
+        _play_animation_action(&"stand")
+
+
+func _start_animation_sequence(actions: Array[StringName]) -> void:
+    if _animation_controller == null or actions.is_empty():
+        return
+
+    _animation_sequence = actions.duplicate()
+    _animation_sequence_index = 0
+    if not _play_animation_action(_animation_sequence[_animation_sequence_index], 1.0, false, true):
+        _clear_animation_sequence()
+
+
+func _advance_animation_sequence() -> bool:
+    if _animation_sequence_index < 0:
+        return false
+
+    if bool(_animation_controller.call("is_playing")):
+        return true
+
+    _animation_sequence_index += 1
+    if _animation_sequence_index >= _animation_sequence.size():
+        _clear_animation_sequence()
+        return false
+
+    if not _play_animation_action(_animation_sequence[_animation_sequence_index]):
+        _clear_animation_sequence()
+        return false
+    return true
+
+
+func _play_animation_action(action: StringName, custom_speed: float = 1.0, from_end: bool = false, restart: bool = false) -> bool:
+    if _animation_controller == null:
+        return false
+    return bool(_animation_controller.call("play_action", action, -1.0, custom_speed, from_end, restart))
+
+
+func _clear_animation_sequence() -> void:
+    _animation_sequence.clear()
+    _animation_sequence_index = -1
 
 
 func _make_fallback_visual() -> MeshInstance3D:

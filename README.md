@@ -14,6 +14,19 @@ Prototype music autoplay is disabled by default so headless validation exits cle
 Set `sammy/runtime/autoplay_music` to `true` when you want the prototype scene to start the copied OGG track automatically.
 The project renders to a 1280x960 internal viewport and scales that image to the game window while preserving the 4:3 aspect ratio.
 
+## Controls
+
+Normal gameplay controls are mapped from the original WDL scripts:
+
+- Arrow keys: move forward/back and turn left/right.
+- Ctrl / joy button 1: jump.
+- Space / joy button 2: fire wasps; projectile spawning is still a placeholder until the weapon/ammo pass.
+- Shift / joy button 3: boost.
+- Alt / joy button 4: quick 180 degree turn.
+- C: change camera mode.
+- R: restart the current level.
+- Esc, Enter, left mouse, and joy button 1 are reserved for menu cancel/confirm/accept flows.
+
 ## Validation
 
 Run an import pass after copying new assets:

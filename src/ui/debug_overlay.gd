@@ -29,7 +29,7 @@ func _physics_process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-    if event.is_action_pressed("debug_toggle"):
+    if InputMap.has_action("debug_toggle") and event.is_action_pressed("debug_toggle"):
         visible = not visible
 
 

@@ -5,11 +5,11 @@ const PLAYER_MOVEMENT_CONFIG_SCRIPT := preload("res://src/resources/player_movem
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
-@export var camera_path: NodePath
 
 @onready var visual_pivot: Node3D = $VisualPivot
 
 var _model_instance: Node3D
+var _fire_requests: int = 0
 
 
 func _ready() -> void:
@@ -18,11 +18,13 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-    var input_vector := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-    var world_direction := _camera_relative_direction(input_vector)
-    var target_velocity: Vector3 = world_direction * movement_config.walk_speed
+    _apply_turn(delta)
+
+    var forward_input: float = Input.get_axis("move_back", "move_forward")
+    var boosting: bool = forward_input > 0.0 and Input.is_action_pressed("boost")
+    var target_velocity: Vector3 = get_facing_direction() * forward_input * _current_walk_speed(boosting)
     var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
-    var rate: float = movement_config.acceleration if world_direction.length_squared() > 0.0 else movement_config.deceleration
+    var rate: float = movement_config.acceleration if absf(forward_input) > 0.0 else movement_config.deceleration
     horizontal_velocity = horizontal_velocity.move_toward(target_velocity, rate * delta)
 
     velocity.x = horizontal_velocity.x
@@ -34,8 +36,13 @@ func _physics_process(delta: float) -> void:
     else:
         velocity.y -= movement_config.gravity * delta
 
+    if Input.is_action_just_pressed("quick_turn") and is_on_floor():
+        apply_quick_turn()
+
+    if Input.is_action_just_pressed("fire"):
+        fire_wasp()
+
     move_and_slide()
-    _face_motion(horizontal_velocity)
 
 
 func _spawn_model() -> void:
@@ -59,32 +66,44 @@ func _spawn_model() -> void:
     visual_pivot.add_child(_model_instance)
 
 
-func _camera_relative_direction(input_vector: Vector2) -> Vector3:
-    if input_vector.length_squared() == 0.0:
-        return Vector3.ZERO
-
-    var camera := get_node_or_null(camera_path) as Camera3D
-    if camera == null:
-        camera = get_viewport().get_camera_3d()
-
-    if camera == null:
-        return Vector3(input_vector.x, 0.0, input_vector.y).normalized()
-
-    var forward := -camera.global_transform.basis.z
+func get_facing_direction() -> Vector3:
+    var forward := -global_transform.basis.z
     forward.y = 0.0
-    forward = forward.normalized()
-
-    var right := camera.global_transform.basis.x
-    right.y = 0.0
-    right = right.normalized()
-
-    return (right * input_vector.x + forward * -input_vector.y).normalized()
+    return forward.normalized()
 
 
-func _face_motion(horizontal_velocity: Vector3) -> void:
-    if horizontal_velocity.length_squared() < 0.01:
+func get_fire_request_count() -> int:
+    return _fire_requests
+
+
+func apply_quick_turn() -> void:
+    rotation.y = wrapf(rotation.y + PI, -PI, PI)
+
+
+func fire_wasp() -> void:
+    _fire_requests += 1
+
+
+func _apply_turn(delta: float) -> void:
+    var turn_input: float = Input.get_axis("turn_left", "turn_right")
+    if is_zero_approx(turn_input):
         return
-    visual_pivot.look_at(global_position + horizontal_velocity.normalized(), Vector3.UP)
+
+    var forward_input: float = Input.get_axis("move_back", "move_forward")
+    var turn_speed: float = movement_config.turn_speed_degrees
+    if absf(forward_input) > 0.0:
+        turn_speed = movement_config.moving_turn_speed_degrees
+    if Input.is_action_pressed("boost"):
+        turn_speed *= movement_config.boost_turn_multiplier
+
+    rotation.y -= deg_to_rad(turn_speed) * turn_input * delta
+
+
+func _current_walk_speed(boosting: bool) -> float:
+    var speed: float = movement_config.walk_speed
+    if boosting:
+        speed *= movement_config.boost_speed_multiplier
+    return speed
 
 
 func _make_fallback_visual() -> MeshInstance3D:

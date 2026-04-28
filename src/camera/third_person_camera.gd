@@ -9,6 +9,7 @@ class_name ThirdPersonCamera
 @export var smoothing: float = 8.0
 
 var _target: Node3D
+var _camera_mode_index: int = 0
 
 
 func _ready() -> void:
@@ -23,7 +24,7 @@ func _physics_process(delta: float) -> void:
     if _target == null:
         return
 
-    var desired := _target.global_position + Vector3(0.0, follow_height, follow_distance)
+    var desired := _target.global_position + _get_follow_offset()
     global_position = global_position.lerp(desired, minf(1.0, smoothing * delta))
     look_at(_target.global_position + Vector3(0.0, look_height, 0.0), Vector3.UP)
 
@@ -33,13 +34,18 @@ func reset_to_target() -> void:
         _resolve_target()
     if _target == null:
         return
-    global_position = _target.global_position + Vector3(0.0, follow_height, follow_distance)
+    global_position = _target.global_position + _get_follow_offset()
     look_at(_target.global_position + Vector3(0.0, look_height, 0.0), Vector3.UP)
 
 
+func cycle_camera_mode() -> void:
+    _camera_mode_index = (_camera_mode_index + 1) % 4
+    reset_to_target()
+
+
 func _unhandled_input(event: InputEvent) -> void:
-    if event.is_action_pressed("camera_reset"):
-        reset_to_target()
+    if event.is_action_pressed("camera_change"):
+        cycle_camera_mode()
 
 
 func _resolve_target() -> void:
@@ -47,3 +53,37 @@ func _resolve_target() -> void:
         _target = get_node_or_null(target_path) as Node3D
     if _target == null:
         _target = get_tree().get_first_node_in_group("player") as Node3D
+
+
+func _get_follow_offset() -> Vector3:
+    var local_offset := _get_camera_mode_offset()
+    if _target == null:
+        return local_offset
+
+    var basis := _target.global_transform.basis
+    var right := basis.x
+    right.y = 0.0
+    right = right.normalized()
+
+    var back := basis.z
+    back.y = 0.0
+    back = back.normalized()
+
+    if right.length_squared() == 0.0:
+        right = Vector3.RIGHT
+    if back.length_squared() == 0.0:
+        back = Vector3.BACK
+
+    return right * local_offset.x + Vector3.UP * local_offset.y + back * local_offset.z
+
+
+func _get_camera_mode_offset() -> Vector3:
+    match _camera_mode_index:
+        1:
+            return Vector3(0.0, follow_height + 1.25, follow_distance + 1.75)
+        2:
+            return Vector3(2.25, follow_height, follow_distance)
+        3:
+            return Vector3(-2.25, follow_height, follow_distance)
+        _:
+            return Vector3(0.0, follow_height, follow_distance)

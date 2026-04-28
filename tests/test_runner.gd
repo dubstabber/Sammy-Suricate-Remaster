@@ -48,8 +48,38 @@ func _ensure_assets_service() -> Node:
 
 
 func _test_input_actions() -> void:
-    for action in ["move_forward", "move_back", "move_left", "move_right", "jump", "interact", "camera_reset", "debug_toggle"]:
+    for action in ["move_forward", "move_back", "turn_left", "turn_right", "jump", "fire", "boost", "quick_turn", "camera_change", "restart_level", "menu_cancel", "menu_confirm", "menu_accept"]:
         _expect(InputMap.has_action(action), "Missing input action: %s" % action)
+
+    for removed_action in ["move_left", "move_right", "interact", "camera_reset", "debug_toggle"]:
+        _expect(not InputMap.has_action(removed_action), "Obsolete placeholder input action should be removed: %s" % removed_action)
+
+    _expect(_action_has_key("move_forward", KEY_NONE, KEY_UP), "Move forward should use the Up arrow.")
+    _expect(_action_has_key("move_back", KEY_NONE, KEY_DOWN), "Move back should use the Down arrow.")
+    _expect(_action_has_key("turn_left", KEY_NONE, KEY_LEFT), "Turn left should use the Left arrow.")
+    _expect(_action_has_key("turn_right", KEY_NONE, KEY_RIGHT), "Turn right should use the Right arrow.")
+    _expect(_action_has_key("jump", KEY_NONE, KEY_CTRL), "Jump should use Ctrl.")
+    _expect(_action_has_key("fire", KEY_SPACE, KEY_NONE), "Fire should use Space.")
+    _expect(_action_has_key("boost", KEY_NONE, KEY_SHIFT), "Boost should use Shift.")
+    _expect(_action_has_key("quick_turn", KEY_NONE, KEY_ALT), "Quick turn should use Alt.")
+    _expect(_action_has_key("camera_change", KEY_C, KEY_NONE), "Camera change should use C.")
+    _expect(_action_has_key("restart_level", KEY_R, KEY_NONE), "Restart should use R.")
+    _expect(_action_has_key("menu_cancel", KEY_NONE, KEY_ESCAPE), "Menu cancel should use Esc.")
+    _expect(_action_has_key("menu_confirm", KEY_NONE, KEY_ENTER), "Menu confirm should use Enter.")
+
+    _expect(_action_has_joy_button("move_forward", JOY_BUTTON_DPAD_UP), "Move forward should support D-pad up.")
+    _expect(_action_has_joy_button("move_back", JOY_BUTTON_DPAD_DOWN), "Move back should support D-pad down.")
+    _expect(_action_has_joy_button("turn_left", JOY_BUTTON_DPAD_LEFT), "Turn left should support D-pad left.")
+    _expect(_action_has_joy_button("turn_right", JOY_BUTTON_DPAD_RIGHT), "Turn right should support D-pad right.")
+    _expect(_action_has_joy_motion("move_forward", JOY_AXIS_LEFT_Y, -1.0), "Move forward should support left-stick up.")
+    _expect(_action_has_joy_motion("move_back", JOY_AXIS_LEFT_Y, 1.0), "Move back should support left-stick down.")
+    _expect(_action_has_joy_motion("turn_left", JOY_AXIS_LEFT_X, -1.0), "Turn left should support left-stick left.")
+    _expect(_action_has_joy_motion("turn_right", JOY_AXIS_LEFT_X, 1.0), "Turn right should support left-stick right.")
+    _expect(_action_has_joy_button("jump", JOY_BUTTON_A), "Jump should support joy button 1.")
+    _expect(_action_has_joy_button("fire", JOY_BUTTON_B), "Fire should support joy button 2.")
+    _expect(_action_has_joy_button("boost", JOY_BUTTON_X), "Boost should support joy button 3.")
+    _expect(_action_has_joy_button("quick_turn", JOY_BUTTON_Y), "Quick turn should support joy button 4.")
+    _expect(_action_has_mouse_button("menu_accept", MOUSE_BUTTON_LEFT), "Menu accept should support left mouse click.")
 
 
 func _test_display_settings() -> void:
@@ -117,8 +147,20 @@ func _test_player_scene() -> void:
     root.add_child(player)
     await process_frame
     _expect(player is CharacterBody3D, "Player scene root must be CharacterBody3D.")
+    _expect(player.get_script() != null, "Player scene script failed to load.")
+    _expect(player.has_method("get_facing_direction"), "Player controller did not expose tank-control helpers.")
     _expect(player.get_node_or_null("CollisionShape3D") != null, "Player scene is missing collision shape.")
     _expect(player.get_node_or_null("VisualPivot") != null, "Player scene is missing visual pivot.")
+    if player.has_method("get_facing_direction"):
+        _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, -1.0)), "Player should move along its facing direction by default.")
+        player.call("apply_quick_turn")
+        _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, 1.0)), "Quick turn should rotate Sammy 180 degrees.")
+        var fire_requests := int(player.call("get_fire_request_count"))
+        player.call("fire_wasp")
+        _expect(int(player.call("get_fire_request_count")) == fire_requests + 1, "Fire action hook should record a wasp-fire request placeholder.")
+        var movement_config: Resource = player.get("movement_config")
+        _expect(is_equal_approx(float(movement_config.get("boost_speed_multiplier")), 2.0), "Boost should expose the original acceleration control hook.")
+        _expect(is_equal_approx(float(movement_config.get("boost_turn_multiplier")), 0.75), "Boost should reduce turn input like the original scripts.")
     player.queue_free()
     await process_frame
 
@@ -135,6 +177,9 @@ func _test_prototype_world() -> void:
     if camera != null:
         _expect(is_equal_approx(camera.follow_distance, 4.25), "Prototype camera should use original-informed close follow distance.")
         _expect(is_equal_approx(camera.fov, 60.0), "Prototype camera should match original CameraArcVoulu.")
+        var camera_position: Vector3 = camera.global_position
+        camera.call("cycle_camera_mode")
+        _expect(not camera.global_position.is_equal_approx(camera_position), "Camera change should cycle the prototype camera offset.")
     _expect(world.get_node_or_null("Sun") != null, "Prototype world did not create lighting.")
     _expect(world.has_meta("wmb_manifest_counts"), "Prototype world did not read WMB manifest metadata.")
     var audio := root.get_node_or_null("Audio")
@@ -147,3 +192,39 @@ func _test_prototype_world() -> void:
 func _expect(condition: bool, message: String) -> void:
     if not condition:
         _failures.append(message)
+
+
+func _action_has_key(action: StringName, keycode: int, physical_keycode: int) -> bool:
+    for event in InputMap.action_get_events(action):
+        var key_event := event as InputEventKey
+        if key_event == null:
+            continue
+        if keycode != KEY_NONE and key_event.keycode == keycode:
+            return true
+        if physical_keycode != KEY_NONE and key_event.physical_keycode == physical_keycode:
+            return true
+    return false
+
+
+func _action_has_joy_button(action: StringName, button_index: int) -> bool:
+    for event in InputMap.action_get_events(action):
+        var joy_event := event as InputEventJoypadButton
+        if joy_event != null and joy_event.button_index == button_index:
+            return true
+    return false
+
+
+func _action_has_joy_motion(action: StringName, axis: int, axis_value: float) -> bool:
+    for event in InputMap.action_get_events(action):
+        var joy_event := event as InputEventJoypadMotion
+        if joy_event != null and joy_event.axis == axis and is_equal_approx(joy_event.axis_value, axis_value):
+            return true
+    return false
+
+
+func _action_has_mouse_button(action: StringName, button_index: int) -> bool:
+    for event in InputMap.action_get_events(action):
+        var mouse_event := event as InputEventMouseButton
+        if mouse_event != null and mouse_event.button_index == button_index:
+            return true
+    return false

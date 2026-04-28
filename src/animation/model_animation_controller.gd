@@ -2,7 +2,7 @@ extends Node
 class_name ModelAnimationController
 
 const ACTION_LIBRARY_NAME := "actions"
-const DEFAULT_BLEND_SECONDS := 0.08
+const DEFAULT_BLEND_SECONDS := 0.18
 
 @export var animation_library_path: String = ""
 @export var default_action: String = "stand"

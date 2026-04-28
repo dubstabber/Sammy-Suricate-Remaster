@@ -96,6 +96,10 @@ func get_walk_animation_speed_for_horizontal_speed(horizontal_speed: float) -> f
     return _gameplay_walk_animation_speed(horizontal_speed)
 
 
+func get_animation_blend_seconds_for_transition(from_action: StringName, to_action: StringName) -> float:
+    return _animation_blend_seconds_for_transition(from_action, to_action)
+
+
 func apply_quick_turn() -> void:
     rotation.y = wrapf(rotation.y + PI, -PI, PI)
 
@@ -144,6 +148,7 @@ func _configure_model_animation(assets: Node) -> void:
 
     _animation_controller = MODEL_ANIMATION_CONTROLLER_SCRIPT.new()
     _animation_controller.name = "ModelAnimationController"
+    _animation_controller.set("default_blend_seconds", movement_config.animation_blend_seconds)
     _model_instance.add_child(_animation_controller)
     var default_animation: String = assets.get_model_default_animation(model_asset_id)
     _animation_controller.call("configure", _model_instance, library_path, default_animation)
@@ -164,17 +169,18 @@ func _update_model_animation(forward_input: float, turn_input: float, jumped: bo
     if _animation_sequence_index >= 0:
         return
 
+    var previous_action := _current_animation_action()
     if not on_floor:
-        _play_animation_action(&"sautB")
+        _play_animation_action(&"sautB", 1.0, false, false, _animation_blend_seconds_for_transition(previous_action, &"sautB"))
     elif absf(forward_input) > 0.01:
         var speed := _gameplay_walk_animation_speed(horizontal_speed)
         if forward_input < 0.0:
             speed *= -1.0
-        _play_animation_action(&"walkB", speed, speed < 0.0)
+        _play_animation_action(&"walkB", speed, speed < 0.0, false, _animation_blend_seconds_for_transition(previous_action, &"walkB"))
     elif absf(turn_input) > 0.01:
-        _play_animation_action(&"turn")
+        _play_animation_action(&"turn", 1.0, false, false, _animation_blend_seconds_for_transition(previous_action, &"turn"))
     else:
-        _play_animation_action(&"stand")
+        _play_animation_action(&"stand", 1.0, false, false, _animation_blend_seconds_for_transition(previous_action, &"stand"))
 
 
 func _start_animation_sequence(actions: Array[StringName]) -> void:
@@ -205,10 +211,24 @@ func _advance_animation_sequence() -> bool:
     return true
 
 
-func _play_animation_action(action: StringName, custom_speed: float = 1.0, from_end: bool = false, restart: bool = false) -> bool:
+func _play_animation_action(action: StringName, custom_speed: float = 1.0, from_end: bool = false, restart: bool = false, blend_seconds: float = -1.0) -> bool:
     if _animation_controller == null:
         return false
-    return bool(_animation_controller.call("play_action", action, -1.0, custom_speed, from_end, restart))
+    return bool(_animation_controller.call("play_action", action, blend_seconds, custom_speed, from_end, restart))
+
+
+func _current_animation_action() -> StringName:
+    if _animation_controller == null:
+        return &""
+    return _animation_controller.call("get_current_action") as StringName
+
+
+func _animation_blend_seconds_for_transition(from_action: StringName, to_action: StringName) -> float:
+    if from_action == to_action or String(from_action).is_empty():
+        return 0.0
+    if from_action == &"walkB" and to_action == &"stand":
+        return movement_config.walk_stop_blend_seconds
+    return movement_config.animation_blend_seconds
 
 
 func _clear_animation_sequence() -> void:

@@ -51,7 +51,7 @@ func _physics_process(delta: float) -> void:
         fire_wasp()
 
     move_and_slide()
-    _update_model_animation(forward_input, turn_input, jumped, was_on_floor, is_on_floor())
+    _update_model_animation(forward_input, turn_input, jumped, was_on_floor, is_on_floor(), horizontal_velocity.length())
 
 
 func _spawn_model() -> void:
@@ -92,6 +92,10 @@ func get_animation_controller() -> Node:
     return _animation_controller
 
 
+func get_walk_animation_speed_for_horizontal_speed(horizontal_speed: float) -> float:
+    return _gameplay_walk_animation_speed(horizontal_speed)
+
+
 func apply_quick_turn() -> void:
     rotation.y = wrapf(rotation.y + PI, -PI, PI)
 
@@ -123,6 +127,13 @@ func _current_walk_speed(boosting: bool) -> float:
     return speed
 
 
+func _gameplay_walk_animation_speed(horizontal_speed: float) -> float:
+    var speed_ratio := 1.0
+    if movement_config.walk_speed > 0.0:
+        speed_ratio = maxf(horizontal_speed / movement_config.walk_speed, movement_config.minimum_walk_animation_speed)
+    return speed_ratio * movement_config.walk_animation_speed_multiplier
+
+
 func _configure_model_animation(assets: Node) -> void:
     if assets == null:
         return
@@ -138,7 +149,7 @@ func _configure_model_animation(assets: Node) -> void:
     _animation_controller.call("configure", _model_instance, library_path, default_animation)
 
 
-func _update_model_animation(forward_input: float, turn_input: float, jumped: bool, was_on_floor: bool, on_floor: bool) -> void:
+func _update_model_animation(forward_input: float, turn_input: float, jumped: bool, was_on_floor: bool, on_floor: bool, horizontal_speed: float) -> void:
     if _animation_controller == null:
         return
 
@@ -156,7 +167,9 @@ func _update_model_animation(forward_input: float, turn_input: float, jumped: bo
     if not on_floor:
         _play_animation_action(&"sautB")
     elif absf(forward_input) > 0.01:
-        var speed := 1.0 if forward_input > 0.0 else -1.0
+        var speed := _gameplay_walk_animation_speed(horizontal_speed)
+        if forward_input < 0.0:
+            speed *= -1.0
         _play_animation_action(&"walkB", speed, speed < 0.0)
     elif absf(turn_input) > 0.01:
         _play_animation_action(&"turn")

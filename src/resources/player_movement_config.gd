@@ -10,4 +10,6 @@ class_name PlayerMovementConfig
 @export var moving_turn_speed_degrees: float = 126.0
 @export var boost_speed_multiplier: float = 2.0
 @export var boost_turn_multiplier: float = 0.75
+@export var walk_animation_speed_multiplier: float = 1.75
+@export var minimum_walk_animation_speed: float = 0.25
 @export var visual_scale_multiplier: float = 1.0

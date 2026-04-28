@@ -234,6 +234,12 @@ func _test_player_scene() -> void:
             _expect(bool(animation_controller.call("has_action", "tirA")), "Player animation controller should expose original tirA.")
             _expect(not String(animation_controller.call("get_current_action")).is_empty(), "Player animation controller should select an initial action.")
             _expect(bool(animation_controller.call("play_action", "walkB")), "Player animation controller should play generated walkB.")
+            var animation_player := animation_controller.get("animation_player") as AnimationPlayer
+            if animation_player != null:
+                animation_player.seek(0.25, true)
+                _expect(bool(animation_controller.call("play_action", "walkB", -1.0, 2.0)), "Player animation controller should update active walk speed.")
+                _expect(animation_player.current_animation_position >= 0.24, "Changing active walk speed should not restart the walk cycle.")
+                _expect(is_equal_approx(animation_player.speed_scale, 2.0), "Changing active walk speed should update AnimationPlayer speed scale.")
     if player.has_method("get_facing_direction"):
         _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, -1.0)), "Player should move along its facing direction by default.")
         player.call("apply_quick_turn")
@@ -247,6 +253,14 @@ func _test_player_scene() -> void:
         var movement_config: Resource = player.get("movement_config")
         _expect(is_equal_approx(float(movement_config.get("boost_speed_multiplier")), 2.0), "Boost should expose the original acceleration control hook.")
         _expect(is_equal_approx(float(movement_config.get("boost_turn_multiplier")), 0.75), "Boost should reduce turn input like the original scripts.")
+        _expect(is_equal_approx(float(movement_config.get("walk_animation_speed_multiplier")), 1.75), "Gameplay walk animation should use the faster original in-game playback rate.")
+        _expect(player.has_method("get_walk_animation_speed_for_horizontal_speed"), "Player controller should expose gameplay walk animation speed for validation.")
+        if player.has_method("get_walk_animation_speed_for_horizontal_speed"):
+            var walk_speed := float(movement_config.get("walk_speed"))
+            var walk_animation_speed := float(player.call("get_walk_animation_speed_for_horizontal_speed", walk_speed))
+            var boost_animation_speed := float(player.call("get_walk_animation_speed_for_horizontal_speed", walk_speed * float(movement_config.get("boost_speed_multiplier"))))
+            _expect(is_equal_approx(walk_animation_speed, 1.75), "Gameplay walking should play the walk cycle faster than menu/cinematic playback.")
+            _expect(is_equal_approx(boost_animation_speed, 3.5), "Boost movement should also advance the walk cycle proportionally to horizontal speed.")
     player.queue_free()
     await process_frame
 

@@ -51,11 +51,16 @@ func play_action(action: StringName, blend: float = -1.0, custom_speed: float = 
 
     if _current_action == action and is_equal_approx(_current_speed, custom_speed) and not restart:
         return true
+    if _current_action == action and not restart:
+        _current_speed = custom_speed
+        animation_player.speed_scale = custom_speed
+        return true
 
     _current_action = action
     _current_speed = custom_speed
     var resolved_blend := default_blend_seconds if blend < 0.0 else blend
-    animation_player.play(animation_name, resolved_blend, custom_speed, from_end)
+    animation_player.speed_scale = custom_speed
+    animation_player.play(animation_name, resolved_blend, 1.0, from_end)
     return true
 
 

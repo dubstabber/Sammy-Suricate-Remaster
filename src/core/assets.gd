@@ -333,7 +333,7 @@ func _apply_texture_to_meshes(node: Node, texture: Texture2D, use_alpha: bool = 
                 material = StandardMaterial3D.new()
             material.albedo_texture = texture
             if use_alpha:
-                material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+                material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
                 material.cull_mode = BaseMaterial3D.CULL_DISABLED
             mesh_instance.set_surface_override_material(surface_index, material)
 

@@ -45,7 +45,7 @@ func _run() -> void:
     _test_display_settings()
     _test_collision_layer_names()
     _test_asset_catalog(assets)
-    await _test_editor_model_previews()
+    await _test_editor_model_previews(assets)
     _test_animation_libraries()
     _test_model_skin_alpha()
     _test_wmb_manifest()
@@ -170,12 +170,14 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.wasp_kaput") != null, "Unable to load wasp impact sound.")
 
 
-func _test_editor_model_previews() -> void:
+func _test_editor_model_previews(assets: Node) -> void:
     _expect(FileAccess.file_exists(EDITOR_PREVIEW_SCRIPT_PATH), "Editor model preview helper script should exist.")
     _expect_scene_editor_preview(PLAYER_SCENE_PATH, "VisualPivot/EditorPreview", "model.sammy.animated", 0.0, "")
     _expect_scene_editor_preview(WASP_PICKUP_SCENE_PATH, "EditorPreview", "model.wasp1", 0.05, WASP_TYPE_2_PATH, NodePath(".."))
     _expect_scene_editor_preview(WASP_PROJECTILE_SCENE_PATH, "EditorPreview", "model.wasp1", 0.0, WASP_TYPE_2_PATH)
     _expect_scene_editor_preview(BOOST_PICKUP_SCENE_PATH, "EditorPreview", "model.boost", 0.035, "")
+    _expect_editor_preview_forces_double_sided_materials(assets)
+    await _expect_editor_preview_applies_static_pose(assets)
 
     await _expect_editor_preview_removed_at_runtime(PLAYER_SCENE_PATH, "VisualPivot/EditorPreview")
     await _expect_editor_preview_removed_at_runtime(WASP_PICKUP_SCENE_PATH, "EditorPreview")
@@ -197,12 +199,60 @@ func _expect_scene_editor_preview(scene_path: String, preview_path: String, expe
         _expect(preview_script != null and preview_script.resource_path == EDITOR_PREVIEW_SCRIPT_PATH, "Editor preview should use the shared preview helper: %s/%s" % [scene_path, preview_path])
         _expect(String(preview.get("asset_id")) == expected_asset_id, "Editor preview should target the expected asset: %s" % scene_path)
         _expect(is_equal_approx(float(preview.get("visual_ground_clearance")), expected_ground_clearance), "Editor preview should preserve its configured ground clearance: %s" % scene_path)
+        _expect(bool(preview.get("force_double_sided")), "Editor preview should render extracted one-sided meshes double-sided: %s" % scene_path)
+        _expect(String(preview.get("static_pose_action")).is_empty(), "Editor preview should default to the asset catalog static pose action: %s" % scene_path)
         if not expected_wasp_type_path.is_empty():
             var preview_wasp_type := preview.get("wasp_type") as Resource
             _expect(preview_wasp_type != null and preview_wasp_type.resource_path == expected_wasp_type_path, "Wasp editor preview should expose the fallback wasp type: %s" % scene_path)
         if not expected_wasp_source_path.is_empty():
             _expect(preview.get("wasp_type_source_path") == expected_wasp_source_path, "Wasp pickup preview should follow the parent wasp type override.")
     instance.free()
+
+
+func _expect_editor_preview_forces_double_sided_materials(assets: Node) -> void:
+    var preview_script: GDScript = load(EDITOR_PREVIEW_SCRIPT_PATH)
+    _expect(assets != null and preview_script != null, "Editor preview double-sided material test needs the asset service and preview helper.")
+    if assets == null or preview_script == null:
+        return
+
+    var model_root := Node3D.new()
+    var mesh_instance := MeshInstance3D.new()
+    var mesh := BoxMesh.new()
+    var material := StandardMaterial3D.new()
+    material.cull_mode = BaseMaterial3D.CULL_BACK
+    material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    mesh.material = material
+    mesh_instance.mesh = mesh
+    model_root.add_child(mesh_instance)
+    var preview_helper: Node = preview_script.new()
+    preview_helper.call("_force_preview_materials_double_sided", model_root)
+    _expect(_model_materials_use_cull_mode(model_root, BaseMaterial3D.CULL_DISABLED), "Editor previews should disable culling so flipped or one-sided extracted faces remain visible from above and below.")
+    _expect(_model_uses_transparency_mode(model_root, BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS), "Editor previews should use alpha depth pre-pass for transparent imported skins so wasp bodies do not sort through themselves.")
+    model_root.queue_free()
+    preview_helper.queue_free()
+
+
+func _expect_editor_preview_applies_static_pose(assets: Node) -> void:
+    var wasp_scene := assets.load_asset("model.wasp1") as PackedScene
+    var preview_script: GDScript = load(EDITOR_PREVIEW_SCRIPT_PATH)
+    _expect(wasp_scene != null and preview_script != null, "Editor static-pose test needs the wasp model and preview helper.")
+    if wasp_scene == null or preview_script == null:
+        return
+
+    var wasp_model := wasp_scene.instantiate() as Node3D
+    var preview_helper: Node = preview_script.new()
+    var wasp_type := load(WASP_TYPE_2_PATH) as Resource
+    preview_helper.set("asset_id", "model.wasp1")
+    preview_helper.set("_preview_instance", wasp_model)
+    root.add_child(wasp_model)
+    preview_helper.call("_apply_wasp_skin", assets, wasp_type)
+    preview_helper.call("_enforce_preview_state", assets)
+    _expect(is_equal_approx(_model_blend_shape_value(wasp_model, "stand01"), 1.0), "Editor previews should freeze the first default stand frame instead of the invalid all-zero morph base pose.")
+    _expect(is_equal_approx(_model_blend_shape_value(wasp_model, "walk01"), 0.0), "Editor static stand pose should not accidentally apply walk frames.")
+    _expect(_model_uses_transparency_mode(wasp_model, BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS), "Wasp editor previews should stabilize the real skin material with alpha depth pre-pass.")
+    wasp_model.queue_free()
+    preview_helper.queue_free()
+    await process_frame
 
 
 func _expect_editor_preview_removed_at_runtime(scene_path: String, preview_path: String) -> void:
@@ -408,7 +458,7 @@ func _test_wasp_resources(assets: Node) -> void:
         if wasp_scene != null:
             var wasp_model := wasp_scene.instantiate() as Node3D
             _expect(bool(assets.call("apply_wasp_skin", wasp_model, 1)), "Applying a wasp skin should succeed for transparent material validation.")
-            _expect(_model_uses_transparent_material(wasp_model), "Applying a wasp skin should enable material alpha transparency.")
+            _expect(_model_uses_transparency_mode(wasp_model, BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS), "Runtime wasp skins should use alpha depth pre-pass so transparent body surfaces sort consistently.")
             wasp_model.queue_free()
     var type_3: Resource = load(WASP_TYPE_3_PATH)
     _expect(type_3 != null and is_equal_approx(float(type_3.get("multi_shot_interval_seconds")), 0.125), "Type 3 should preserve the original waitt 2 spacing between triple shots.")
@@ -1165,16 +1215,64 @@ func _model_uses_texture(node: Node, texture: Texture2D) -> bool:
     return false
 
 
-func _model_uses_transparent_material(node: Node) -> bool:
+func _model_uses_transparency_mode(node: Node, transparency_mode: int) -> bool:
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            var material := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
-            if material != null and material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA:
+            var material := mesh_instance.get_active_material(surface_index) as BaseMaterial3D
+            if material != null and material.transparency == transparency_mode:
                 return true
 
     for child in node.get_children():
-        if _model_uses_transparent_material(child):
+        if _model_uses_transparency_mode(child, transparency_mode):
+            return true
+    return false
+
+
+func _model_materials_use_cull_mode(node: Node, expected_cull_mode: int) -> bool:
+    var found_material := false
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            var material := mesh_instance.get_active_material(surface_index) as BaseMaterial3D
+            if material == null:
+                continue
+            found_material = true
+            if material.cull_mode != expected_cull_mode:
+                return false
+
+    for child in node.get_children():
+        var child_result := _model_materials_use_cull_mode(child, expected_cull_mode)
+        if child_result:
+            found_material = true
+        elif _model_has_base_material(child):
+            return false
+    return found_material
+
+
+func _model_blend_shape_value(node: Node, shape_name: String) -> float:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null:
+        var shape_index := mesh_instance.find_blend_shape_by_name(shape_name)
+        if shape_index >= 0:
+            return mesh_instance.get_blend_shape_value(shape_index)
+
+    for child in node.get_children():
+        var value := _model_blend_shape_value(child, shape_name)
+        if value >= 0.0:
+            return value
+    return -1.0
+
+
+func _model_has_base_material(node: Node) -> bool:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            if mesh_instance.get_active_material(surface_index) is BaseMaterial3D:
+                return true
+
+    for child in node.get_children():
+        if _model_has_base_material(child):
             return true
     return false
 

@@ -292,7 +292,7 @@ func _build_clip_animation(
         var target_track := animation.add_track(int(source_track["type"]))
         animation.track_set_path(target_track, source_track["path"] as NodePath)
         animation.track_set_interpolation_type(target_track, Animation.INTERPOLATION_LINEAR)
-        _insert_track_keys(animation, target_track, String(source_track["frame_name"]), frame_names, start_index, end_index)
+        _insert_track_keys(animation, target_track, String(source_track["frame_name"]), frame_names, start_index, end_index, looping)
 
     return animation
 
@@ -303,14 +303,24 @@ func _insert_track_keys(
         track_frame_name: String,
         frame_names: Array[String],
         start_index: int,
-        end_index: int
+        end_index: int,
+        looping: bool
 ) -> void:
     var frame_count := end_index - start_index + 1
-    var frame_duration := animation.length / maxf(float(frame_count - 1), 1.0)
+    var frame_duration := _frame_duration_for_clip(animation.length, frame_count, looping)
     for frame_index in range(start_index, end_index + 1):
         var local_time := float(frame_index - start_index) * frame_duration
         var value := 1.0 if frame_names[frame_index] == track_frame_name else 0.0
         animation.track_insert_key(target_track, local_time, value)
+    if looping:
+        var wrap_value := 1.0 if frame_names[start_index] == track_frame_name else 0.0
+        animation.track_insert_key(target_track, animation.length, wrap_value)
+
+
+func _frame_duration_for_clip(animation_length: float, frame_count: int, looping: bool) -> float:
+    if looping:
+        return animation_length / maxf(float(frame_count), 1.0)
+    return animation_length / maxf(float(frame_count - 1), 1.0)
 
 
 func _resolve_clip_length(

@@ -141,6 +141,8 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
     _expect(assets.has_asset("model.wasp1"), "Asset catalog is missing wasp projectile model.")
     _expect(assets.load_asset("model.wasp1") != null, "Unable to load wasp projectile model.")
+    _expect(assets.has_asset("sfx.error"), "Asset catalog is missing original rejected-action sound.")
+    _expect(assets.load_asset("sfx.error") != null, "Unable to load original rejected-action sound.")
     _expect(assets.has_asset("sfx.takewasp"), "Asset catalog is missing original wasp pickup chime.")
     _expect(assets.load_asset("sfx.takewasp") != null, "Unable to load original wasp pickup chime.")
     _expect(assets.has_asset("sfx.wasp_kaput"), "Asset catalog is missing wasp impact sound.")
@@ -186,7 +188,30 @@ func _expect_animation_library(path: String, expected_clips: Array[String], loop
             _expect(animation.track_get_interpolation_type(0) == Animation.INTERPOLATION_LINEAR, "Generated clip should smoothly interpolate morph frames: %s/%s" % [path, clip_name])
             if looping_clips.has(clip_name):
                 _expect(animation.loop_mode == Animation.LOOP_LINEAR, "Generated clip should loop: %s/%s" % [path, clip_name])
+                _expect_loop_wrap_pose(animation, path, clip_name)
     _expect(not library.has_animation("toto"), "Placeholder toto ranges should not become gameplay clips: %s" % path)
+
+
+func _expect_loop_wrap_pose(animation: Animation, path: String, clip_name: String) -> void:
+    if animation.get_track_count() == 0:
+        return
+
+    var first_last_mismatch_count := 0
+    for track_index in animation.get_track_count():
+        var key_count := animation.track_get_key_count(track_index)
+        _expect(key_count >= 2, "Looping clip should have enough keys to wrap smoothly: %s/%s" % [path, clip_name])
+        if key_count < 2:
+            continue
+
+        var first_key_value = animation.track_get_key_value(track_index, 0)
+        var last_key_index := key_count - 1
+        var last_key_time := animation.track_get_key_time(track_index, last_key_index)
+        var last_key_value = animation.track_get_key_value(track_index, last_key_index)
+        _expect(absf(last_key_time - animation.length) < 0.001, "Looping clip should key the source first pose at the clip end: %s/%s" % [path, clip_name])
+        if first_key_value != last_key_value:
+            first_last_mismatch_count += 1
+
+    _expect(first_last_mismatch_count == 0, "Looping clip should return to its source first pose before Godot wraps playback: %s/%s" % [path, clip_name])
 
 
 func _expect_clip_length(path: String, clip_name: String, expected_length: float) -> void:
@@ -267,6 +292,7 @@ func _test_wasp_resources(assets: Node) -> void:
     _expect(not bool(wasp_type.get("homing")), "Wasp type 2 should not be homing.")
     _expect(float(wasp_type.get("lifetime_seconds")) > 0.0, "Wasp type 2 should have a positive lifetime.")
     _expect(float(wasp_type.get("speed")) > 0.0, "Wasp type 2 should have positive forward speed.")
+    _expect(is_equal_approx(float(wasp_type.get("fire_animation_speed")), 2.2), "Wasp type 2 should use PlayerAnimSpeedDebutTir * 2.2 for tirA.")
 
 
 func _test_wasp_inventory() -> void:
@@ -428,11 +454,17 @@ func _test_player_scene() -> void:
         _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, -1.0)), "Second quick turn should return Sammy to the original facing direction.")
         parity_camera.queue_free()
         var fire_requests := int(player.call("get_fire_request_count"))
-        player.call("fire_wasp")
-        _expect(int(player.call("get_fire_request_count")) == fire_requests + 1, "Fire action hook should record a wasp-fire request placeholder.")
         var controller := player.call("get_animation_controller") as Node
+        var action_before_empty_fire := String(controller.call("get_current_action")) if controller != null else ""
+        var children_before_empty_fire := root.get_child_count()
+        _expect(not bool(player.call("fire_wasp")), "Fire action should be rejected when Sammy has no wasp ammo.")
+        _expect(int(player.call("get_fire_request_count")) == fire_requests, "Rejected no-ammo fire should not increment accepted fire count.")
+        _expect(root.get_child_count() == children_before_empty_fire, "Rejected no-ammo fire should not spawn a wasp projectile.")
         if controller != null:
-            _expect(String(controller.call("get_current_action")) == "tirA", "Fire action should start Sammy's original tirA animation.")
+            _expect(String(controller.call("get_current_action")) == action_before_empty_fire, "Rejected no-ammo fire should not start Sammy's tirA animation.")
+        var player_assets := root.get_node_or_null("Assets")
+        if audio != null and player_assets != null:
+            _expect(_audio_service_has_stream(audio, player_assets.load_asset("sfx.error") as AudioStream), "Rejected no-ammo fire should play original Error1_son.")
         _expect(player.has_method("get_wasp_inventory"), "Player controller should expose a wasp inventory accessor.")
         if player.has_method("get_wasp_inventory"):
             var inventory: Node = player.call("get_wasp_inventory")
@@ -443,22 +475,31 @@ func _test_player_scene() -> void:
                 var wasp_type: Resource = load(WASP_TYPE_2_PATH)
                 inventory.call("add_ammo", wasp_type, 3)
                 var children_before := root.get_child_count()
-                player.call("fire_wasp")
+                _expect(bool(player.call("fire_wasp")), "Fire action should be accepted when Sammy has wasp ammo.")
+                _expect(int(player.call("get_fire_request_count")) == fire_requests + 1, "Accepted fire should increment the accepted fire count.")
                 _expect(int(inventory.call("get_ammo_count")) == 2, "Firing with ammo should decrement the ammo count by one.")
                 _expect(root.get_child_count() == children_before + 1, "Firing should add a wasp projectile to the player's parent.")
+                if controller != null:
+                    _expect(String(controller.call("get_current_action")) == "tirA", "Accepted fire should start Sammy's original tirA animation.")
+                    var fire_animation_player := controller.get("animation_player") as AnimationPlayer
+                    if fire_animation_player != null:
+                        _expect(is_equal_approx(fire_animation_player.speed_scale, float(wasp_type.get("fire_animation_speed"))), "Type 2 fire should play tirA at the original 2.2 speed multiplier.")
+                if audio != null and player_assets != null:
+                    _expect(_audio_service_has_stream(audio, player_assets.load_asset("sfx.wasp") as AudioStream), "Accepted fire should play original Wasp_son.")
                 var spawned_projectile := root.get_child(root.get_child_count() - 1)
                 _expect(spawned_projectile.has_method("get_wasp_type"), "Firing should spawn a wasp projectile node.")
                 if spawned_projectile.has_method("get_wasp_type"):
                     _expect(spawned_projectile.call("get_wasp_type") == wasp_type, "Spawned projectile should keep the active wasp type.")
-                var assets := root.get_node_or_null("Assets")
-                if assets != null and assets.has_method("load_wasp_skin_texture"):
-                    var expected_skin := assets.call("load_wasp_skin_texture", int(wasp_type.get("skin_index"))) as Texture2D
+                if player_assets != null and player_assets.has_method("load_wasp_skin_texture"):
+                    var expected_skin := player_assets.call("load_wasp_skin_texture", int(wasp_type.get("skin_index"))) as Texture2D
                     _expect(expected_skin != null and _model_uses_texture(spawned_projectile, expected_skin), "Spawned wasp projectile should use the active type skin.")
                 spawned_projectile.queue_free()
                 inventory.call("consume_ammo", 2)
                 var ammo_after_drain := int(inventory.call("get_ammo_count"))
-                player.call("fire_wasp")
+                var fire_requests_after_valid := int(player.call("get_fire_request_count"))
+                _expect(not bool(player.call("fire_wasp")), "Fire action should be rejected after Sammy drains all wasp ammo.")
                 _expect(int(inventory.call("get_ammo_count")) == ammo_after_drain, "Firing without ammo should leave the ammo count unchanged.")
+                _expect(int(player.call("get_fire_request_count")) == fire_requests_after_valid, "Rejected drained-ammo fire should not increment accepted fire count.")
         var movement_config: Resource = player.get("movement_config")
         _expect(is_equal_approx(float(movement_config.get("boost_speed_multiplier")), 2.0), "Boost should expose the original acceleration control hook.")
         _expect(is_equal_approx(float(movement_config.get("boost_turn_multiplier")), 0.75), "Boost should reduce turn input like the original scripts.")
@@ -780,6 +821,16 @@ func _model_uses_texture(node: Node, texture: Texture2D) -> bool:
 
     for child in node.get_children():
         if _model_uses_texture(child, texture):
+            return true
+    return false
+
+
+func _audio_service_has_stream(audio: Node, stream: AudioStream) -> bool:
+    if stream == null:
+        return false
+    for child in audio.get_children():
+        var player := child as AudioStreamPlayer
+        if player != null and player.stream == stream:
             return true
     return false
 

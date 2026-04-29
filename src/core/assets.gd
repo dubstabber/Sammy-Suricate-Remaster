@@ -110,6 +110,12 @@ const CATALOG := {
         "kind": "audio",
         "description": "Wasp sound"
     },
+    "sfx.error": {
+        "path": "res://assets/audio/error1.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/error1.wav",
+        "kind": "audio",
+        "description": "Original Error1_son used for rejected actions"
+    },
     "sfx.takewasp": {
         "path": "res://assets/audio/takewasp.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/takewasp.wav",

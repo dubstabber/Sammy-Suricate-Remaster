@@ -10,6 +10,7 @@ const WASP_PROJECTILE_SCENE := preload("res://scenes/weapons/wasp_projectile.tsc
 @export var model_asset_id: String = "model.sammy.animated"
 @export var quick_turn_sound_asset_id: String = "sfx.quick_turn"
 @export var fire_sound_asset_id: String = "sfx.wasp"
+@export var no_wasp_sound_asset_id: String = "sfx.error"
 @export var wasp_muzzle_offset: Vector3 = Vector3(0.0, 0.6, -0.4)
 
 @onready var visual_pivot: Node3D = $VisualPivot
@@ -175,20 +176,25 @@ func apply_quick_turn() -> void:
     _play_quick_turn_sound()
 
 
-func fire_wasp() -> void:
-    _fire_requests += 1
-    _start_animation_sequence([&"tirA", &"tirB"])
+func fire_wasp() -> bool:
     if _wasp_inventory == null or not _wasp_inventory.has_method("has_ammo"):
-        return
+        _play_no_wasp_sound()
+        return false
     if not bool(_wasp_inventory.call("has_ammo")):
-        return
+        _play_no_wasp_sound()
+        return false
     var wasp_type: Resource = _wasp_inventory.call("get_current_type")
     if wasp_type == null:
-        return
+        _play_no_wasp_sound()
+        return false
     if not bool(_wasp_inventory.call("consume_ammo", 1)):
-        return
+        _play_no_wasp_sound()
+        return false
+    _fire_requests += 1
+    _start_animation_sequence([&"tirA", &"tirB"], _get_wasp_fire_animation_speed(wasp_type))
     _spawn_wasp_projectile(wasp_type)
     _play_fire_sound()
+    return true
 
 
 func _spawn_wasp_projectile(wasp_type: Resource) -> void:
@@ -210,6 +216,23 @@ func _play_fire_sound() -> void:
     var audio := get_node_or_null("/root/Audio")
     if audio != null and audio.has_method("play_sfx"):
         audio.call("play_sfx", fire_sound_asset_id)
+
+
+func _play_no_wasp_sound() -> void:
+    if no_wasp_sound_asset_id.is_empty():
+        return
+    var audio := get_node_or_null("/root/Audio")
+    if audio != null and audio.has_method("play_sfx"):
+        audio.call("play_sfx", no_wasp_sound_asset_id)
+
+
+func _get_wasp_fire_animation_speed(wasp_type: Resource) -> float:
+    if wasp_type == null:
+        return 1.0
+    var raw_fire_animation_speed = wasp_type.get("fire_animation_speed")
+    if raw_fire_animation_speed == null:
+        return 1.0
+    return float(raw_fire_animation_speed)
 
 
 func _apply_turn(delta: float, forward_input: float, turn_input: float) -> void:
@@ -352,13 +375,13 @@ func _update_model_animation(forward_input: float, turn_input: float, jumped: bo
         _play_animation_action(&"stand", 1.0, false, false, _animation_blend_seconds_for_transition(previous_action, &"stand"))
 
 
-func _start_animation_sequence(actions: Array[StringName]) -> void:
+func _start_animation_sequence(actions: Array[StringName], initial_speed: float = 1.0) -> void:
     if _animation_controller == null or actions.is_empty():
         return
 
     _animation_sequence = actions.duplicate()
     _animation_sequence_index = 0
-    if not _play_animation_action(_animation_sequence[_animation_sequence_index], 1.0, false, true):
+    if not _play_animation_action(_animation_sequence[_animation_sequence_index], initial_speed, false, true):
         _clear_animation_sequence()
 
 

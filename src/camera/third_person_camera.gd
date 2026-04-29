@@ -60,12 +60,12 @@ func _get_follow_offset() -> Vector3:
     if _target == null:
         return local_offset
 
-    var basis := _target.global_transform.basis
-    var right := basis.x
+    var target_basis := _target.global_transform.basis
+    var right := target_basis.x
     right.y = 0.0
     right = right.normalized()
 
-    var back := basis.z
+    var back := target_basis.z
     back.y = 0.0
     back = back.normalized()
 

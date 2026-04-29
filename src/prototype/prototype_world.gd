@@ -83,7 +83,7 @@ func _spawn_props() -> void:
 	_spawn_asset_prop("model.sky3", Vector3(0.0, -0.2, 0.0))
 
 
-func _spawn_asset_prop(asset_id: String, position: Vector3) -> void:
+func _spawn_asset_prop(asset_id: String, prop_position: Vector3) -> void:
 	var assets := get_node_or_null("/root/Assets")
 	if assets == null:
 		return
@@ -93,19 +93,19 @@ func _spawn_asset_prop(asset_id: String, position: Vector3) -> void:
 
 	var instance := packed_scene.instantiate() as Node3D
 	instance.name = asset_id.replace(".", "_")
-	instance.position = position
+	instance.position = prop_position
 	instance.scale = assets.get_model_scale(asset_id)
 	instance.rotation_degrees = assets.get_model_rotation_degrees(asset_id)
 	add_child(instance)
 	if assets.should_ground_model(asset_id):
-		assets.align_model_instance_to_ground(instance, position.y)
+		assets.align_model_instance_to_ground(instance, prop_position.y)
 	_configure_prop_animation(instance, assets, asset_id)
 
 
-func _spawn_boost_pickup(position: Vector3) -> void:
+func _spawn_boost_pickup(pickup_position: Vector3) -> void:
 	var pickup := BOOST_PICKUP_SCENE.instantiate()
 	pickup.name = "BoostPickup"
-	pickup.position = position
+	pickup.position = pickup_position
 	if player != null:
 		var movement_config: Resource = player.get("movement_config")
 		pickup.set("boost_amount", float(movement_config.get("boost_pickup_capacity")))

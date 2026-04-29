@@ -167,11 +167,11 @@ func get_asset_path(entry_id: String) -> String:
 
 
 func load_asset(entry_id: String) -> Resource:
-    var resource_path := get_asset_path(entry_id)
-    if resource_path.is_empty():
+    var asset_resource_path := get_asset_path(entry_id)
+    if asset_resource_path.is_empty():
         push_warning("Unknown asset id: %s" % entry_id)
         return null
-    return load(resource_path)
+    return load(asset_resource_path)
 
 
 func get_model_scale(entry_id: String) -> Vector3:

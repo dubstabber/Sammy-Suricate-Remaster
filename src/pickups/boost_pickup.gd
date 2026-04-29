@@ -46,8 +46,8 @@ func _collect_from(player: Node) -> bool:
 		return false
 
 	_collected = true
-	monitoring = false
-	monitorable = false
+	set_deferred("monitoring", false)
+	set_deferred("monitorable", false)
 	_stop_effect()
 	visible = false
 	_play_collect_sound()

@@ -203,7 +203,7 @@ func _sample_vertex_position(vertex_index: int, fallback_index: int) -> Vector3:
 	if _mesh_instance == null or _base_vertices.is_empty() or vertex_index >= _base_vertices.size():
 		return _anchors[fallback_index]
 
-	var position := _base_vertices[vertex_index]
+	var vertex_position := _base_vertices[vertex_index]
 	if _blend_shape_mode == Mesh.BLEND_SHAPE_MODE_NORMALIZED:
 		var weighted_position := Vector3.ZERO
 		var weight_sum := 0.0
@@ -213,15 +213,15 @@ func _sample_vertex_position(vertex_index: int, fallback_index: int) -> Vector3:
 				continue
 			weighted_position += _blend_vertices[index][vertex_index] * weight
 			weight_sum += weight
-		position = position * maxf(0.0, 1.0 - weight_sum) + weighted_position
+		vertex_position = vertex_position * maxf(0.0, 1.0 - weight_sum) + weighted_position
 	else:
 		for index in min(_blend_vertices.size(), _mesh_instance.get_blend_shape_count()):
 			var weight := _mesh_instance.get_blend_shape_value(index)
 			if is_zero_approx(weight) or vertex_index >= _blend_vertices[index].size():
 				continue
-			position += _blend_vertices[index][vertex_index] * weight
+			vertex_position += _blend_vertices[index][vertex_index] * weight
 
-	return to_local(_mesh_instance.to_global(position))
+	return to_local(_mesh_instance.to_global(vertex_position))
 
 
 func _create_particle_material(texture: Texture2D) -> StandardMaterial3D:

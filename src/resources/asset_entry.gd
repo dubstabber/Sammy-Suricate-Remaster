@@ -15,7 +15,7 @@ class_name AssetEntry
 
 func _init(
         entry_id: String = "",
-        resource_path: String = "",
+        asset_resource_path: String = "",
         original_source_path: String = "",
         asset_kind: String = "",
         asset_description: String = "",
@@ -26,7 +26,7 @@ func _init(
         default_animation_name: String = ""
 ) -> void:
     id = entry_id
-    path = resource_path
+    path = asset_resource_path
     source_path = original_source_path
     kind = asset_kind
     description = asset_description

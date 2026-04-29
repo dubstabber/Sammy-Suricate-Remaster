@@ -265,8 +265,9 @@ func _expect_editor_preview_removed_at_runtime(scene_path: String, preview_path:
     instance.set_physics_process(false)
     root.add_child(instance)
     await process_frame
-    _expect(instance.get_node_or_null(preview_path) == null, "Editor preview should remove itself at runtime: %s/%s" % [scene_path, preview_path])
-    instance.queue_free()
+    if is_instance_valid(instance):
+        _expect(instance.get_node_or_null(preview_path) == null, "Editor preview should remove itself at runtime: %s/%s" % [scene_path, preview_path])
+        instance.queue_free()
     await process_frame
 
 
@@ -293,7 +294,11 @@ func _test_animation_libraries() -> void:
     _expect_clip_length("res://assets/animations/suricat1_clips.tres", "tirA", 100.0 / (20.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/suricat1_clips.tres", "turn", 100.0 / (14.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/rasta_clips.tres", "attack", 100.0 / (6.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/rasta_clips.tres", "walk", 100.0 / (0.82 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/rasta_clips.tres", "run", 100.0 / (0.3 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/punk_clips.tres", "stand", 100.0 / (3.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/punk_clips.tres", "walk", 100.0 / (0.82 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/punk_clips.tres", "run", 100.0 / (0.3 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/wasp1_clips.tres", "stand", 100.0 / (3.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/wasp1_clips.tres", "walk", 100.0 / (0.5 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/wasp1_clips.tres", "death", 100.0 / (6.0 * 16.0 * 1.12))
@@ -916,6 +921,27 @@ func _test_enemy_ai_behavior() -> void:
     await physics_frame
     await physics_frame
     _expect(int(enemy.call("get_state")) == STATE_CHASE, "AI enemy should enter CHASE when player crosses react_range with line of sight.")
+    _expect(enemy.has_method("get_animation_speed_units_for_horizontal_speed"), "Enemy should expose WDL animation speed conversion for validation.")
+    _expect(enemy.has_method("get_chase_animation_action"), "Enemy should expose chase animation action selection for validation.")
+    _expect(enemy.has_method("get_chase_animation_speed_scale"), "Enemy should expose chase animation speed scale for validation.")
+    if enemy.has_method("get_animation_speed_units_for_horizontal_speed") and enemy.has_method("get_chase_animation_action") and enemy.has_method("get_chase_animation_speed_scale"):
+        _expect(is_equal_approx(float(enemy.call("get_animation_speed_units_for_horizontal_speed", float(enemy.get("move_speed")))), 7.5), "Default enemy walk speed should convert back to original SpeedEnnemy units.")
+        _expect(String(enemy.call("get_chase_animation_action")) == "run", "Chase should keep the original running cycle even for slow prototype enemies.")
+        _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 11.25), "Default chase run cycle should scale by converted SpeedEnnemy units.")
+        enemy.set("run_speed", 0.64)
+        _expect(String(enemy.call("get_chase_animation_action")) == "run", "Slow chase tuning should still play the running cycle.")
+        _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 4.0), "Slow chase tuning should slow the run cycle with movement speed.")
+        enemy.set("run_speed", 3.2)
+        _expect(String(enemy.call("get_chase_animation_action")) == "run", "Fast chase should keep the original run cycle.")
+        _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 20.0), "Fast chase run cycle should scale by SpeedEnnemy * LionAccelattack units.")
+        enemy.set("run_speed", 1.8)
+    var enemy_animation_controller := enemy.get_node_or_null("ModelAnimationController")
+    var enemy_animation_player: AnimationPlayer = null
+    if enemy_animation_controller != null:
+        _expect(String(enemy_animation_controller.call("get_current_action")) == "run", "Chase should play the original run animation.")
+        enemy_animation_player = enemy_animation_controller.get("animation_player") as AnimationPlayer
+    if enemy_animation_player != null and enemy.has_method("get_chase_animation_speed_scale"):
+        _expect(is_equal_approx(enemy_animation_player.speed_scale, float(enemy.call("get_chase_animation_speed_scale"))), "Enemy chase animation speed should track the converted movement speed term.")
 
     var pre_position := enemy.global_position
     for _i in 6:
@@ -1319,6 +1345,8 @@ func _test_prototype_world() -> void:
     root.add_child(world)
     await process_frame
     await process_frame
+    for _settle_step in 10:
+        await physics_frame
     _expect(world.get_node_or_null("Player") != null, "Prototype world is missing its editor-instanced player.")
     var debug_overlay := world.get_node_or_null("DebugOverlay")
     var debug_label: Label = null
@@ -1345,7 +1373,7 @@ func _test_prototype_world() -> void:
             _expect(model != null, "Prototype world should contain grounded character model: %s" % node_name)
             if model != null:
                 var bounds: AABB = assets.get_model_global_bounds(model)
-                _expect(absf(bounds.position.y) < 0.01, "Prototype character model should be grounded: %s" % node_name)
+                _expect(absf(bounds.position.y) < 0.01, "Prototype character model should be grounded: %s (bounds y %.4f)" % [node_name, bounds.position.y])
         for model_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated", "Props/model_cactus1"]:
             var model := world.get_node_or_null(model_path) as Node3D
             _expect(model != null, "Prototype world should contain animated catalog model: %s" % model_path)

@@ -3,6 +3,8 @@ class_name SammyEnemyController
 
 const ACKNEX_TO_GODOT_SCALE := 0.01
 const ACKNEX_TICKS_PER_SECOND := 16.0
+const WDL_SPEED_UNITS_TO_METERS_PER_SECOND := ACKNEX_TO_GODOT_SCALE * ACKNEX_TICKS_PER_SECOND
+const MINIMUM_ANIMATION_SPEED_SCALE := 0.001
 
 # WDL lion.wdl LionEtat parity. Numeric values match the original states so
 # parity-driven tuning can refer back to the script directly.
@@ -44,8 +46,10 @@ enum EnemyState {
 @export var contact_damage: int = 1
 @export var attack_strike_ratio: float = 0.45
 @export var death_despawn_seconds: float = 0.4
-@export var walk_animation_speed: float = 1.0
-@export var run_animation_speed: float = 1.4
+# WDL mm1/anims/lion: generated walk/run clips encode LionAnimSpeedWalk/Run.
+# Runtime playback scale supplies SpeedEnnemy or SpeedEnnemy * LionAccelattack,
+# converted back from the Godot movement speed used by this controller.
+@export var movement_animation_units_per_meter: float = 1.0 / WDL_SPEED_UNITS_TO_METERS_PER_SECOND
 @export var attack_animation_speed: float = 1.2
 @export var hit_animation_speed: float = 1.5
 @export var death_animation_speed: float = 1.0
@@ -118,11 +122,29 @@ func _physics_process(delta: float) -> void:
 	var horizontal := _update_ai(delta)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
+	_refresh_movement_animation_speed()
 	_apply_gravity(delta)
 	move_and_slide()
 	if affected_by_gravity and is_on_floor() and velocity.y <= 0.0:
 		_fall_velocity_y = 0.0
 		velocity.y = 0.0
+
+
+func get_animation_speed_units_for_horizontal_speed(horizontal_speed: float) -> float:
+	var units_per_meter := maxf(movement_animation_units_per_meter, 0.0)
+	return maxf(maxf(horizontal_speed, 0.0) * units_per_meter, MINIMUM_ANIMATION_SPEED_SCALE)
+
+
+func get_walk_animation_speed_scale() -> float:
+	return get_animation_speed_units_for_horizontal_speed(move_speed)
+
+
+func get_chase_animation_action() -> StringName:
+	return &"run"
+
+
+func get_chase_animation_speed_scale() -> float:
+	return get_animation_speed_units_for_horizontal_speed(run_speed)
 
 
 func get_initial_fall_velocity() -> float:
@@ -279,9 +301,9 @@ func _enter_state(new_state: int) -> void:
 			var distance := randf_range(0.6, 1.6)
 			_wander_target = global_position + Vector3(cos(angle), 0.0, sin(angle)) * distance
 			_has_wander_target = true
-			_play_action(&"walk", walk_animation_speed)
+			_play_action(&"walk", get_walk_animation_speed_scale())
 		EnemyState.CHASE:
-			_play_action(&"run", run_animation_speed)
+			_play_action(get_chase_animation_action(), get_chase_animation_speed_scale())
 		EnemyState.ATTACK_SWING:
 			_play_action(&"attack", attack_animation_speed, true)
 		EnemyState.HIT_RECOIL:
@@ -292,6 +314,14 @@ func _enter_state(new_state: int) -> void:
 			_play_action(&"death", death_animation_speed, true)
 		EnemyState.DEAD:
 			pass
+
+
+func _refresh_movement_animation_speed() -> void:
+	match _state:
+		EnemyState.WALK:
+			_play_action(&"walk", get_walk_animation_speed_scale())
+		EnemyState.CHASE:
+			_play_action(get_chase_animation_action(), get_chase_animation_speed_scale())
 
 
 func _on_animation_finished(_anim_name: StringName) -> void:

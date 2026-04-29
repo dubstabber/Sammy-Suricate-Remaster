@@ -47,11 +47,9 @@ const MODEL_CONFIGS := [
             "rugit": 4.0,
             "attack": 6.0,
             "hit": 10.0,
+            "walk": 0.82,
+            "run": 0.3,
             "death": 4.0
-        },
-        "duration_overrides": {
-            "walk": 1.0,
-            "run": 0.7
         }
     },
     {
@@ -65,11 +63,9 @@ const MODEL_CONFIGS := [
             "rugit": 4.0,
             "attack": 6.0,
             "hit": 10.0,
+            "walk": 0.82,
+            "run": 0.3,
             "death": 4.0
-        },
-        "duration_overrides": {
-            "walk": 1.0,
-            "run": 0.7
         }
     },
     {

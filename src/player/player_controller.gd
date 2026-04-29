@@ -12,6 +12,10 @@ const WASP_FIRE_END_START_STEP := 10.0
 const WASP_FIRE_START_STEP_SPEED := 20.0
 const WASP_FIRE_END_STEP_SPEED := 20.0
 const WASP_POST_SPAWN_WAIT_TICKS := 1.0
+const PLAYER_LANDING_END_STEP_RANGE := 90.0
+const PLAYER_LANDING_END_STEP_SPEED := 14.0
+const PLAYER_LANDING_TURN_STEP_SPEED := 18.0
+const PLAYER_LANDING_INPUT_STEP_SPEED := 36.0
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
@@ -40,6 +44,7 @@ var _wasp_projectile_spawned: bool = false
 var _wasp_spawn_delay_remaining: float = 0.0
 var _wasp_recovery_remaining: float = 0.0
 var _jump_fire_blocked: bool = false
+var _landing_movement_lock_remaining: float = 0.0
 
 
 func _ready() -> void:
@@ -68,8 +73,9 @@ func _physics_process(delta: float) -> void:
     var turn_input: float = Input.get_axis("turn_left", "turn_right")
 
     _update_wasp_fire_timing(delta)
+    var landing_locked_at_frame_start := is_landing_movement_locked()
 
-    if Input.is_action_just_pressed("quick_turn") and is_on_floor():
+    if Input.is_action_just_pressed("quick_turn") and is_on_floor() and not _is_movement_locked():
         apply_quick_turn()
 
     if _quick_turn_active:
@@ -79,7 +85,7 @@ func _physics_process(delta: float) -> void:
     if Input.is_action_just_pressed("fire"):
         fire_wasp()
 
-    var movement_locked := _wasp_fire_active
+    var movement_locked := _is_movement_locked()
     if movement_locked:
         forward_input = 0.0
         turn_input = 0.0
@@ -106,9 +112,14 @@ func _physics_process(delta: float) -> void:
         velocity.y -= movement_config.gravity * delta
 
     move_and_slide()
+    var on_floor := is_on_floor()
+    if not was_on_floor and on_floor:
+        _begin_landing_movement_lock(forward_input, turn_input, Input.is_action_pressed("jump"))
+    if landing_locked_at_frame_start:
+        _update_landing_movement_lock(delta)
     if is_on_floor() and not jumped:
         _jump_fire_blocked = false
-    _update_model_animation(forward_input, turn_input, jumped, was_on_floor, is_on_floor(), horizontal_velocity.length())
+    _update_model_animation(forward_input, turn_input, jumped, was_on_floor, on_floor, horizontal_velocity.length())
 
 
 func _spawn_model() -> void:
@@ -191,8 +202,12 @@ func is_jump_fire_blocked() -> bool:
     return _jump_fire_blocked
 
 
+func is_landing_movement_locked() -> bool:
+    return _landing_movement_lock_remaining > 0.0
+
+
 func apply_quick_turn() -> void:
-    if _quick_turn_active or _wasp_fire_active:
+    if _quick_turn_active or _is_movement_locked():
         return
 
     _quick_turn_active = true
@@ -205,7 +220,7 @@ func apply_quick_turn() -> void:
 
 
 func fire_wasp() -> bool:
-    if _wasp_fire_active or _jump_fire_blocked:
+    if _wasp_fire_active or _jump_fire_blocked or is_landing_movement_locked():
         return false
     if _wasp_inventory == null or not _wasp_inventory.has_method("has_ammo"):
         _play_no_wasp_sound()
@@ -280,6 +295,27 @@ func _clear_wasp_fire() -> void:
     _wasp_projectile_spawned = false
     _wasp_spawn_delay_remaining = 0.0
     _wasp_recovery_remaining = 0.0
+
+
+func _is_movement_locked() -> bool:
+    return _wasp_fire_active or is_landing_movement_locked()
+
+
+func _begin_landing_movement_lock(forward_input: float = 0.0, turn_input: float = 0.0, jump_pressed: bool = false) -> void:
+    _landing_movement_lock_remaining = maxf(_landing_movement_lock_remaining, _get_landing_movement_lock_seconds(forward_input, turn_input, jump_pressed))
+
+
+func _update_landing_movement_lock(delta: float) -> void:
+    _landing_movement_lock_remaining = maxf(0.0, _landing_movement_lock_remaining - maxf(delta, 0.0))
+
+
+func _get_landing_movement_lock_seconds(forward_input: float = 0.0, turn_input: float = 0.0, jump_pressed: bool = false) -> float:
+    var step_speed := PLAYER_LANDING_END_STEP_SPEED
+    if not is_zero_approx(turn_input):
+        step_speed = PLAYER_LANDING_TURN_STEP_SPEED
+    if not is_zero_approx(forward_input) or jump_pressed:
+        step_speed = PLAYER_LANDING_INPUT_STEP_SPEED
+    return _seconds_for_wdl_animation_steps(PLAYER_LANDING_END_STEP_RANGE, step_speed)
 
 
 func _spawn_wasp_projectile(wasp_type: Resource) -> bool:

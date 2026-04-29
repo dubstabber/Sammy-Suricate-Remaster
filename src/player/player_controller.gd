@@ -6,6 +6,7 @@ const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_an
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
+@export var quick_turn_sound_asset_id: String = "sfx.quick_turn"
 
 @onready var visual_pivot: Node3D = $VisualPivot
 
@@ -152,6 +153,7 @@ func apply_quick_turn() -> void:
     _quick_turn_speed_degrees = rad_to_deg(PI) * float(movement_config.quick_turn_initial_speed_factor)
     _clear_animation_sequence()
     _play_animation_action(&"turn", movement_config.quick_turn_animation_speed_multiplier, false, true, 0.0)
+    _play_quick_turn_sound()
 
 
 func fire_wasp() -> void:
@@ -213,6 +215,15 @@ func _finish_quick_turn() -> void:
     _quick_turn_active = false
     _quick_turn_remaining_degrees = 0.0
     _quick_turn_speed_degrees = 0.0
+
+
+func _play_quick_turn_sound() -> void:
+    if quick_turn_sound_asset_id.is_empty():
+        return
+
+    var audio := get_node_or_null("/root/Audio")
+    if audio != null and audio.has_method("play_sfx"):
+        audio.call("play_sfx", quick_turn_sound_asset_id)
 
 
 func _update_boost_state(delta: float, forward_input: float) -> void:

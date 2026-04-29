@@ -118,6 +118,7 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.has_asset("music.sammy01"), "Asset catalog is missing copied music resource.")
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")
+    _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
 
 
 func _test_animation_libraries() -> void:
@@ -254,9 +255,14 @@ func _test_player_scene() -> void:
         parity_camera.target_path = parity_camera.get_path_to(player)
         parity_camera.call("reset_to_target")
         var initial_camera_offset := parity_camera.call("_get_follow_offset") as Vector3
+        _expect(String(player.get("quick_turn_sound_asset_id")) == "sfx.quick_turn", "Quick turn should use the original Blouit_son asset.")
         player.call("apply_quick_turn")
         _expect(player.has_method("is_quick_turning"), "Player controller should expose quick-turn state for parity validation.")
         _expect(bool(player.call("is_quick_turning")), "Quick turn should begin a staged original-style turn instead of snapping instantly.")
+        var audio := root.get_node_or_null("Audio")
+        if audio != null:
+            var quick_turn_sfx_player := audio.get_node_or_null("SfxPlayer0") as AudioStreamPlayer
+            _expect(quick_turn_sfx_player != null and quick_turn_sfx_player.stream != null, "Quick turn should play the original Blouit_son through the audio service.")
         var quick_turn_controller := player.call("get_animation_controller") as Node
         if quick_turn_controller != null:
             _expect(String(quick_turn_controller.call("get_current_action")) == "turn", "Quick turn should restart Sammy's original turn animation.")

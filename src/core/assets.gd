@@ -92,6 +92,12 @@ const CATALOG := {
         "kind": "audio",
         "description": "Original speed boost pickup chime"
     },
+    "sfx.quick_turn": {
+        "path": "res://assets/audio/Blouit.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/Blouit.wav",
+        "kind": "audio",
+        "description": "Original Blouit_son used by RetourneSammy quick turn"
+    },
     "sfx.hit": {
         "path": "res://assets/audio/Hit1.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/Hit1.wav",

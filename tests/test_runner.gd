@@ -249,7 +249,7 @@ func _expect_editor_preview_applies_static_pose(assets: Node) -> void:
     preview_helper.call("_enforce_preview_state", assets)
     _expect(is_equal_approx(_model_blend_shape_value(wasp_model, "stand01"), 1.0), "Editor previews should freeze the first default stand frame instead of the invalid all-zero morph base pose.")
     _expect(is_equal_approx(_model_blend_shape_value(wasp_model, "walk01"), 0.0), "Editor static stand pose should not accidentally apply walk frames.")
-    _expect(_model_uses_transparency_mode(wasp_model, BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS), "Wasp editor previews should stabilize the real skin material with alpha depth pre-pass.")
+    _expect(_model_uses_transparency_mode(wasp_model, BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR), "Wasp editor previews should keep the wasp skin color key as a binary cutout.")
     wasp_model.queue_free()
     preview_helper.queue_free()
     await process_frame
@@ -366,9 +366,77 @@ func _test_model_skin_alpha() -> void:
     _expect(_png_is_fully_opaque("res://assets/models/rasta/skins/rasta_skin0.png"), "Rasta RGB565 skin must stay opaque; black texels are painted detail.")
     _expect(_text_file_lacks("res://assets/models/Punk/Punk_animated.gltf", "\"alphaMode\""), "Punk material should not import as alpha masked.")
     _expect(_text_file_lacks("res://assets/models/rasta/rasta_animated.gltf", "\"alphaMode\""), "Rasta material should not import as alpha masked.")
+    _expect(_text_file_contains("res://assets/models/wasp1/wasp1.gltf", "\"alphaMode\": \"BLEND\""), "Static wasp material should import with alpha blending enabled.")
     _expect(_text_file_contains("res://assets/models/wasp1/wasp1_animated.gltf", "\"alphaMode\": \"BLEND\""), "Animated wasp material should import with alpha blending enabled.")
+    _expect(_wasp_gltf_has_split_leg_surface("res://assets/models/wasp1/wasp1.gltf"), "Static wasp GLTF should split mirrored/lower-leg triangles onto their own material.")
+    _expect(_wasp_gltf_has_split_leg_surface("res://assets/models/wasp1/wasp1_animated.gltf"), "Animated wasp GLTF should split mirrored/lower-leg triangles onto their own material.")
     for skin_index in range(7):
-        _expect(_png_has_transparent_pixels("res://assets/models/wasp1/skins/wasp1_skin%d.png" % skin_index), "Wasp skin %d should preserve transparent color-key background pixels." % skin_index)
+        var skin_path := "res://assets/models/wasp1/skins/wasp1_skin%d.png" % skin_index
+        var leg_skin_path := "res://assets/models/wasp1/skins/legs/wasp1_skin%d_legs.png" % skin_index
+        var source_skin_path := "res://extract-sammy-assets/extracted/godot/models/wasp1/skins/wasp1_skin%d.png" % skin_index
+        var import_path := "%s.import" % skin_path
+        var leg_import_path := "%s.import" % leg_skin_path
+        _expect(_png_has_transparent_pixels(skin_path), "Wasp skin %d should preserve fully transparent unused color-key pixels." % skin_index)
+        _expect(_png_source_black_pixels_are_transparent(source_skin_path, skin_path), "Wasp skin %d should keep source exact-black MDL color-key texels transparent instead of filling leg backgrounds." % skin_index)
+        _expect(_png_count_translucent_near_black_pixels(skin_path) == 0, "Wasp skin %d should not turn transparent color-key areas into semi-transparent black geometry." % skin_index)
+        _expect(_png_count_translucent_near_white_pixels(skin_path) == 0, "Wasp skin %d should not contain semi-transparent white texels in color-keyed regions." % skin_index)
+        _expect(_png_count_opaque_near_black_pixels_in_wasp_lower_leg_uv(skin_path) >= 25, "Wasp skin %d should preserve opaque dark lower-leg strokes without restoring the color-key background." % skin_index)
+        _expect(_png_leg_paint_pixels_are_black(skin_path), "Wasp skin %d should not leave white lower-leg pixels on the mirrored side." % skin_index)
+        _expect(_png_count_opaque_near_black_pixels(skin_path) >= 40, "Wasp skin %d should preserve opaque black body and leg detail pixels." % skin_index)
+        _expect(_text_file_contains(import_path, "\"vram_texture\": false"), "Wasp skin %d should avoid VRAM compression so thin black details do not wash out." % skin_index)
+        _expect(_text_file_contains(import_path, "compress/mode=0"), "Wasp skin %d should import losslessly." % skin_index)
+        _expect(_text_file_contains(import_path, "mipmaps/generate=false"), "Wasp skin %d should avoid mipmap blends that make transparent cutouts look semi-white." % skin_index)
+        _expect(_text_file_contains(import_path, "process/fix_alpha_border=false"), "Wasp skin %d should not bleed nearby body colors into keyed black model texels." % skin_index)
+        _expect(_png_has_transparent_pixels(leg_skin_path), "Wasp leg skin %d should keep keyed backgrounds fully transparent." % skin_index)
+        _expect(_png_count_opaque_near_black_pixels(leg_skin_path) >= 500, "Wasp leg skin %d should provide black mirrored/lower-leg paint for the split material." % skin_index)
+        _expect(_png_count_opaque_non_black_pixels(leg_skin_path) == 0, "Wasp leg skin %d should not contain white or body-colored leg texels." % skin_index)
+        _expect(_png_opaque_pixels_stay_in_wasp_lower_leg_uv(leg_skin_path), "Wasp leg skin %d should not blacken shared body/back atlas regions." % skin_index)
+        _expect(_png_count_translucent_near_black_pixels(leg_skin_path) == 0, "Wasp leg skin %d should not contain semi-transparent black backgrounds." % skin_index)
+        _expect(_png_count_translucent_near_white_pixels(leg_skin_path) == 0, "Wasp leg skin %d should not contain semi-transparent white backgrounds." % skin_index)
+        _expect(_text_file_contains(leg_import_path, "\"vram_texture\": false"), "Wasp leg skin %d should avoid VRAM compression." % skin_index)
+        _expect(_text_file_contains(leg_import_path, "compress/mode=0"), "Wasp leg skin %d should import losslessly." % skin_index)
+        _expect(_text_file_contains(leg_import_path, "mipmaps/generate=false"), "Wasp leg skin %d should avoid mipmap blends." % skin_index)
+        _expect(_text_file_contains(leg_import_path, "process/fix_alpha_border=false"), "Wasp leg skin %d should not bleed colors into keyed texels." % skin_index)
+
+
+func _wasp_gltf_has_split_leg_surface(path: String) -> bool:
+    var text := FileAccess.get_file_as_string(path)
+    if text.is_empty():
+        return false
+    var parsed = JSON.parse_string(text)
+    if typeof(parsed) != TYPE_DICTIONARY:
+        return false
+    var data := parsed as Dictionary
+    var meshes := data.get("meshes", []) as Array
+    var materials := data.get("materials", []) as Array
+    if meshes.is_empty() or materials.is_empty():
+        return false
+    var mesh := meshes[0] as Dictionary
+    var primitives := mesh.get("primitives", []) as Array
+    var accessors := data.get("accessors", []) as Array
+    if primitives.size() != 2 or accessors.is_empty():
+        return false
+    var found_leg_material := false
+    var body_index_count := 0
+    var leg_index_count := 0
+    for primitive_index in range(primitives.size()):
+        var primitive_value = primitives[primitive_index]
+        var primitive := primitive_value as Dictionary
+        var index_accessor_index := int(primitive.get("indices", -1))
+        if index_accessor_index < 0 or index_accessor_index >= accessors.size():
+            return false
+        var index_accessor := accessors[index_accessor_index] as Dictionary
+        if primitive_index == 0:
+            body_index_count = int(index_accessor.get("count", 0))
+        elif primitive_index == 1:
+            leg_index_count = int(index_accessor.get("count", 0))
+        var material_index := int(primitive.get("material", -1))
+        if material_index < 0 or material_index >= materials.size():
+            continue
+        var material := materials[material_index] as Dictionary
+        if String(material.get("name", "")).contains("leg"):
+            found_leg_material = true
+    return found_leg_material and body_index_count == 237 and leg_index_count == 51
 
 
 func _png_is_fully_opaque(path: String) -> bool:
@@ -399,6 +467,194 @@ func _png_has_transparent_pixels(path: String) -> bool:
             if image.get_pixel(x, y).a <= 0.0:
                 return true
     return false
+
+
+func _png_count_opaque_near_black_pixels(path: String) -> int:
+    var bytes := FileAccess.get_file_as_bytes(path)
+    if bytes.is_empty():
+        return 0
+    var image := Image.new()
+    var err := image.load_png_from_buffer(bytes)
+    if err != OK:
+        return 0
+    var count := 0
+    for y in image.get_height():
+        for x in image.get_width():
+            var pixel := image.get_pixel(x, y)
+            if pixel.a >= 1.0 and pixel.r <= 0.16 and pixel.g <= 0.16 and pixel.b <= 0.16:
+                count += 1
+    return count
+
+
+func _png_count_opaque_non_black_pixels(path: String) -> int:
+    var bytes := FileAccess.get_file_as_bytes(path)
+    if bytes.is_empty():
+        return 0
+    var image := Image.new()
+    var err := image.load_png_from_buffer(bytes)
+    if err != OK:
+        return 0
+    var count := 0
+    for y in image.get_height():
+        for x in image.get_width():
+            var pixel := image.get_pixel(x, y)
+            if pixel.a >= 1.0 and (pixel.r > 0.01 or pixel.g > 0.01 or pixel.b > 0.01):
+                count += 1
+    return count
+
+
+func _png_opaque_pixels_stay_in_wasp_lower_leg_uv(path: String) -> bool:
+    var bytes := FileAccess.get_file_as_bytes(path)
+    if bytes.is_empty():
+        return false
+    var image := Image.new()
+    var err := image.load_png_from_buffer(bytes)
+    if err != OK:
+        return false
+    for y in image.get_height():
+        for x in image.get_width():
+            var pixel := image.get_pixel(x, y)
+            if pixel.a >= 1.0 and not _is_wasp_leg_surface_uv_pixel(x, y):
+                return false
+    return true
+
+
+func _png_source_black_pixels_are_transparent(source_path: String, repaired_path: String) -> bool:
+    var source_bytes := FileAccess.get_file_as_bytes(source_path)
+    var repaired_bytes := FileAccess.get_file_as_bytes(repaired_path)
+    if source_bytes.is_empty() or repaired_bytes.is_empty():
+        return false
+    var source_image := Image.new()
+    var repaired_image := Image.new()
+    if source_image.load_png_from_buffer(source_bytes) != OK:
+        return false
+    if repaired_image.load_png_from_buffer(repaired_bytes) != OK:
+        return false
+    if source_image.get_size() != repaired_image.get_size():
+        return false
+    for y in source_image.get_height():
+        for x in source_image.get_width():
+            var source_pixel := source_image.get_pixel(x, y)
+            if source_pixel.r <= 0.0 and source_pixel.g <= 0.0 and source_pixel.b <= 0.0:
+                if repaired_image.get_pixel(x, y).a > 0.0:
+                    return false
+    return true
+
+
+func _png_count_opaque_near_black_pixels_in_wasp_lower_leg_uv(path: String) -> int:
+    var bytes := FileAccess.get_file_as_bytes(path)
+    if bytes.is_empty():
+        return 0
+    var image := Image.new()
+    var err := image.load_png_from_buffer(bytes)
+    if err != OK:
+        return 0
+    var count := 0
+    for y in image.get_height():
+        for x in image.get_width():
+            if not _is_wasp_lower_leg_uv_pixel(x, y):
+                continue
+            var pixel := image.get_pixel(x, y)
+            if pixel.a >= 1.0 and pixel.r <= 0.16 and pixel.g <= 0.16 and pixel.b <= 0.16:
+                count += 1
+    return count
+
+
+func _png_leg_paint_pixels_are_black(path: String) -> bool:
+    var bytes := FileAccess.get_file_as_bytes(path)
+    if bytes.is_empty():
+        return false
+    var image := Image.new()
+    var err := image.load_png_from_buffer(bytes)
+    if err != OK:
+        return false
+    for y in image.get_height():
+        for x in image.get_width():
+            if not _is_wasp_lower_leg_uv_pixel(x, y):
+                continue
+            var pixel := image.get_pixel(x, y)
+            if pixel.a >= 1.0 and _is_wasp_leg_paint_pixel(pixel) and (pixel.r > 0.16 or pixel.g > 0.16 or pixel.b > 0.16):
+                return false
+    return true
+
+
+func _is_wasp_leg_paint_pixel(pixel: Color) -> bool:
+    var channel_max = max(pixel.r, max(pixel.g, pixel.b))
+    var channel_min = min(pixel.r, min(pixel.g, pixel.b))
+    return channel_max <= 0.36 or channel_max - channel_min <= 0.18
+
+
+func _is_wasp_lower_leg_uv_pixel(x: int, y: int) -> bool:
+    if (x >= 40 and y >= 45) or (x >= 34 and y >= 51):
+        return true
+    var point := Vector2(float(x), float(y))
+    return (
+            _point_in_triangle(point, Vector2(43.0, 46.0), Vector2(55.0, 63.0), Vector2(56.0, 46.0))
+            or _point_in_triangle(point, Vector2(42.0, 63.0), Vector2(55.0, 63.0), Vector2(43.0, 46.0))
+            or _point_in_triangle(point, Vector2(56.0, 46.0), Vector2(55.0, 63.0), Vector2(43.0, 46.0))
+            or _point_in_triangle(point, Vector2(43.0, 46.0), Vector2(55.0, 63.0), Vector2(42.0, 63.0))
+    )
+
+
+func _is_wasp_leg_surface_uv_pixel(x: int, y: int) -> bool:
+    if _is_wasp_lower_leg_uv_pixel(x, y):
+        return true
+    var point := Vector2(float(x), float(y))
+    return (
+            _point_in_triangle(point, Vector2(25.0, 30.0), Vector2(34.0, 12.0), Vector2(36.0, 22.0))
+            or _point_in_triangle(point, Vector2(25.0, 32.0), Vector2(36.0, 24.0), Vector2(37.0, 32.0))
+            or _point_in_triangle(point, Vector2(34.0, 20.0), Vector2(47.0, 7.0), Vector2(34.0, 12.0))
+            or _point_in_triangle(point, Vector2(47.0, 7.0), Vector2(36.0, 22.0), Vector2(34.0, 12.0))
+            or _point_in_triangle(point, Vector2(25.0, 32.0), Vector2(36.0, 32.0), Vector2(34.0, 22.0))
+            or _point_in_triangle(point, Vector2(25.0, 30.0), Vector2(34.0, 20.0), Vector2(34.0, 12.0))
+            or _point_in_triangle(point, Vector2(36.0, 24.0), Vector2(55.0, 21.0), Vector2(37.0, 32.0))
+            or _point_in_triangle(point, Vector2(25.0, 32.0), Vector2(37.0, 32.0), Vector2(40.0, 43.0))
+            or _point_in_triangle(point, Vector2(25.0, 32.0), Vector2(40.0, 43.0), Vector2(36.0, 32.0))
+    )
+
+
+func _point_in_triangle(point: Vector2, a: Vector2, b: Vector2, c: Vector2) -> bool:
+    var denominator := (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y)
+    if is_zero_approx(denominator):
+        return false
+    var weight_a := ((b.y - c.y) * (point.x - c.x) + (c.x - b.x) * (point.y - c.y)) / denominator
+    var weight_b := ((c.y - a.y) * (point.x - c.x) + (a.x - c.x) * (point.y - c.y)) / denominator
+    var weight_c := 1.0 - weight_a - weight_b
+    return weight_a >= -0.055 and weight_b >= -0.055 and weight_c >= -0.055
+
+
+func _png_count_translucent_near_black_pixels(path: String) -> int:
+    var bytes := FileAccess.get_file_as_bytes(path)
+    if bytes.is_empty():
+        return 0
+    var image := Image.new()
+    var err := image.load_png_from_buffer(bytes)
+    if err != OK:
+        return 0
+    var count := 0
+    for y in image.get_height():
+        for x in image.get_width():
+            var pixel := image.get_pixel(x, y)
+            if pixel.a > 0.0 and pixel.a < 1.0 and pixel.r <= 0.16 and pixel.g <= 0.16 and pixel.b <= 0.16:
+                count += 1
+    return count
+
+
+func _png_count_translucent_near_white_pixels(path: String) -> int:
+    var bytes := FileAccess.get_file_as_bytes(path)
+    if bytes.is_empty():
+        return 0
+    var image := Image.new()
+    var err := image.load_png_from_buffer(bytes)
+    if err != OK:
+        return 0
+    var count := 0
+    for y in image.get_height():
+        for x in image.get_width():
+            var pixel := image.get_pixel(x, y)
+            if pixel.a > 0.0 and pixel.a < 1.0 and pixel.r >= 0.94 and pixel.g >= 0.94 and pixel.b >= 0.94:
+                count += 1
+    return count
 
 
 func _text_file_lacks(path: String, needle: String) -> bool:
@@ -452,13 +708,22 @@ func _test_wasp_resources(assets: Node) -> void:
         _expect(float(wasp_type.get("lifetime_seconds")) > 0.0, "Wasp type %d should have a positive lifetime." % type_id)
         if assets != null and assets.has_method("load_wasp_skin_texture"):
             _expect(assets.call("load_wasp_skin_texture", int(wasp_type.get("skin_index"))) != null, "Wasp type %d skin texture should load from the runtime asset slice." % type_id)
+        if assets != null and assets.has_method("load_wasp_leg_skin_texture"):
+            _expect(assets.call("load_wasp_leg_skin_texture", int(wasp_type.get("skin_index"))) != null, "Wasp type %d leg texture should load from the runtime asset slice." % type_id)
     if assets != null and assets.has_method("apply_wasp_skin"):
         var wasp_scene := assets.load_asset("model.wasp1") as PackedScene
-        _expect(wasp_scene != null, "Wasp model should load for transparent material validation.")
+        _expect(wasp_scene != null, "Wasp model should load for model-skin material validation.")
         if wasp_scene != null:
             var wasp_model := wasp_scene.instantiate() as Node3D
             _expect(bool(assets.call("apply_wasp_skin", wasp_model, 1)), "Applying a wasp skin should succeed for transparent material validation.")
-            _expect(_model_uses_transparency_mode(wasp_model, BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS), "Runtime wasp skins should use alpha depth pre-pass so transparent body surfaces sort consistently.")
+            var expected_leg_texture: Texture2D = null
+            if assets.has_method("load_wasp_leg_skin_texture"):
+                expected_leg_texture = assets.call("load_wasp_leg_skin_texture", 1) as Texture2D
+            _expect(expected_leg_texture != null and _model_uses_texture(wasp_model, expected_leg_texture), "Applying a wasp skin should assign the black leg mask to the split leg surface.")
+            _expect(expected_leg_texture != null and _model_surface_with_texture_uses_shading_mode(wasp_model, expected_leg_texture, BaseMaterial3D.SHADING_MODE_UNSHADED), "Wasp leg masks should render unshaded so black legs do not turn gray or white under scene lighting.")
+            _expect(_model_uses_transparency_mode(wasp_model, BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR), "Runtime wasp skins should use binary alpha scissor so color-key background texels stay fully transparent.")
+            _expect(_model_uses_alpha_scissor_threshold(wasp_model, 0.5), "Runtime wasp skins should cut out the exact-black background instead of blending it over the scene.")
+            _expect(_model_uses_texture_filter(wasp_model, BaseMaterial3D.TEXTURE_FILTER_NEAREST), "Runtime wasp skins should use nearest filtering so black legs stay crisp instead of sampling neighboring transparent texels.")
             wasp_model.queue_free()
     var type_3: Resource = load(WASP_TYPE_3_PATH)
     _expect(type_3 != null and is_equal_approx(float(type_3.get("multi_shot_interval_seconds")), 0.125), "Type 3 should preserve the original waitt 2 spacing between triple shots.")
@@ -1215,6 +1480,20 @@ func _model_uses_texture(node: Node, texture: Texture2D) -> bool:
     return false
 
 
+func _model_surface_with_texture_uses_shading_mode(node: Node, texture: Texture2D, expected_shading_mode: int) -> bool:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            var material := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
+            if material != null and material.albedo_texture == texture and material.shading_mode == expected_shading_mode:
+                return true
+
+    for child in node.get_children():
+        if _model_surface_with_texture_uses_shading_mode(child, texture, expected_shading_mode):
+            return true
+    return false
+
+
 func _model_uses_transparency_mode(node: Node, transparency_mode: int) -> bool:
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
@@ -1225,6 +1504,34 @@ func _model_uses_transparency_mode(node: Node, transparency_mode: int) -> bool:
 
     for child in node.get_children():
         if _model_uses_transparency_mode(child, transparency_mode):
+            return true
+    return false
+
+
+func _model_uses_texture_filter(node: Node, expected_texture_filter: int) -> bool:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            var material := mesh_instance.get_active_material(surface_index) as BaseMaterial3D
+            if material != null and material.texture_filter == expected_texture_filter:
+                return true
+
+    for child in node.get_children():
+        if _model_uses_texture_filter(child, expected_texture_filter):
+            return true
+    return false
+
+
+func _model_uses_alpha_scissor_threshold(node: Node, expected_threshold: float) -> bool:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            var material := mesh_instance.get_active_material(surface_index) as BaseMaterial3D
+            if material != null and is_equal_approx(material.alpha_scissor_threshold, expected_threshold):
+                return true
+
+    for child in node.get_children():
+        if _model_uses_alpha_scissor_threshold(child, expected_threshold):
             return true
     return false
 

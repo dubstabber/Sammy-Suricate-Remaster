@@ -242,8 +242,23 @@ func get_wasp_skin_path(skin_index: int) -> String:
     return "res://assets/models/wasp1/skins/wasp1_skin%d.png" % (skin_index - 1)
 
 
+func get_wasp_leg_skin_path(skin_index: int) -> String:
+    if skin_index <= 0:
+        return ""
+    return "res://assets/models/wasp1/skins/legs/wasp1_skin%d_legs.png" % (skin_index - 1)
+
+
 func load_wasp_skin_texture(skin_index: int) -> Texture2D:
     var texture_path := get_wasp_skin_path(skin_index)
+    if texture_path.is_empty():
+        return null
+    if not ResourceLoader.exists(texture_path) and not FileAccess.file_exists(texture_path):
+        return null
+    return load(texture_path) as Texture2D
+
+
+func load_wasp_leg_skin_texture(skin_index: int) -> Texture2D:
+    var texture_path := get_wasp_leg_skin_path(skin_index)
     if texture_path.is_empty():
         return null
     if not ResourceLoader.exists(texture_path) and not FileAccess.file_exists(texture_path):
@@ -257,7 +272,10 @@ func apply_wasp_skin(model_root: Node3D, skin_index: int) -> bool:
     var texture := load_wasp_skin_texture(skin_index)
     if texture == null:
         return false
-    _apply_texture_to_meshes(model_root, texture, true)
+    var leg_texture := load_wasp_leg_skin_texture(skin_index)
+    if leg_texture == null:
+        leg_texture = texture
+    _apply_wasp_textures_to_meshes(model_root, texture, leg_texture)
     return true
 
 
@@ -326,19 +344,44 @@ func _apply_texture_to_meshes(node: Node, texture: Texture2D, use_alpha: bool = 
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
             var base_material := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
-            var material: StandardMaterial3D = null
-            if base_material != null:
-                material = base_material.duplicate() as StandardMaterial3D
-            else:
-                material = StandardMaterial3D.new()
-            material.albedo_texture = texture
-            if use_alpha:
-                material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
-                material.cull_mode = BaseMaterial3D.CULL_DISABLED
+            var material := _build_textured_material(base_material, texture, use_alpha)
             mesh_instance.set_surface_override_material(surface_index, material)
 
     for child in node.get_children():
         _apply_texture_to_meshes(child, texture, use_alpha)
+
+
+func _apply_wasp_textures_to_meshes(node: Node, body_texture: Texture2D, leg_texture: Texture2D) -> void:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        var surface_count := mesh_instance.mesh.get_surface_count()
+        for surface_index in range(surface_count):
+            var base_material := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
+            # Surface 1 is the generated mirrored/lower-leg primitive split from wasp1.MDL triangles 79-95.
+            var is_leg_surface := surface_count > 1 and surface_index > 0
+            var texture := leg_texture if is_leg_surface else body_texture
+            var material := _build_textured_material(base_material, texture, true)
+            if is_leg_surface:
+                material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+            mesh_instance.set_surface_override_material(surface_index, material)
+
+    for child in node.get_children():
+        _apply_wasp_textures_to_meshes(child, body_texture, leg_texture)
+
+
+func _build_textured_material(base_material: StandardMaterial3D, texture: Texture2D, use_alpha: bool) -> StandardMaterial3D:
+    var material: StandardMaterial3D = null
+    if base_material != null:
+        material = base_material.duplicate() as StandardMaterial3D
+    else:
+        material = StandardMaterial3D.new()
+    material.albedo_texture = texture
+    if use_alpha:
+        material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+        material.alpha_scissor_threshold = 0.5
+        material.cull_mode = BaseMaterial3D.CULL_DISABLED
+        material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+    return material
 
 
 func _transform_aabb(transform: Transform3D, bounds: AABB) -> AABB:

@@ -253,6 +253,9 @@ func _test_model_skin_alpha() -> void:
     _expect(_png_is_fully_opaque("res://assets/models/rasta/skins/rasta_skin0.png"), "Rasta RGB565 skin must stay opaque; black texels are painted detail.")
     _expect(_text_file_lacks("res://assets/models/Punk/Punk_animated.gltf", "\"alphaMode\""), "Punk material should not import as alpha masked.")
     _expect(_text_file_lacks("res://assets/models/rasta/rasta_animated.gltf", "\"alphaMode\""), "Rasta material should not import as alpha masked.")
+    _expect(_text_file_contains("res://assets/models/wasp1/wasp1.gltf", "\"alphaMode\": \"BLEND\""), "Wasp material should import with alpha blending enabled.")
+    for skin_index in range(7):
+        _expect(_png_has_transparent_pixels("res://assets/models/wasp1/skins/wasp1_skin%d.png" % skin_index), "Wasp skin %d should preserve transparent color-key background pixels." % skin_index)
 
 
 func _png_is_fully_opaque(path: String) -> bool:
@@ -270,11 +273,33 @@ func _png_is_fully_opaque(path: String) -> bool:
     return true
 
 
+func _png_has_transparent_pixels(path: String) -> bool:
+    var bytes := FileAccess.get_file_as_bytes(path)
+    if bytes.is_empty():
+        return false
+    var image := Image.new()
+    var err := image.load_png_from_buffer(bytes)
+    if err != OK:
+        return false
+    for y in image.get_height():
+        for x in image.get_width():
+            if image.get_pixel(x, y).a <= 0.0:
+                return true
+    return false
+
+
 func _text_file_lacks(path: String, needle: String) -> bool:
     var file := FileAccess.open(path, FileAccess.READ)
     if file == null:
         return false
     return not file.get_as_text().contains(needle)
+
+
+func _text_file_contains(path: String, needle: String) -> bool:
+    var file := FileAccess.open(path, FileAccess.READ)
+    if file == null:
+        return false
+    return file.get_as_text().contains(needle)
 
 
 func _test_main_scene() -> void:
@@ -314,6 +339,14 @@ func _test_wasp_resources(assets: Node) -> void:
         _expect(float(wasp_type.get("lifetime_seconds")) > 0.0, "Wasp type %d should have a positive lifetime." % type_id)
         if assets != null and assets.has_method("load_wasp_skin_texture"):
             _expect(assets.call("load_wasp_skin_texture", int(wasp_type.get("skin_index"))) != null, "Wasp type %d skin texture should load from the runtime asset slice." % type_id)
+    if assets != null and assets.has_method("apply_wasp_skin"):
+        var wasp_scene := assets.load_asset("model.wasp1") as PackedScene
+        _expect(wasp_scene != null, "Wasp model should load for transparent material validation.")
+        if wasp_scene != null:
+            var wasp_model := wasp_scene.instantiate() as Node3D
+            _expect(bool(assets.call("apply_wasp_skin", wasp_model, 1)), "Applying a wasp skin should succeed for transparent material validation.")
+            _expect(_model_uses_transparent_material(wasp_model), "Applying a wasp skin should enable material alpha transparency.")
+            wasp_model.free()
     var type_3: Resource = load(WASP_TYPE_3_PATH)
     _expect(type_3 != null and is_equal_approx(float(type_3.get("multi_shot_interval_seconds")), 0.125), "Type 3 should preserve the original waitt 2 spacing between triple shots.")
     var type_5: Resource = load(WASP_TYPE_5_PATH)
@@ -1031,6 +1064,20 @@ func _model_uses_texture(node: Node, texture: Texture2D) -> bool:
 
     for child in node.get_children():
         if _model_uses_texture(child, texture):
+            return true
+    return false
+
+
+func _model_uses_transparent_material(node: Node) -> bool:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            var material := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
+            if material != null and material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA:
+                return true
+
+    for child in node.get_children():
+        if _model_uses_transparent_material(child):
             return true
     return false
 

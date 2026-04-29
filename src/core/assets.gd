@@ -255,7 +255,7 @@ func apply_wasp_skin(model_root: Node3D, skin_index: int) -> bool:
     var texture := load_wasp_skin_texture(skin_index)
     if texture == null:
         return false
-    _apply_texture_to_meshes(model_root, texture)
+    _apply_texture_to_meshes(model_root, texture, true)
     return true
 
 
@@ -319,7 +319,7 @@ func _accumulate_mesh_bounds(node: Node, state: Dictionary) -> void:
         _accumulate_mesh_bounds(child, state)
 
 
-func _apply_texture_to_meshes(node: Node, texture: Texture2D) -> void:
+func _apply_texture_to_meshes(node: Node, texture: Texture2D, use_alpha: bool = false) -> void:
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
@@ -330,10 +330,13 @@ func _apply_texture_to_meshes(node: Node, texture: Texture2D) -> void:
             else:
                 material = StandardMaterial3D.new()
             material.albedo_texture = texture
+            if use_alpha:
+                material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+                material.cull_mode = BaseMaterial3D.CULL_DISABLED
             mesh_instance.set_surface_override_material(surface_index, material)
 
     for child in node.get_children():
-        _apply_texture_to_meshes(child, texture)
+        _apply_texture_to_meshes(child, texture, use_alpha)
 
 
 func _transform_aabb(transform: Transform3D, bounds: AABB) -> AABB:

@@ -475,15 +475,25 @@ func _test_player_scene() -> void:
                 var wasp_type: Resource = load(WASP_TYPE_2_PATH)
                 inventory.call("add_ammo", wasp_type, 3)
                 var children_before := root.get_child_count()
+                var fire_spawn_delay := float(player.call("_get_wasp_fire_spawn_delay_seconds", wasp_type))
+                var fire_recovery := float(player.call("_get_wasp_fire_recovery_seconds"))
+                _expect(fire_spawn_delay > 0.0, "Type 2 wasp fire should expose the original tirA spawn delay.")
+                _expect(fire_recovery > 0.0, "Wasp fire should expose a recovery cooldown after projectile spawn.")
                 _expect(bool(player.call("fire_wasp")), "Fire action should be accepted when Sammy has wasp ammo.")
                 _expect(int(player.call("get_fire_request_count")) == fire_requests + 1, "Accepted fire should increment the accepted fire count.")
-                _expect(int(inventory.call("get_ammo_count")) == 2, "Firing with ammo should decrement the ammo count by one.")
-                _expect(root.get_child_count() == children_before + 1, "Firing should add a wasp projectile to the player's parent.")
+                _expect(bool(player.call("is_wasp_fire_locked")), "Accepted fire should lock Sammy in the original shooting state.")
+                _expect(int(inventory.call("get_ammo_count")) == 3, "Accepted fire should defer ammo consumption until the wasp is spawned.")
+                _expect(root.get_child_count() == children_before, "Accepted fire should defer wasp projectile creation until tirA completes.")
+                _expect(not bool(player.call("fire_wasp")), "A second fire input during the original shooting state should be rejected quietly.")
+                _expect(int(player.call("get_fire_request_count")) == fire_requests + 1, "Rejected cooldown fire should not increment accepted fire count.")
                 if controller != null:
                     _expect(String(controller.call("get_current_action")) == "tirA", "Accepted fire should start Sammy's original tirA animation.")
                     var fire_animation_player := controller.get("animation_player") as AnimationPlayer
                     if fire_animation_player != null:
                         _expect(is_equal_approx(fire_animation_player.speed_scale, float(wasp_type.get("fire_animation_speed"))), "Type 2 fire should play tirA at the original 2.2 speed multiplier.")
+                player.call("_update_wasp_fire_timing", fire_spawn_delay + 0.001)
+                _expect(int(inventory.call("get_ammo_count")) == 2, "Wasp spawn should consume one ammo after the original tirA delay.")
+                _expect(root.get_child_count() == children_before + 1, "Completing tirA should add a wasp projectile to the player's parent.")
                 if audio != null and player_assets != null:
                     _expect(_audio_service_has_stream(audio, player_assets.load_asset("sfx.wasp") as AudioStream), "Accepted fire should play original Wasp_son.")
                 var spawned_projectile := root.get_child(root.get_child_count() - 1)
@@ -493,8 +503,24 @@ func _test_player_scene() -> void:
                 if player_assets != null and player_assets.has_method("load_wasp_skin_texture"):
                     var expected_skin := player_assets.call("load_wasp_skin_texture", int(wasp_type.get("skin_index"))) as Texture2D
                     _expect(expected_skin != null and _model_uses_texture(spawned_projectile, expected_skin), "Spawned wasp projectile should use the active type skin.")
+                _expect(not bool(player.call("fire_wasp")), "Fire action should stay locked during the post-spawn recovery.")
                 spawned_projectile.queue_free()
-                inventory.call("consume_ammo", 2)
+                await process_frame
+                player.call("_update_wasp_fire_timing", fire_recovery + 0.1)
+                _expect(not bool(player.call("is_wasp_fire_locked")), "Wasp fire lock should release after the original tirB recovery.")
+                var children_before_second_fire := root.get_child_count()
+                var fire_requests_before_second := int(player.call("get_fire_request_count"))
+                _expect(bool(player.call("fire_wasp")), "Fire action should be accepted again after the wasp recovery cooldown.")
+                _expect(int(player.call("get_fire_request_count")) == fire_requests_before_second + 1, "Accepted post-cooldown fire should increment the fire count.")
+                player.call("_update_wasp_fire_timing", fire_spawn_delay + fire_recovery + 0.2)
+                _expect(int(inventory.call("get_ammo_count")) == 1, "Second spawned wasp should consume one more ammo.")
+                _expect(root.get_child_count() == children_before_second_fire + 1, "Second post-cooldown fire should spawn another wasp projectile.")
+                var second_spawned_projectile := root.get_child(root.get_child_count() - 1)
+                if second_spawned_projectile.has_method("get_wasp_type"):
+                    _expect(second_spawned_projectile.call("get_wasp_type") == wasp_type, "Second spawned projectile should keep the active wasp type.")
+                second_spawned_projectile.queue_free()
+                await process_frame
+                inventory.call("consume_ammo", 1)
                 var ammo_after_drain := int(inventory.call("get_ammo_count"))
                 var fire_requests_after_valid := int(player.call("get_fire_request_count"))
                 _expect(not bool(player.call("fire_wasp")), "Fire action should be rejected after Sammy drains all wasp ammo.")
@@ -597,6 +623,13 @@ func _test_prototype_world() -> void:
     await process_frame
     await process_frame
     _expect(world.get_node_or_null("Player") != null, "Prototype world is missing its editor-instanced player.")
+    var debug_overlay := world.get_node_or_null("DebugOverlay")
+    var debug_label: Label = null
+    if debug_overlay != null:
+        debug_overlay.call("_physics_process", 0.0)
+        if debug_overlay.get_child_count() > 0:
+            debug_label = debug_overlay.get_child(0) as Label
+        _expect(debug_label != null and debug_label.text.contains("Wasps: 0"), "Prototype debug overlay should show zero wasps before pickup collection.")
     var camera := world.get_node_or_null("PrototypeCamera")
     _expect(camera != null, "Prototype world is missing its editor-instanced camera.")
     if camera != null:
@@ -746,6 +779,9 @@ func _test_prototype_world() -> void:
                     _expect(bool(wasp_pickup.call("collect", player_for_wasp)), "Wasp pickup should collect when given the player.")
                     _expect(inventory.call("get_current_type") == pickup_wasp_type, "Wasp pickup should set the active wasp type.")
                     _expect(int(inventory.call("get_ammo_count")) == int(wasp_pickup.call("get_ammo_amount")), "Wasp pickup should add its ammo amount to the inventory.")
+                    if debug_overlay != null and debug_label != null:
+                        debug_overlay.call("_physics_process", 0.0)
+                        _expect(debug_label.text.contains("Wasps: %d" % int(wasp_pickup.call("get_ammo_amount"))), "Prototype debug overlay should show the current wasp ammo count.")
                     _expect(bool(wasp_pickup.call("was_collected")), "Wasp pickup should mark itself collected.")
                     _expect(not wasp_pickup.visible, "Wasp pickup should hide after collection.")
                     await process_frame

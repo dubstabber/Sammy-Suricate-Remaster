@@ -5,6 +5,13 @@ const PLAYER_MOVEMENT_CONFIG_SCRIPT := preload("res://src/resources/player_movem
 const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
 const WASP_INVENTORY_SCRIPT := preload("res://src/weapons/wasp_inventory.gd")
 const WASP_PROJECTILE_SCENE := preload("res://scenes/weapons/wasp_projectile.tscn")
+const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
+const GODOT_PLAYBACK_SPEED_CORRECTION := 1.12
+const WASP_FIRE_STEP_RANGE := 100.0
+const WASP_FIRE_END_START_STEP := 10.0
+const WASP_FIRE_START_STEP_SPEED := 20.0
+const WASP_FIRE_END_STEP_SPEED := 20.0
+const WASP_POST_SPAWN_WAIT_TICKS := 1.0
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
@@ -27,6 +34,11 @@ var _quick_turn_start_yaw: float = 0.0
 var _quick_turn_remaining_degrees: float = 0.0
 var _quick_turn_speed_degrees: float = 0.0
 var _wasp_inventory: Node = null
+var _wasp_fire_active: bool = false
+var _pending_wasp_type: Resource = null
+var _wasp_projectile_spawned: bool = false
+var _wasp_spawn_delay_remaining: float = 0.0
+var _wasp_recovery_remaining: float = 0.0
 
 
 func _ready() -> void:
@@ -53,6 +65,8 @@ func _physics_process(delta: float) -> void:
     var was_on_floor := is_on_floor()
     var forward_input: float = Input.get_axis("move_back", "move_forward")
     var turn_input: float = Input.get_axis("turn_left", "turn_right")
+
+    _update_wasp_fire_timing(delta)
 
     if Input.is_action_just_pressed("quick_turn") and is_on_floor():
         apply_quick_turn()
@@ -164,7 +178,7 @@ func is_quick_turning() -> bool:
 
 
 func apply_quick_turn() -> void:
-    if _quick_turn_active:
+    if _quick_turn_active or _wasp_fire_active:
         return
 
     _quick_turn_active = true
@@ -177,6 +191,8 @@ func apply_quick_turn() -> void:
 
 
 func fire_wasp() -> bool:
+    if _wasp_fire_active:
+        return false
     if _wasp_inventory == null or not _wasp_inventory.has_method("has_ammo"):
         _play_no_wasp_sound()
         return false
@@ -187,27 +203,83 @@ func fire_wasp() -> bool:
     if wasp_type == null:
         _play_no_wasp_sound()
         return false
-    if not bool(_wasp_inventory.call("consume_ammo", 1)):
-        _play_no_wasp_sound()
-        return false
     _fire_requests += 1
     _start_animation_sequence([&"tirA", &"tirB"], _get_wasp_fire_animation_speed(wasp_type))
-    _spawn_wasp_projectile(wasp_type)
+    _begin_wasp_fire(wasp_type)
+    return true
+
+
+func is_wasp_fire_locked() -> bool:
+    return _wasp_fire_active
+
+
+func _begin_wasp_fire(wasp_type: Resource) -> void:
+    _wasp_fire_active = true
+    _pending_wasp_type = wasp_type
+    _wasp_projectile_spawned = false
+    _wasp_spawn_delay_remaining = _get_wasp_fire_spawn_delay_seconds(wasp_type)
+    _wasp_recovery_remaining = 0.0
+
+
+func _update_wasp_fire_timing(delta: float) -> void:
+    if not _wasp_fire_active:
+        return
+
+    var remaining_delta: float = maxf(delta, 0.0)
+    if not _wasp_projectile_spawned:
+        _wasp_spawn_delay_remaining -= remaining_delta
+        if _wasp_spawn_delay_remaining > 0.0:
+            return
+
+        remaining_delta = -_wasp_spawn_delay_remaining
+        _wasp_spawn_delay_remaining = 0.0
+        if not _release_pending_wasp_projectile():
+            _clear_wasp_fire()
+            return
+        _wasp_projectile_spawned = true
+        _wasp_recovery_remaining = _get_wasp_fire_recovery_seconds()
+
+    if _wasp_projectile_spawned:
+        _wasp_recovery_remaining = maxf(0.0, _wasp_recovery_remaining - remaining_delta)
+        if _wasp_recovery_remaining <= 0.0:
+            _clear_wasp_fire()
+
+
+func _release_pending_wasp_projectile() -> bool:
+    var wasp_type := _pending_wasp_type
+    _pending_wasp_type = null
+    if wasp_type == null:
+        return false
+    if _wasp_inventory == null or not _wasp_inventory.has_method("consume_ammo"):
+        return false
+    if not bool(_wasp_inventory.call("consume_ammo", 1)):
+        return false
+    if not _spawn_wasp_projectile(wasp_type):
+        return false
     _play_fire_sound()
     return true
 
 
-func _spawn_wasp_projectile(wasp_type: Resource) -> void:
+func _clear_wasp_fire() -> void:
+    _wasp_fire_active = false
+    _pending_wasp_type = null
+    _wasp_projectile_spawned = false
+    _wasp_spawn_delay_remaining = 0.0
+    _wasp_recovery_remaining = 0.0
+
+
+func _spawn_wasp_projectile(wasp_type: Resource) -> bool:
     var parent: Node = get_parent()
     if parent == null:
-        return
+        return false
     var projectile: Node = WASP_PROJECTILE_SCENE.instantiate()
     if projectile == null:
-        return
+        return false
     parent.add_child(projectile)
     var spawn_transform := global_transform
     spawn_transform.origin += global_transform.basis * wasp_muzzle_offset
     projectile.call("configure", wasp_type, self, spawn_transform)
+    return true
 
 
 func _play_fire_sound() -> void:
@@ -233,6 +305,21 @@ func _get_wasp_fire_animation_speed(wasp_type: Resource) -> float:
     if raw_fire_animation_speed == null:
         return 1.0
     return float(raw_fire_animation_speed)
+
+
+func _get_wasp_fire_spawn_delay_seconds(wasp_type: Resource) -> float:
+    return _seconds_for_wdl_animation_steps(WASP_FIRE_STEP_RANGE, WASP_FIRE_START_STEP_SPEED * _get_wasp_fire_animation_speed(wasp_type))
+
+
+func _get_wasp_fire_recovery_seconds() -> float:
+    var recovery_steps := maxf(0.0, WASP_FIRE_STEP_RANGE - WASP_FIRE_END_START_STEP)
+    return (WASP_POST_SPAWN_WAIT_TICKS / ACKNEX_TIME_UNITS_PER_SECOND) + _seconds_for_wdl_animation_steps(recovery_steps, WASP_FIRE_END_STEP_SPEED)
+
+
+func _seconds_for_wdl_animation_steps(step_count: float, step_speed: float) -> float:
+    if step_count <= 0.0 or step_speed <= 0.0:
+        return 0.0
+    return step_count / (step_speed * ACKNEX_TIME_UNITS_PER_SECOND * GODOT_PLAYBACK_SPEED_CORRECTION)
 
 
 func _apply_turn(delta: float, forward_input: float, turn_input: float) -> void:

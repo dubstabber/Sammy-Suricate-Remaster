@@ -30,6 +30,7 @@ func _physics_process(_delta: float) -> void:
                     float(_player.call("get_boost_capacity")),
                     float(_player.call("get_boost_capacity_max"))
             ])
+        lines.append("Wasps: %d" % _get_player_wasp_count())
     _label.text = "\n".join(lines)
 
 
@@ -43,3 +44,12 @@ func _resolve_player() -> void:
         _player = get_node_or_null(player_path) as Node3D
     if _player == null:
         _player = get_tree().get_first_node_in_group("player") as Node3D
+
+
+func _get_player_wasp_count() -> int:
+    if _player == null or not _player.has_method("get_wasp_inventory"):
+        return 0
+    var inventory: Node = _player.call("get_wasp_inventory")
+    if inventory == null or not inventory.has_method("get_ammo_count"):
+        return 0
+    return int(inventory.call("get_ammo_count"))

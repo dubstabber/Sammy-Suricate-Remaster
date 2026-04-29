@@ -53,6 +53,7 @@ func _run() -> void:
     _test_wasp_inventory()
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
+    await _test_enemy_ai_behavior()
     await _test_player_scene()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
@@ -881,6 +882,120 @@ func _test_wasp_projectile_behaviors() -> void:
     await process_frame
 
 
+func _test_enemy_ai_behavior() -> void:
+    const STATE_WAIT := 0
+    const STATE_CHASE := 2
+    const STATE_DYING := 6
+    const STATE_ATTACK_SWING := 10
+    const STATE_HIT_RECOIL := 11
+
+    var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    enemy.set("affected_by_gravity", false)
+    enemy.set("max_health", 5)
+    enemy.set("react_range", 5.0)
+    enemy.set("attack_range", 1.2)
+    enemy.set("attack_strike_ratio", 0.1)
+    enemy.set("contact_damage", 1)
+    enemy.set("wait_min", 999.0)
+    enemy.set("wait_max", 999.0)
+    enemy.set("turn_rate_deg_per_sec", 720.0)
+    root.add_child(enemy)
+    enemy.global_position = Vector3(0.0, 0.0, 0.0)
+    await physics_frame
+
+    var player_stub := _make_ai_test_player()
+    root.add_child(player_stub)
+    player_stub.global_position = Vector3(0.0, 0.0, -10.0)
+    await physics_frame
+
+    _expect(enemy.is_in_group("enemy"), "AI enemy should join the enemy group on ready.")
+    _expect(int(enemy.call("get_state")) == STATE_WAIT, "AI enemy should start in WAIT state.")
+
+    player_stub.global_position = Vector3(0.0, 0.0, -3.0)
+    await physics_frame
+    await physics_frame
+    _expect(int(enemy.call("get_state")) == STATE_CHASE, "AI enemy should enter CHASE when player crosses react_range with line of sight.")
+
+    var pre_position := enemy.global_position
+    for _i in 6:
+        await physics_frame
+    _expect(enemy.global_position.distance_to(pre_position) > 0.05, "AI enemy should advance toward the player while in CHASE.")
+    _expect(enemy.global_position.z < pre_position.z, "AI enemy should move toward the player along -Z.")
+
+    player_stub.global_position = enemy.global_position + Vector3(0.0, 0.0, -0.6)
+    await physics_frame
+    await physics_frame
+    var post_close_state := int(enemy.call("get_state"))
+    _expect(post_close_state == STATE_ATTACK_SWING or int(player_stub.get("damage_calls")) > 0, "AI enemy should swing or land an attack when player is inside attack_range.")
+
+    var attack_settle_frames := 0
+    while attack_settle_frames < 90 and int(player_stub.get("damage_calls")) == 0:
+        await physics_frame
+        attack_settle_frames += 1
+    _expect(int(player_stub.get("damage_calls")) >= 1, "AI enemy attack swing should land contact damage on the player at least once.")
+    _expect(int(player_stub.get("damage_calls")) <= 2, "AI enemy attack swing should not multi-hit on a single swing tick.")
+
+    # Regression: after the first swing finishes, the enemy must not be stuck in
+    # ATTACK_SWING with a non-playing animation. Either it re-swings on the
+    # stationary player, or it disengages when the player walks away.
+    var hits_after_first := int(player_stub.get("damage_calls"))
+    var follow_up_frames := 0
+    while follow_up_frames < 240 and int(player_stub.get("damage_calls")) <= hits_after_first:
+        await physics_frame
+        follow_up_frames += 1
+    _expect(int(player_stub.get("damage_calls")) > hits_after_first, "AI enemy should keep swinging while the player remains in attack_range.")
+
+    player_stub.global_position = Vector3(0.0, 0.0, 30.0)
+    var disengage_frames := 0
+    while disengage_frames < 240 and int(enemy.call("get_state")) == STATE_ATTACK_SWING:
+        await physics_frame
+        disengage_frames += 1
+    _expect(int(enemy.call("get_state")) != STATE_ATTACK_SWING, "AI enemy should leave ATTACK_SWING once the player is far away.")
+
+    enemy.call("take_damage", 2, null)
+    _expect(int(enemy.call("get_state")) == STATE_HIT_RECOIL, "Surviving damage should put the enemy in HIT_RECOIL.")
+    _expect(int(enemy.call("get_health")) == 3, "Surviving damage should reduce health by amount taken.")
+
+    enemy.call("take_damage", 99, null)
+    _expect(int(enemy.call("get_state")) == STATE_DYING, "Lethal damage should put the enemy in DYING state.")
+    _expect(bool(enemy.call("is_dead")), "Lethal damage should mark the enemy as dead immediately.")
+    _expect(is_instance_valid(enemy), "Enemy should remain in tree while playing the death animation, not despawn synchronously.")
+
+    var death_settle_frames := 0
+    while death_settle_frames < 600 and is_instance_valid(enemy):
+        await physics_frame
+        death_settle_frames += 1
+    _expect(not is_instance_valid(enemy), "Enemy should despawn after the death animation completes.")
+
+    if is_instance_valid(enemy):
+        enemy.queue_free()
+    if is_instance_valid(player_stub):
+        player_stub.queue_free()
+    await process_frame
+
+
+func _make_ai_test_player() -> Node3D:
+    var script := GDScript.new()
+    script.source_code = "extends Node3D\n" \
+            + "var damage_calls: int = 0\n" \
+            + "var last_amount: int = 0\n" \
+            + "var last_source: Node = null\n" \
+            + "var hp: int = 100\n" \
+            + "func take_damage(amount: int, source: Node = null) -> bool:\n" \
+            + "    damage_calls += 1\n" \
+            + "    last_amount = amount\n" \
+            + "    last_source = source\n" \
+            + "    hp = max(0, hp - amount)\n" \
+            + "    return true\n"
+    script.reload()
+    var node := Node3D.new()
+    node.name = "AITestPlayerStub"
+    node.set_script(script)
+    node.add_to_group("player")
+    return node
+
+
 func _test_player_scene() -> void:
     var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
     var player: Node = player_scene.instantiate()
@@ -1212,6 +1327,7 @@ func _test_prototype_world() -> void:
         if debug_overlay.get_child_count() > 0:
             debug_label = debug_overlay.get_child(0) as Label
         _expect(debug_label != null and debug_label.text.contains("Wasps: 0"), "Prototype debug overlay should show zero wasps before pickup collection.")
+        _expect(debug_label != null and debug_label.text.contains("Health: 6 / 6"), "Prototype debug overlay should show the player health readout at full hp.")
     var camera := world.get_node_or_null("PrototypeCamera")
     _expect(camera != null, "Prototype world is missing its editor-instanced camera.")
     if camera != null:

@@ -23,10 +23,10 @@ albedo_color = Color(0.22, 0.32, 0.26, 1)
 roughness = 0.85
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
-size = Vector2(24, 24)
+size = Vector2(80, 80)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
-size = Vector3(24, 1, 24)
+size = Vector3(80, 1, 80)
 
 [node name="PrototypeWorld" type="Node3D" unique_id=895671385]
 script = ExtResource("1_world")
@@ -43,7 +43,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 shape = SubResource("BoxShape3D_floor")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1066875210]
-transform = Transform3D(0.8191522, -0.4698461, 0.32898983, 0, 0.5735765, 0.819152, -0.5735762, -0.67101014, 0.46984646, 0, 0, 0)
+transform = Transform3D(0.8191522, -0.4698461, 0.32898983, 0, 0.5735765, 0.819152, -0.5735762, -0.67101014, 0.46984646, 0, 15.7286, 9.592674)
 light_energy = 1.508
 
 [node name="FillLight" type="OmniLight3D" parent="." unique_id=1841200919]
@@ -53,7 +53,7 @@ light_energy = 1.5
 omni_range = 18.0
 
 [node name="Player" parent="." unique_id=1034430013 instance=ExtResource("2_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1735701, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1735701, 15.62971)
 
 [node name="PrototypeCamera" type="Camera3D" parent="." unique_id=1505781596]
 script = ExtResource("3_camera")

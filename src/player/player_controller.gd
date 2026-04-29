@@ -23,6 +23,10 @@ const PLAYER_LANDING_INPUT_STEP_SPEED := 36.0
 @export var fire_sound_asset_id: String = "sfx.wasp"
 @export var no_wasp_sound_asset_id: String = "sfx.error"
 @export var wasp_muzzle_offset: Vector3 = Vector3(0.0, 0.6, -0.4)
+@export var max_health: int = 6
+@export var damage_invulnerability_seconds: float = 0.6
+
+signal damaged(amount: int, source: Node)
 
 @onready var visual_pivot: Node3D = $VisualPivot
 
@@ -47,13 +51,42 @@ var _wasp_spawn_delay_remaining: float = 0.0
 var _wasp_recovery_remaining: float = 0.0
 var _jump_fire_blocked: bool = false
 var _landing_movement_lock_remaining: float = 0.0
+var _health: int = 0
+var _last_damage_time_msec: int = -1_000_000
 
 
 func _ready() -> void:
     add_to_group("player")
+    _health = max_health
     _boost_capacity = clampf(movement_config.boost_initial_capacity, 0.0, movement_config.boost_capacity_max)
     _ensure_wasp_inventory()
     _spawn_model()
+
+
+func take_damage(amount: int, source: Node = null) -> bool:
+    if amount <= 0 or _health <= 0:
+        return false
+    if is_in_invulnerability_window():
+        return false
+    _health = maxi(0, _health - amount)
+    _last_damage_time_msec = Time.get_ticks_msec()
+    damaged.emit(amount, source)
+    return true
+
+
+func get_health() -> int:
+    return _health
+
+
+func get_max_health() -> int:
+    return max_health
+
+
+func is_in_invulnerability_window() -> bool:
+    if damage_invulnerability_seconds <= 0.0:
+        return false
+    var elapsed_msec := Time.get_ticks_msec() - _last_damage_time_msec
+    return elapsed_msec < int(damage_invulnerability_seconds * 1000.0)
 
 
 func _ensure_wasp_inventory() -> void:

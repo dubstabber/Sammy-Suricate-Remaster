@@ -7,29 +7,20 @@ const DEFAULT_MODEL_SCALE := Vector3.ONE * 0.01
 const BOOST_WDL_VERTEX_IDS := [3, 11]
 const BOOST_EXPORTED_VERTEX_INDICES := [2, 38]
 const PARTICLES_PER_EMITTER := 12
-const EMIT_INTERVAL_SECONDS := 0.06
 const PARTICLE_LIFETIME_SECONDS := 0.75
 const PARTICLE_QUAD_SIZE := Vector2(0.1, 0.1)
 const PARTICLE_SCALE_START := 1.0
 const PARTICLE_SCALE_MID := 0.62
 const PARTICLE_SCALE_END := 0.14
-
-class SparkleParticle:
-	var node: MeshInstance3D
-	var mesh: QuadMesh
-	var velocity: Vector3 = Vector3.ZERO
-	var age: float = 0.0
-	var lifetime: float = 1.0
-	var start_scale: float = 1.0
-	var emitter_index: int = 0
+const PARTICLE_INITIAL_VELOCITY_MIN := 0.55
+const PARTICLE_INITIAL_VELOCITY_MAX := 1.1
+const PARTICLE_SPREAD_DEGREES := 32.0
 
 @export var texture_asset_id: String = DEFAULT_TEXTURE_ASSET_ID
 
 var _texture: Texture2D
 var _anchors: Array[Vector3] = []
-var _emitters: Array[Node3D] = []
-var _emit_accumulators: Array[float] = []
-var _particles: Array[SparkleParticle] = []
+var _emitters: Array[GPUParticles3D] = []
 var _emitting := true
 var _model_root: Node3D
 var _mesh_instance: MeshInstance3D
@@ -37,11 +28,11 @@ var _base_vertices: PackedVector3Array
 var _blend_vertices: Array[PackedVector3Array] = []
 var _blend_shape_mode := Mesh.BLEND_SHAPE_MODE_NORMALIZED
 var _particle_material: StandardMaterial3D
-var _rng := RandomNumberGenerator.new()
+var _particle_mesh: QuadMesh
+var _particle_process_material: ParticleProcessMaterial
 
 
 func _ready() -> void:
-	_rng.seed = 0x51A7A
 	if _anchors.is_empty():
 		configure_model_scale(DEFAULT_MODEL_SCALE)
 	if _texture == null:
@@ -73,6 +64,8 @@ func configure_model_scale(model_scale: Vector3) -> void:
 
 func stop_emission() -> void:
 	_emitting = false
+	for emitter: GPUParticles3D in _emitters:
+		emitter.emitting = false
 
 
 func is_emitting_effect() -> bool:
@@ -96,8 +89,11 @@ func get_particle_quad_size() -> Vector2:
 
 
 func restart_emitters() -> int:
-	_clear_particles()
-	_prewarm_particles()
+	for emitter: GPUParticles3D in _emitters:
+		emitter.emitting = _emitting
+		emitter.restart(true)
+		if _emitting:
+			emitter.request_particles_process(PARTICLE_LIFETIME_SECONDS)
 	return _emitters.size()
 
 
@@ -121,20 +117,8 @@ func get_particle_scale_at_lifetime_ratio(lifetime_ratio: float) -> float:
 	return _sample_particle_scale(clampf(lifetime_ratio, 0.0, 1.0))
 
 
-func get_active_particle_count() -> int:
-	return _particles.size()
-
-
-func get_first_particle_visual_scale() -> float:
-	if _particles.is_empty() or _particles[0].mesh == null:
-		return 0.0
-	return _particles[0].mesh.size.x / PARTICLE_QUAD_SIZE.x
-
-
-func get_first_particle_quad_size() -> Vector2:
-	if _particles.is_empty() or _particles[0].mesh == null:
-		return Vector2.ZERO
-	return _particles[0].mesh.size
+func get_particle_capacity() -> int:
+	return _emitters.size() * PARTICLES_PER_EMITTER
 
 
 func get_emitter_local_position(index: int) -> Vector3:
@@ -152,31 +136,24 @@ func _load_texture_from_assets() -> void:
 
 
 func _rebuild_emitters() -> void:
-	_clear_particles()
-	for emitter: Node3D in _emitters:
-		emitter.queue_free()
-	_emitters.clear()
-	_emit_accumulators.clear()
+	_clear_emitters()
 
 	if _texture == null:
 		return
 
 	_particle_material = _create_particle_material(_texture)
+	_particle_mesh = _create_particle_mesh(_particle_material)
+	_particle_process_material = _create_particle_process_material()
 	for index in _anchors.size():
-		var emitter := Node3D.new()
-		emitter.name = "BoostEmitter%d" % index
-		emitter.position = _anchors[index]
+		var emitter := _create_gpu_emitter(index)
 		add_child(emitter)
 		_emitters.append(emitter)
-		_emit_accumulators.append(float(index) * EMIT_INTERVAL_SECONDS * 0.5)
 	_update_emitter_positions()
-	_prewarm_particles()
+	restart_emitters()
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	_update_emitter_positions()
-	_emit_particles(delta)
-	_update_particles(delta)
 
 
 func _load_model_vertex_tracks(model_root: Node3D) -> void:
@@ -252,83 +229,65 @@ func _create_particle_material(texture: Texture2D) -> StandardMaterial3D:
 	material.albedo_texture = texture
 	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.billboard_keep_scale = true
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	return material
 
 
-func _prewarm_particles() -> void:
-	for emitter_index in _emitters.size():
-		for particle_index in range(PARTICLES_PER_EMITTER):
-			var age_ratio := float(particle_index) / float(PARTICLES_PER_EMITTER)
-			_spawn_particle(emitter_index, PARTICLE_LIFETIME_SECONDS * age_ratio)
-
-
-func _emit_particles(delta: float) -> void:
-	if not _emitting or _particle_material == null:
-		return
-
-	for emitter_index in _emitters.size():
-		_emit_accumulators[emitter_index] += delta
-		while _emit_accumulators[emitter_index] >= EMIT_INTERVAL_SECONDS:
-			_emit_accumulators[emitter_index] -= EMIT_INTERVAL_SECONDS
-			if _get_particle_count_for_emitter(emitter_index) < PARTICLES_PER_EMITTER:
-				_spawn_particle(emitter_index)
-
-
-func _spawn_particle(emitter_index: int, initial_age: float = 0.0) -> void:
-	if emitter_index < 0 or emitter_index >= _emitters.size() or _particle_material == null:
-		return
-
+func _create_particle_mesh(material: StandardMaterial3D) -> QuadMesh:
 	var mesh := QuadMesh.new()
-	mesh.material = _particle_material
+	mesh.material = material
 	mesh.size = PARTICLE_QUAD_SIZE
-
-	var node := MeshInstance3D.new()
-	node.name = "BoostSparkle"
-	node.mesh = mesh
-	node.position = _emitters[emitter_index].position
-	add_child(node)
-
-	var particle := SparkleParticle.new()
-	particle.node = node
-	particle.mesh = mesh
-	particle.velocity = _random_particle_velocity()
-	particle.lifetime = PARTICLE_LIFETIME_SECONDS
-	particle.start_scale = _rng.randf_range(1.0, 1.25)
-	particle.emitter_index = emitter_index
-	_apply_particle_visual_size(particle, 0.0)
-	_particles.append(particle)
-	if initial_age > 0.0:
-		_advance_particle(particle, initial_age)
+	return mesh
 
 
-func _update_particles(delta: float) -> void:
-	for index in range(_particles.size() - 1, -1, -1):
-		var particle := _particles[index]
-		if particle.node == null or not is_instance_valid(particle.node):
-			_particles.remove_at(index)
-			continue
-		_advance_particle(particle, delta)
-		if particle.age >= particle.lifetime:
-			particle.node.queue_free()
-			_particles.remove_at(index)
+func _create_particle_process_material() -> ParticleProcessMaterial:
+	var material := ParticleProcessMaterial.new()
+	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINT
+	material.direction = Vector3.UP
+	material.spread = PARTICLE_SPREAD_DEGREES
+	material.gravity = Vector3.ZERO
+	material.initial_velocity_min = PARTICLE_INITIAL_VELOCITY_MIN
+	material.initial_velocity_max = PARTICLE_INITIAL_VELOCITY_MAX
+	material.scale_min = 1.0
+	material.scale_max = 1.25
+	material.scale_curve = _create_particle_scale_curve_texture()
+	return material
 
 
-func _advance_particle(particle: SparkleParticle, delta: float) -> void:
-	particle.age += delta
-	var lifetime_ratio := clampf(particle.age / particle.lifetime, 0.0, 1.0)
-	particle.node.position += particle.velocity * delta
-	_apply_particle_visual_size(particle, lifetime_ratio)
+func _create_particle_scale_curve_texture() -> CurveTexture:
+	var curve := Curve.new()
+	curve.add_point(Vector2(0.0, PARTICLE_SCALE_START), 0.0, 0.0, Curve.TANGENT_LINEAR, Curve.TANGENT_LINEAR)
+	curve.add_point(Vector2(0.5, PARTICLE_SCALE_MID), 0.0, 0.0, Curve.TANGENT_LINEAR, Curve.TANGENT_LINEAR)
+	curve.add_point(Vector2(1.0, PARTICLE_SCALE_END), 0.0, 0.0, Curve.TANGENT_LINEAR, Curve.TANGENT_LINEAR)
+
+	var texture := CurveTexture.new()
+	texture.width = 64
+	texture.curve = curve
+	return texture
 
 
-func _apply_particle_visual_size(particle: SparkleParticle, lifetime_ratio: float) -> void:
-	if particle.mesh == null:
-		return
-	var visual_scale := particle.start_scale * _sample_particle_scale(lifetime_ratio)
-	particle.mesh.size = PARTICLE_QUAD_SIZE * visual_scale
-	particle.node.scale = Vector3.ONE
+func _create_gpu_emitter(index: int) -> GPUParticles3D:
+	var emitter := GPUParticles3D.new()
+	emitter.name = "BoostEmitter%d" % index
+	emitter.position = _anchors[index]
+	emitter.amount = PARTICLES_PER_EMITTER
+	emitter.lifetime = PARTICLE_LIFETIME_SECONDS
+	emitter.preprocess = PARTICLE_LIFETIME_SECONDS
+	emitter.explosiveness = 0.0
+	emitter.randomness = 1.0
+	emitter.local_coords = false
+	emitter.use_fixed_seed = true
+	emitter.seed = 0x51A7A + index
+	emitter.draw_order = GPUParticles3D.DRAW_ORDER_LIFETIME
+	emitter.draw_passes = 1
+	emitter.process_material = _particle_process_material
+	emitter.set_draw_pass_mesh(0, _particle_mesh)
+	emitter.visibility_aabb = AABB(Vector3(-0.75, -0.25, -0.75), Vector3(1.5, 2.0, 1.5))
+	emitter.emitting = _emitting
+	return emitter
 
 
 func _sample_particle_scale(lifetime_ratio: float) -> float:
@@ -337,24 +296,8 @@ func _sample_particle_scale(lifetime_ratio: float) -> float:
 	return lerpf(PARTICLE_SCALE_MID, PARTICLE_SCALE_END, (lifetime_ratio - 0.5) / 0.5)
 
 
-func _random_particle_velocity() -> Vector3:
-	var horizontal := Vector2(_rng.randf_range(-0.32, 0.32), _rng.randf_range(-0.32, 0.32))
-	return Vector3(horizontal.x, _rng.randf_range(0.55, 1.1), horizontal.y)
-
-
-func _get_particle_count_for_emitter(emitter_index: int) -> int:
-	if emitter_index < 0 or emitter_index >= _emitters.size():
-		return 0
-
-	var count := 0
-	for particle: SparkleParticle in _particles:
-		if particle.emitter_index == emitter_index:
-			count += 1
-	return count
-
-
-func _clear_particles() -> void:
-	for particle: SparkleParticle in _particles:
-		if particle.node != null and is_instance_valid(particle.node):
-			particle.node.queue_free()
-	_particles.clear()
+func _clear_emitters() -> void:
+	for emitter: GPUParticles3D in _emitters:
+		if emitter != null and is_instance_valid(emitter):
+			emitter.queue_free()
+	_emitters.clear()

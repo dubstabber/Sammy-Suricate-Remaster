@@ -434,16 +434,41 @@ func _test_prototype_world() -> void:
                     _expect(float(boost_effect.call("get_particle_scale_at_lifetime_ratio", 0.0)) > float(boost_effect.call("get_particle_scale_at_lifetime_ratio", 0.5)), "Boost pickup particle scale should decrease by mid-life.")
                     _expect(float(boost_effect.call("get_particle_scale_at_lifetime_ratio", 0.5)) > float(boost_effect.call("get_particle_scale_at_lifetime_ratio", 1.0)), "Boost pickup particle scale should keep decreasing until death.")
                 _expect(int(boost_effect.call("restart_emitters")) == 2, "Boost pickup particle emitters should be restartable for importer/test validation.")
-                _expect(int(boost_effect.call("get_active_particle_count")) > 0, "Boost pickup particle effect should keep live sparkle quads after prewarming.")
-                _expect(float(boost_effect.call("get_first_particle_visual_scale")) > 0.0, "Boost pickup particle effect should apply per-particle visual scale.")
-                var first_particle_scale := float(boost_effect.call("get_first_particle_visual_scale"))
-                var first_particle_quad_size := boost_effect.call("get_first_particle_quad_size") as Vector2
-                boost_effect.call("_update_particles", 0.25)
-                _expect(float(boost_effect.call("get_first_particle_visual_scale")) < first_particle_scale, "Boost pickup live sparkle quads should visibly shrink as they age.")
-                _expect((boost_effect.call("get_first_particle_quad_size") as Vector2).x < first_particle_quad_size.x, "Boost pickup live sparkle quad geometry should shrink as particles age.")
-                var boost_emitter := boost_effect.get_node_or_null("BoostEmitter0") as Node3D
-                _expect(boost_emitter != null, "Boost pickup particle effect should expose a vertex-following emitter node.")
+                _expect(int(boost_effect.call("get_particle_capacity")) == 24, "Boost pickup particle effect should configure GPU particle capacity for both emitters.")
+                var boost_emitter := boost_effect.get_node_or_null("BoostEmitter0") as GPUParticles3D
+                _expect(boost_emitter != null, "Boost pickup particle effect should expose a vertex-following GPUParticles3D emitter node.")
                 if boost_emitter != null:
+                    _expect(boost_emitter.emitting, "Boost pickup GPU particle emitter should be active while the pickup is active.")
+                    _expect(boost_emitter.amount == int(boost_effect.call("get_particle_amount_per_emitter")), "Boost pickup GPU emitter should preserve the original-style particle count.")
+                    _expect(is_equal_approx(boost_emitter.lifetime, 0.75), "Boost pickup GPU emitter should preserve the original-style particle lifetime.")
+                    _expect(is_equal_approx(boost_emitter.preprocess, 0.75), "Boost pickup GPU emitter should prewarm a full particle lifetime.")
+                    _expect(not boost_emitter.local_coords, "Boost pickup GPU particles should remain in world space after emission.")
+                    _expect(boost_emitter.draw_passes == 1, "Boost pickup GPU emitter should use one star-sprite draw pass.")
+                    var draw_mesh := boost_emitter.get_draw_pass_mesh(0) as QuadMesh
+                    _expect(draw_mesh != null, "Boost pickup GPU emitter should draw the original star sprite quad.")
+                    if draw_mesh != null:
+                        _expect(draw_mesh.size.is_equal_approx(Vector2(0.1, 0.1)), "Boost pickup GPU draw pass should keep the smaller original-style star sprite size.")
+                        var particle_material := draw_mesh.material as StandardMaterial3D
+                        _expect(particle_material != null, "Boost pickup GPU draw pass should use a 3D particle material.")
+                        if particle_material != null:
+                            _expect(particle_material.albedo_texture == assets.load_asset("texture.particle.small_star_1a"), "Boost pickup GPU particles should use the original boost star texture.")
+                            _expect(particle_material.blend_mode == BaseMaterial3D.BLEND_MODE_ADD, "Boost pickup GPU particles should use additive blending.")
+                            _expect(particle_material.billboard_mode == BaseMaterial3D.BILLBOARD_ENABLED, "Boost pickup GPU particles should billboard like the previous sparkle quads.")
+                            _expect(particle_material.billboard_keep_scale, "Boost pickup GPU billboard particles should preserve particle scale-over-lifetime.")
+                            _expect(particle_material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "Boost pickup GPU particles should stay unshaded.")
+                    var process_material := boost_emitter.process_material as ParticleProcessMaterial
+                    _expect(process_material != null, "Boost pickup GPU emitter should use a ParticleProcessMaterial.")
+                    if process_material != null:
+                        _expect(process_material.direction.is_equal_approx(Vector3.UP), "Boost pickup GPU particles should drift upward from the tracked vertices.")
+                        _expect(process_material.gravity.is_equal_approx(Vector3.ZERO), "Boost pickup GPU particles should not fall under world gravity.")
+                        _expect(is_equal_approx(process_material.initial_velocity_min, 0.55), "Boost pickup GPU particles should preserve the lower upward velocity.")
+                        _expect(is_equal_approx(process_material.initial_velocity_max, 1.1), "Boost pickup GPU particles should preserve the upper upward velocity.")
+                        var scale_curve_texture := process_material.scale_curve as CurveTexture
+                        _expect(scale_curve_texture != null and scale_curve_texture.curve != null, "Boost pickup GPU particles should use a scale-over-lifetime curve.")
+                        if scale_curve_texture != null and scale_curve_texture.curve != null:
+                            _expect(is_equal_approx(scale_curve_texture.curve.sample(0.0), 1.0), "Boost pickup GPU particles should start at full scale.")
+                            _expect(absf(scale_curve_texture.curve.sample(0.5) - 0.62) < 0.01, "Boost pickup GPU particles should shrink gradually during their lifetime.")
+                            _expect(absf(scale_curve_texture.curve.sample(1.0) - 0.14) < 0.01, "Boost pickup GPU particles should end near the original particle kill-size ratio.")
                     var emitter_position := boost_effect.call("get_emitter_local_position", 0) as Vector3
                     _expect(boost_emitter.position.is_equal_approx(emitter_position), "Boost pickup emitter node should stay on the tracked model vertex.")
             var player := world.get_node_or_null("Player")
@@ -455,6 +480,9 @@ func _test_prototype_world() -> void:
                 _expect(bool(boost_pickup.call("was_collected")), "Boost pickup should mark itself collected.")
                 if boost_effect != null:
                     _expect(not bool(boost_effect.call("is_emitting_effect")), "Boost pickup particle effect should stop after collection.")
+                    var stopped_emitter := boost_effect.get_node_or_null("BoostEmitter0") as GPUParticles3D
+                    if stopped_emitter != null:
+                        _expect(not stopped_emitter.emitting, "Boost pickup GPU particle emitters should stop after collection.")
                 _expect(not boost_pickup.visible, "Boost pickup should hide after collection.")
     var audio := root.get_node_or_null("Audio")
     if audio != null:

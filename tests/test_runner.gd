@@ -6,6 +6,10 @@ const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const PLAYER_SCENE_PATH := "res://scenes/player/player.tscn"
 const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
+const WORLD_LAYER := 1
+const CHARACTER_LAYER := 2
+const PICKUP_SENSOR_LAYER := 4
+const WORLD_AND_CHARACTER_MASK := 3
 
 var _failures: Array[String] = []
 
@@ -20,6 +24,7 @@ func _run() -> void:
 
     _test_input_actions()
     _test_display_settings()
+    _test_collision_layer_names()
     _test_asset_catalog(assets)
     _test_animation_libraries()
     _test_model_skin_alpha()
@@ -91,6 +96,12 @@ func _test_display_settings() -> void:
     _expect(int(ProjectSettings.get_setting("display/window/size/viewport_height")) == 960, "Game viewport height should be 960.")
     _expect(String(ProjectSettings.get_setting("display/window/stretch/mode")) == "viewport", "Game viewport should scale to the window.")
     _expect(String(ProjectSettings.get_setting("display/window/stretch/aspect")) == "keep", "Game viewport should preserve its aspect ratio.")
+
+
+func _test_collision_layer_names() -> void:
+    _expect(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_1")) == "world", "3D physics layer 1 should be named world.")
+    _expect(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_2")) == "character", "3D physics layer 2 should be named character.")
+    _expect(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_3")) == "pickup_sensor", "3D physics layer 3 should be named pickup_sensor.")
 
 
 func _test_asset_catalog(assets: Node) -> void:
@@ -238,6 +249,8 @@ func _test_player_scene() -> void:
     _expect(player.get_script() != null, "Player scene script failed to load.")
     _expect(player.has_method("get_facing_direction"), "Player controller did not expose tank-control helpers.")
     _expect(player.get_node_or_null("CollisionShape3D") != null, "Player scene is missing collision shape.")
+    _expect(int(player.get("collision_layer")) == CHARACTER_LAYER, "Player should live on the character collision layer.")
+    _expect(int(player.get("collision_mask")) == WORLD_AND_CHARACTER_MASK, "Player should collide with world and other solid characters.")
     _expect(player.get_node_or_null("VisualPivot") != null, "Player scene is missing visual pivot.")
     var sammy_model := player.get_node_or_null("VisualPivot/SammyModel") as Node3D
     _expect(sammy_model != null, "Player scene did not spawn the Sammy model.")
@@ -382,14 +395,29 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("PrototypeCamera") != null, "Prototype camera should be editor-instanced.")
     _expect(world.get_node_or_null("BoostPickup") != null, "Prototype boost pickup should be editor-instanced.")
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
+    var floor := world.get_node_or_null("PrototypeFloor") as StaticBody3D
+    _expect(floor != null, "Prototype floor should be a StaticBody3D.")
+    if floor != null:
+        _expect(floor.collision_layer == WORLD_LAYER, "Prototype floor should live on the world collision layer.")
+        _expect(floor.collision_mask == CHARACTER_LAYER, "Prototype floor should collide with solid characters.")
     var props := world.get_node_or_null("Props")
     _expect(props != null, "Prototype scene should expose a designer-editable Props container.")
     for prop_path in ["Props/model_cactus1", "Props/model_sky3"]:
         _expect(world.get_node_or_null(prop_path) != null, "Prototype prop should be editor-instanced: %s" % prop_path)
+    var cactus := world.get_node_or_null("Props/model_cactus1") as StaticBody3D
+    _expect(cactus != null, "Prototype cactus should be a StaticBody3D solid prop.")
+    if cactus != null:
+        _expect(cactus.collision_layer == WORLD_LAYER, "Prototype cactus should live on the world collision layer.")
+        _expect(cactus.collision_mask == CHARACTER_LAYER, "Prototype cactus should collide with solid characters.")
+        _expect(cactus.get_node_or_null("CollisionShape3D") != null, "Prototype cactus should expose a trunk collision shape.")
     var enemies := world.get_node_or_null("Enemies")
     _expect(enemies != null, "Prototype scene should expose a designer-editable Enemies container.")
     for enemy_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated"]:
-        _expect(world.get_node_or_null(enemy_path) is CharacterBody3D, "Prototype enemy should be editor-instanced as a CharacterBody3D: %s" % enemy_path)
+        var enemy := world.get_node_or_null(enemy_path) as CharacterBody3D
+        _expect(enemy != null, "Prototype enemy should be editor-instanced as a CharacterBody3D: %s" % enemy_path)
+        if enemy != null:
+            _expect(enemy.collision_layer == CHARACTER_LAYER, "Prototype enemy should live on the character collision layer: %s" % enemy_path)
+            _expect(enemy.collision_mask == WORLD_AND_CHARACTER_MASK, "Prototype enemy should collide with world and other solid characters: %s" % enemy_path)
     root.add_child(world)
     await process_frame
     await process_frame
@@ -424,6 +452,8 @@ func _test_prototype_world() -> void:
         var boost_pickup := world.get_node_or_null("BoostPickup") as Area3D
         _expect(boost_pickup != null, "Prototype world should spawn the boost pickup as an Area3D.")
         if boost_pickup != null:
+            _expect(boost_pickup.collision_layer == PICKUP_SENSOR_LAYER, "Boost pickup should live on the pickup sensor collision layer.")
+            _expect(boost_pickup.collision_mask == CHARACTER_LAYER, "Boost pickup should monitor solid characters without blocking them.")
             _expect(boost_pickup.has_method("collect"), "Boost pickup should expose a collection hook for tests/importers.")
             _expect(boost_pickup.has_method("was_collected"), "Boost pickup should expose collected state.")
             _expect(is_equal_approx(float(boost_pickup.call("get_boost_amount")), 150.0), "Prototype boost pickup should fill the meter.")
@@ -514,12 +544,38 @@ func _test_prototype_world() -> void:
                     if stopped_emitter != null:
                         _expect(not stopped_emitter.emitting, "Boost pickup GPU particle emitters should stop after collection.")
                 _expect(not boost_pickup.visible, "Boost pickup should hide after collection.")
+    await _expect_solid_collision_contacts(world)
     await _expect_enemy_gravity(world)
     var audio := root.get_node_or_null("Audio")
     if audio != null:
         audio.stop_music()
     world.queue_free()
     await process_frame
+
+
+func _expect_solid_collision_contacts(world: Node) -> void:
+    var player := world.get_node_or_null("Player") as CharacterBody3D
+    var rasta := world.get_node_or_null("Enemies/model_rasta_animated") as CharacterBody3D
+    var cactus := world.get_node_or_null("Props/model_cactus1") as StaticBody3D
+    var boost_pickup := world.get_node_or_null("BoostPickup") as Area3D
+
+    _expect(player != null, "Prototype collision probe needs the player body.")
+    if player == null:
+        return
+
+    if rasta != null:
+        player.global_position = rasta.global_position + Vector3(0.0, 0.0, 1.35)
+        await physics_frame
+        _expect(player.test_move(player.global_transform, Vector3(0.0, 0.0, -1.0)), "Player should be blocked by solid enemy character bodies.")
+
+    if cactus != null:
+        player.global_position = cactus.global_position + Vector3(0.0, 0.0, 1.15)
+        await physics_frame
+        _expect(player.test_move(player.global_transform, Vector3(0.0, 0.0, -0.9)), "Player should be blocked by solid prototype props.")
+
+    if boost_pickup != null:
+        _expect(boost_pickup is Area3D, "Boost pickup should stay an Area3D sensor.")
+        _expect(boost_pickup.get_class() == "Area3D", "Boost pickup should not become a blocking physics body.")
 
 
 func _expect_enemy_gravity(world: Node) -> void:

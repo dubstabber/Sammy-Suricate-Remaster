@@ -1,12 +1,22 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/props/model_prop.gd" id="1_prop"]
 [ext_resource type="PackedScene" path="res://assets/models/cactus1/cactus1_animated.gltf" id="2_model"]
 [ext_resource type="Script" path="res://src/animation/model_animation_controller.gd" id="3_animation"]
 
-[node name="model_cactus1" type="Node3D"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_cactus"]
+height = 1.25
+radius = 0.28
+
+[node name="model_cactus1" type="StaticBody3D"]
+collision_layer = 1
+collision_mask = 2
 script = ExtResource("1_prop")
 asset_id = "model.cactus1"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.625, 0)
+shape = SubResource("CylinderShape3D_cactus")
 
 [node name="Visual" parent="." instance=ExtResource("2_model")]
 scale = Vector3(0.01, 0.01, 0.01)

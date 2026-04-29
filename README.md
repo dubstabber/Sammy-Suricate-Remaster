@@ -14,6 +14,7 @@ Prototype music autoplay is disabled by default so headless validation exits cle
 Set `sammy/runtime/autoplay_music` to `true` when you want the prototype scene to start the copied OGG track automatically.
 The project renders to a 1280x960 internal viewport and scales that image to the game window while preserving the 4:3 aspect ratio.
 Prototype level objects are placed in the Godot scenes so designers can move, duplicate, or replace them in the editor without editing the world script.
+Rasta and punk enemies are editor-placeable `CharacterBody3D` scenes with gravity seeded from the original `graviteEnnemy` and `AccgraviteEnnemy` WDL values.
 
 ## Controls
 

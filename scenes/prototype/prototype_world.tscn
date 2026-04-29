@@ -6,8 +6,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/debug_overlay.tscn" id="4_debug"]
 [ext_resource type="PackedScene" path="res://scenes/pickups/boost_pickup.tscn" id="5_boost"]
 [ext_resource type="PackedScene" path="res://scenes/props/cactus_prop.tscn" id="6_cactus"]
-[ext_resource type="PackedScene" path="res://scenes/props/rasta_preview.tscn" id="7_rasta"]
-[ext_resource type="PackedScene" path="res://scenes/props/punk_preview.tscn" id="8_punk"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/rasta_enemy.tscn" id="7_rasta"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/punk_enemy.tscn" id="8_punk"]
 [ext_resource type="PackedScene" path="res://scenes/props/sky_reference.tscn" id="9_sky"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
@@ -57,14 +57,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0, -1.5)
 [node name="model_cactus1" parent="Props" unique_id=592115060 instance=ExtResource("6_cactus")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -2)
 
-[node name="model_rasta_animated" parent="Props" unique_id=1288616710 instance=ExtResource("7_rasta")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.8840605, -4.5)
-
-[node name="model_punk_animated" parent="Props" unique_id=726253917 instance=ExtResource("8_punk")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -4.5)
-
 [node name="model_sky3" parent="Props" unique_id=1532616467 instance=ExtResource("9_sky")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+
+[node name="Enemies" type="Node3D" parent="." unique_id=2053414251]
+
+[node name="model_rasta_animated" parent="Enemies" unique_id=1440628449 instance=ExtResource("7_rasta")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1.5209975, -4.5)
+
+[node name="model_punk_animated" parent="Enemies" unique_id=1739606368 instance=ExtResource("8_punk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -4.5)
 
 [node name="DebugOverlay" parent="." unique_id=428286293 instance=ExtResource("4_debug")]
 player_path = NodePath("../Player")

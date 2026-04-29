@@ -384,8 +384,12 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
     var props := world.get_node_or_null("Props")
     _expect(props != null, "Prototype scene should expose a designer-editable Props container.")
-    for prop_path in ["Props/model_cactus1", "Props/model_rasta_animated", "Props/model_punk_animated", "Props/model_sky3"]:
+    for prop_path in ["Props/model_cactus1", "Props/model_sky3"]:
         _expect(world.get_node_or_null(prop_path) != null, "Prototype prop should be editor-instanced: %s" % prop_path)
+    var enemies := world.get_node_or_null("Enemies")
+    _expect(enemies != null, "Prototype scene should expose a designer-editable Enemies container.")
+    for enemy_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated"]:
+        _expect(world.get_node_or_null(enemy_path) is CharacterBody3D, "Prototype enemy should be editor-instanced as a CharacterBody3D: %s" % enemy_path)
     root.add_child(world)
     await process_frame
     await process_frame
@@ -403,20 +407,20 @@ func _test_prototype_world() -> void:
     var assets := root.get_node_or_null("Assets")
     if assets != null:
         for node_name in ["model_rasta_animated", "model_punk_animated"]:
-            var model := world.get_node_or_null("Props/%s" % node_name) as Node3D
+            var model := world.get_node_or_null("Enemies/%s" % node_name) as Node3D
             _expect(model != null, "Prototype world should contain grounded character model: %s" % node_name)
             if model != null:
                 var bounds: AABB = assets.get_model_global_bounds(model)
                 _expect(absf(bounds.position.y) < 0.01, "Prototype character model should be grounded: %s" % node_name)
-        for node_name in ["model_rasta_animated", "model_punk_animated", "model_cactus1"]:
-            var model := world.get_node_or_null("Props/%s" % node_name) as Node3D
-            _expect(model != null, "Prototype world should contain animated catalog model: %s" % node_name)
+        for model_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated", "Props/model_cactus1"]:
+            var model := world.get_node_or_null(model_path) as Node3D
+            _expect(model != null, "Prototype world should contain animated catalog model: %s" % model_path)
             if model != null:
                 var controller := model.get_node_or_null("ModelAnimationController")
-                _expect(controller != null, "Prototype model should have generated animation controller: %s" % node_name)
+                _expect(controller != null, "Prototype model should have generated animation controller: %s" % model_path)
                 if controller != null:
-                    _expect(bool(controller.call("has_action", "stand")), "Prototype model should expose stand animation: %s" % node_name)
-                    _expect(String(controller.call("get_current_action")) == "stand", "Prototype model should autoplay stand animation: %s" % node_name)
+                    _expect(bool(controller.call("has_action", "stand")), "Prototype model should expose stand animation: %s" % model_path)
+                    _expect(String(controller.call("get_current_action")) == "stand", "Prototype model should autoplay stand animation: %s" % model_path)
         var boost_pickup := world.get_node_or_null("BoostPickup") as Area3D
         _expect(boost_pickup != null, "Prototype world should spawn the boost pickup as an Area3D.")
         if boost_pickup != null:
@@ -510,11 +514,38 @@ func _test_prototype_world() -> void:
                     if stopped_emitter != null:
                         _expect(not stopped_emitter.emitting, "Boost pickup GPU particle emitters should stop after collection.")
                 _expect(not boost_pickup.visible, "Boost pickup should hide after collection.")
+    await _expect_enemy_gravity(world)
     var audio := root.get_node_or_null("Audio")
     if audio != null:
         audio.stop_music()
     world.queue_free()
     await process_frame
+
+
+func _expect_enemy_gravity(world: Node) -> void:
+    for enemy_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated"]:
+        var enemy := world.get_node_or_null(enemy_path) as CharacterBody3D
+        _expect(enemy != null, "Prototype enemy should be a gravity-aware CharacterBody3D: %s" % enemy_path)
+        if enemy == null:
+            continue
+
+        _expect(enemy.is_in_group("enemy"), "Prototype enemy should be in the enemy group: %s" % enemy_path)
+        _expect(is_equal_approx(float(enemy.get("original_gravity_velocity")), -4.0), "Enemy gravity should preserve original graviteEnnemy: %s" % enemy_path)
+        _expect(is_equal_approx(float(enemy.get("original_gravity_acceleration")), 3.0), "Enemy gravity should preserve original AccgraviteEnnemy: %s" % enemy_path)
+        _expect(enemy.has_method("get_initial_fall_velocity"), "Enemy should expose converted initial fall velocity: %s" % enemy_path)
+        _expect(enemy.has_method("get_gravity_acceleration"), "Enemy should expose converted gravity acceleration: %s" % enemy_path)
+        if enemy.has_method("get_initial_fall_velocity") and enemy.has_method("get_gravity_acceleration"):
+            _expect(float(enemy.call("get_initial_fall_velocity")) < 0.0, "Enemy initial fall velocity should move downward in Godot Y-up space: %s" % enemy_path)
+            _expect(float(enemy.call("get_gravity_acceleration")) > 0.0, "Enemy gravity acceleration should have a positive downward magnitude: %s" % enemy_path)
+
+        var raised_y := enemy.global_position.y + 1.0
+        enemy.global_position.y = raised_y
+        if enemy.has_method("reset_vertical_motion"):
+            enemy.call("reset_vertical_motion")
+        await physics_frame
+        await physics_frame
+        await physics_frame
+        _expect(enemy.global_position.y < raised_y, "Enemy should fall under original-style gravity when raised above the floor: %s" % enemy_path)
 
 
 func _expect(condition: bool, message: String) -> void:

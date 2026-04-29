@@ -235,9 +235,9 @@ func get_model_default_animation(entry_id: String) -> String:
 
 
 func get_wasp_skin_path(skin_index: int) -> String:
-    if skin_index < 0:
+    if skin_index <= 0:
         return ""
-    return "res://assets/models/wasp1/skins/wasp1_skin%d.png" % skin_index
+    return "res://assets/models/wasp1/skins/wasp1_skin%d.png" % (skin_index - 1)
 
 
 func load_wasp_skin_texture(skin_index: int) -> Texture2D:

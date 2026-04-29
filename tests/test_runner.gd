@@ -6,7 +6,19 @@ const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const PLAYER_SCENE_PATH := "res://scenes/player/player.tscn"
 const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
+const WASP_TYPE_PATHS := [
+    "",
+    "res://assets/wasps/type_1.tres",
+    "res://assets/wasps/type_2.tres",
+    "res://assets/wasps/type_3.tres",
+    "res://assets/wasps/type_4.tres",
+    "res://assets/wasps/type_5.tres",
+    "res://assets/wasps/type_6.tres",
+    "res://assets/wasps/type_7.tres"
+]
 const WASP_TYPE_2_PATH := "res://assets/wasps/type_2.tres"
+const WASP_TYPE_3_PATH := "res://assets/wasps/type_3.tres"
+const WASP_TYPE_5_PATH := "res://assets/wasps/type_5.tres"
 const WASP_INVENTORY_SCRIPT_PATH := "res://src/weapons/wasp_inventory.gd"
 const WORLD_LAYER := 1
 const CHARACTER_LAYER := 2
@@ -35,6 +47,7 @@ func _run() -> void:
     _test_wasp_resources(assets)
     _test_wasp_inventory()
     await _test_wasp_projectile_damages_enemy()
+    await _test_wasp_projectile_behaviors()
     await _test_player_scene()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
@@ -279,20 +292,32 @@ func _test_main_scene() -> void:
 
 
 func _test_wasp_resources(assets: Node) -> void:
-    var wasp_type: Resource = load(WASP_TYPE_2_PATH)
-    _expect(wasp_type != null, "Wasp type 2 resource should load.")
-    if wasp_type == null:
-        return
-    _expect(StringName(wasp_type.get("id")) == &"type_2", "Wasp type 2 should expose id type_2.")
-    _expect(int(wasp_type.get("damage")) == 2, "Wasp type 2 should deal 2 damage per original WDL skin/damage table.")
-    _expect(int(wasp_type.get("skin_index")) == 2, "Wasp type 2 should use the original red wasp skin index.")
-    if assets != null and assets.has_method("load_wasp_skin_texture"):
-        _expect(assets.call("load_wasp_skin_texture", int(wasp_type.get("skin_index"))) != null, "Wasp type 2 skin texture should load from the runtime asset slice.")
-    _expect(int(wasp_type.get("multi_shot_count")) == 1, "Wasp type 2 should fire a single projectile per shot.")
-    _expect(not bool(wasp_type.get("homing")), "Wasp type 2 should not be homing.")
-    _expect(float(wasp_type.get("lifetime_seconds")) > 0.0, "Wasp type 2 should have a positive lifetime.")
-    _expect(float(wasp_type.get("speed")) > 0.0, "Wasp type 2 should have positive forward speed.")
-    _expect(is_equal_approx(float(wasp_type.get("fire_animation_speed")), 2.2), "Wasp type 2 should use PlayerAnimSpeedDebutTir * 2.2 for tirA.")
+    var expected_damage := [0, 3, 2, 1, 1, 4, 6, 1]
+    var expected_skin := [0, 1, 2, 3, 4, 5, 6, 7]
+    var expected_multi_count := [0, 1, 1, 3, 3, 1, 1, 1]
+    var expected_homing := [false, true, false, false, true, true, true, false]
+    var expected_fire_speed := [0.0, 1.0, 2.2, 1.5, 1.2, 1.2, 1.0, 3.0]
+    var expected_speed := [0.0, 4.48, 14.0, 14.0, 14.0, 5.04, 5.376, 14.0]
+    for type_id in range(1, WASP_TYPE_PATHS.size()):
+        var wasp_type: Resource = load(WASP_TYPE_PATHS[type_id])
+        _expect(wasp_type != null, "Wasp type %d resource should load." % type_id)
+        if wasp_type == null:
+            continue
+        _expect(StringName(wasp_type.get("id")) == StringName("type_%d" % type_id), "Wasp type %d should expose a stable resource id." % type_id)
+        _expect(int(wasp_type.get("wdl_type_id")) == type_id, "Wasp type %d should preserve the original WDL type id." % type_id)
+        _expect(int(wasp_type.get("damage")) == expected_damage[type_id], "Wasp type %d should preserve original WDL poison/damage." % type_id)
+        _expect(int(wasp_type.get("skin_index")) == expected_skin[type_id], "Wasp type %d should use the original 1-based WDL skin number." % type_id)
+        _expect(int(wasp_type.get("multi_shot_count")) == expected_multi_count[type_id], "Wasp type %d should preserve original player-shot count." % type_id)
+        _expect(bool(wasp_type.get("homing")) == expected_homing[type_id], "Wasp type %d should preserve original homing/scan behavior." % type_id)
+        _expect(is_equal_approx(float(wasp_type.get("fire_animation_speed")), expected_fire_speed[type_id]), "Wasp type %d should preserve original PlayerAnimSpeedDebutTir multiplier." % type_id)
+        _expect(absf(float(wasp_type.get("speed")) - expected_speed[type_id]) < 0.001, "Wasp type %d should preserve original speed ratio against type 2." % type_id)
+        _expect(float(wasp_type.get("lifetime_seconds")) > 0.0, "Wasp type %d should have a positive lifetime." % type_id)
+        if assets != null and assets.has_method("load_wasp_skin_texture"):
+            _expect(assets.call("load_wasp_skin_texture", int(wasp_type.get("skin_index"))) != null, "Wasp type %d skin texture should load from the runtime asset slice." % type_id)
+    var type_3: Resource = load(WASP_TYPE_3_PATH)
+    _expect(type_3 != null and is_equal_approx(float(type_3.get("multi_shot_interval_seconds")), 0.125), "Type 3 should preserve the original waitt 2 spacing between triple shots.")
+    var type_5: Resource = load(WASP_TYPE_5_PATH)
+    _expect(type_5 != null and bool(type_5.get("dive_arc")), "Type 5 should expose its original rise-then-dive arc.")
 
 
 func _test_wasp_inventory() -> void:
@@ -371,6 +396,55 @@ func _test_wasp_projectile_damages_enemy() -> void:
         projectile.queue_free()
     if is_instance_valid(enemy):
         enemy.queue_free()
+    await process_frame
+
+
+func _test_wasp_projectile_behaviors() -> void:
+    var projectile_scene: PackedScene = load("res://scenes/weapons/wasp_projectile.tscn")
+    var type_1: Resource = load(WASP_TYPE_PATHS[1])
+    var type_2: Resource = load(WASP_TYPE_2_PATH)
+    var type_5: Resource = load(WASP_TYPE_5_PATH)
+
+    var target := Node3D.new()
+    target.name = "WaspHomingTarget"
+    target.add_to_group("enemy")
+    root.add_child(target)
+    target.global_position = Vector3(2.0, 0.7, -4.0)
+
+    var straight_projectile: Node = projectile_scene.instantiate()
+    root.add_child(straight_projectile)
+    straight_projectile.call("configure", type_2, null, Transform3D(Basis(), Vector3(0.0, 0.7, 0.0)))
+    var straight_before := straight_projectile.call("get_velocity") as Vector3
+    straight_projectile.call("_physics_process", 0.1)
+    var straight_after := straight_projectile.call("get_velocity") as Vector3
+    _expect(absf(straight_after.x - straight_before.x) < 0.001, "Type 2 should remain a straight, non-homing wasp.")
+
+    var homing_projectile: Node = projectile_scene.instantiate()
+    root.add_child(homing_projectile)
+    homing_projectile.call("configure", type_1, null, Transform3D(Basis(), Vector3(0.0, 0.7, 0.0)))
+    var homing_before := homing_projectile.call("get_velocity") as Vector3
+    homing_projectile.call("_physics_process", 0.1)
+    var homing_after := homing_projectile.call("get_velocity") as Vector3
+    _expect(absf(homing_after.x) > absf(homing_before.x) + 0.01, "Type 1 should steer toward enemies inside its WDL scan range.")
+    _expect(is_equal_approx(homing_after.length(), float(type_1.get("speed"))), "Homing should preserve the configured wasp speed.")
+
+    target.remove_from_group("enemy")
+    var dive_projectile: Node = projectile_scene.instantiate()
+    root.add_child(dive_projectile)
+    dive_projectile.call("configure", type_5, null, Transform3D(Basis(), Vector3(0.0, 0.7, 0.0)))
+    dive_projectile.call("_physics_process", 0.1)
+    var climb_velocity := dive_projectile.call("get_velocity") as Vector3
+    _expect(climb_velocity.y > 0.0, "Type 5 should begin with the original upward dive-wasp arc.")
+    dive_projectile.call("_physics_process", 1.0)
+    var dive_velocity := dive_projectile.call("get_velocity") as Vector3
+    _expect(bool(dive_projectile.call("is_dive_homing_unlocked")), "Type 5 should unlock homing after its original rise/hold/level phases.")
+    _expect(float(dive_projectile.call("get_pitch_degrees")) < 0.0, "Type 5 should pitch downward after its original dive delay.")
+    _expect(dive_velocity.y < 0.0, "Type 5 should move downward once the dive phase starts.")
+
+    straight_projectile.queue_free()
+    homing_projectile.queue_free()
+    dive_projectile.queue_free()
+    target.queue_free()
     await process_frame
 
 
@@ -568,6 +642,33 @@ func _test_player_scene() -> void:
                     _expect(second_spawned_projectile.call("get_wasp_type") == wasp_type, "Second spawned projectile should keep the active wasp type.")
                 second_spawned_projectile.queue_free()
                 await process_frame
+                var type_3: Resource = load(WASP_TYPE_3_PATH)
+                inventory.call("add_ammo", type_3, 3)
+                var children_before_multi_fire := root.get_child_count()
+                var type_3_spawn_delay := float(player.call("_get_wasp_fire_spawn_delay_seconds", type_3))
+                var type_3_interval := float(player.call("_get_wasp_multi_shot_interval_seconds", type_3))
+                _expect(bool(player.call("fire_wasp")), "Type 3 fire should be accepted when Sammy has triple-shot ammo.")
+                player.call("_update_wasp_fire_timing", type_3_spawn_delay + type_3_interval * 2.0 + 0.001)
+                _expect(int(inventory.call("get_ammo_count")) == 0, "Type 3 should consume one ammo for each of the three WDL spread shots.")
+                _expect(root.get_child_count() == children_before_multi_fire + 3, "Type 3 should spawn the original three spread wasps from one fire input.")
+                var has_left_spread := false
+                var has_center_spread := false
+                var has_right_spread := false
+                for child_index in range(children_before_multi_fire, root.get_child_count()):
+                    var spread_projectile := root.get_child(child_index)
+                    if spread_projectile.has_method("get_wasp_type"):
+                        _expect(spread_projectile.call("get_wasp_type") == type_3, "Type 3 spread projectile should keep the active wasp type.")
+                    if spread_projectile.has_method("get_velocity"):
+                        var spread_velocity := spread_projectile.call("get_velocity") as Vector3
+                        has_left_spread = has_left_spread or spread_velocity.x < -0.1
+                        has_center_spread = has_center_spread or absf(spread_velocity.x) < 0.1
+                        has_right_spread = has_right_spread or spread_velocity.x > 0.1
+                _expect(has_left_spread and has_center_spread and has_right_spread, "Type 3 should use the original -5/0/+5 degree spread pattern.")
+                for child_index in range(children_before_multi_fire, root.get_child_count()):
+                    root.get_child(child_index).queue_free()
+                await process_frame
+                player.call("_update_wasp_fire_timing", fire_recovery + 0.1)
+                _expect(not bool(player.call("is_wasp_fire_locked")), "Type 3 fire lock should release after the shared tirB recovery.")
                 inventory.call("consume_ammo", 1)
                 var ammo_after_drain := int(inventory.call("get_ammo_count"))
                 var fire_requests_after_valid := int(player.call("get_fire_request_count"))
@@ -817,6 +918,31 @@ func _test_prototype_world() -> void:
             if wasp_model != null and pickup_wasp_type != null and assets != null and assets.has_method("load_wasp_skin_texture"):
                 var expected_pickup_skin := assets.call("load_wasp_skin_texture", int(pickup_wasp_type.get("skin_index"))) as Texture2D
                 _expect(expected_pickup_skin != null and _model_uses_texture(wasp_model, expected_pickup_skin), "Wasp pickup visual should use the configured type skin.")
+            var wasp_pickup_nodes := [
+                "",
+                "WaspPickupType1",
+                "WaspPickup",
+                "WaspPickupType3",
+                "WaspPickupType4",
+                "WaspPickupType5",
+                "WaspPickupType6",
+                "WaspPickupType7"
+            ]
+            for type_id in range(1, wasp_pickup_nodes.size()):
+                var typed_wasp_pickup := world.get_node_or_null(wasp_pickup_nodes[type_id]) as Area3D
+                _expect(typed_wasp_pickup != null, "Prototype world should expose wasp type %d pickup for playtesting." % type_id)
+                if typed_wasp_pickup == null:
+                    continue
+                _expect(typed_wasp_pickup.collision_layer == PICKUP_SENSOR_LAYER, "Wasp type %d pickup should live on the pickup sensor collision layer." % type_id)
+                _expect(typed_wasp_pickup.collision_mask == CHARACTER_LAYER, "Wasp type %d pickup should monitor solid characters without blocking them." % type_id)
+                _expect(int(typed_wasp_pickup.call("get_ammo_amount")) == 20, "Wasp type %d prototype pickup should grant the original-style ammo bundle." % type_id)
+                var typed_wasp_type: Resource = typed_wasp_pickup.call("get_wasp_type")
+                _expect(typed_wasp_type == load(WASP_TYPE_PATHS[type_id]), "Prototype wasp pickup should be configured for type %d." % type_id)
+                var typed_wasp_model := typed_wasp_pickup.get_node_or_null("WaspPickupVisual") as Node3D
+                _expect(typed_wasp_model != null, "Wasp type %d pickup should spawn the original wasp model visual." % type_id)
+                if typed_wasp_model != null and typed_wasp_type != null and assets != null and assets.has_method("load_wasp_skin_texture"):
+                    var typed_expected_skin := assets.call("load_wasp_skin_texture", int(typed_wasp_type.get("skin_index"))) as Texture2D
+                    _expect(typed_expected_skin != null and _model_uses_texture(typed_wasp_model, typed_expected_skin), "Wasp type %d pickup visual should use the configured type skin." % type_id)
             var player_for_wasp := world.get_node_or_null("Player")
             if player_for_wasp != null and player_for_wasp.has_method("get_wasp_inventory"):
                 var inventory: Node = player_for_wasp.call("get_wasp_inventory")

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WaspType" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/resources/wasp_type.gd" id="1_wasp_type"]
+
+[resource]
+script = ExtResource("1_wasp_type")
+id = &"type_1"
+display_name = "Queen Wasp"
+wdl_type_id = 1
+skin_index = 1
+visual_scale = 1.0
+damage = 3
+wdl_speed_units = 32.0
+speed = 4.48
+lifetime_seconds = 8.0
+homing = true
+homing_scan_range = 5.0
+homing_turn_speed_degrees = 576.0
+homing_pitch_speed_degrees = 1.6
+multi_shot_count = 1
+multi_shot_spread_degrees = 0.0
+multi_shot_interval_seconds = 0.0
+fire_animation_speed = 1.0
+dive_arc = false
+dive_rise_seconds = 0.0
+dive_hold_seconds = 0.0
+dive_level_seconds = 0.0
+dive_pitch_up_degrees_per_second = 0.0
+dive_pitch_down_degrees_per_second = 0.0
+camera_follow = false

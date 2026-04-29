@@ -68,6 +68,12 @@ const CATALOG := {
         "animation_library": "res://assets/animations/boost_clips.tres",
         "default_animation": "stand"
     },
+    "texture.particle.small_star_1a": {
+        "path": "res://assets/textures/particles/tistar1a.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/tistar1a.png",
+        "kind": "texture",
+        "description": "Original SmallStar1A sprite used by particle_Boost1"
+    },
     "music.sammy01": {
         "path": "res://assets/audio/sammy01.ogg",
         "source": "extract-sammy-assets/extracted/godot/audio/sammy01.ogg",

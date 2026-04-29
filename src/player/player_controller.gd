@@ -16,6 +16,10 @@ var _animation_sequence_index: int = -1
 var _fire_requests: int = 0
 var _boost_capacity: float = 0.0
 var _boosting: bool = false
+var _quick_turn_active: bool = false
+var _quick_turn_start_yaw: float = 0.0
+var _quick_turn_remaining_degrees: float = 0.0
+var _quick_turn_speed_degrees: float = 0.0
 
 
 func _ready() -> void:
@@ -28,6 +32,14 @@ func _physics_process(delta: float) -> void:
     var was_on_floor := is_on_floor()
     var forward_input: float = Input.get_axis("move_back", "move_forward")
     var turn_input: float = Input.get_axis("turn_left", "turn_right")
+
+    if Input.is_action_just_pressed("quick_turn") and is_on_floor():
+        apply_quick_turn()
+
+    if _quick_turn_active:
+        _process_quick_turn(delta, was_on_floor)
+        return
+
     _update_boost_state(delta, forward_input)
     _apply_turn(delta, forward_input, turn_input)
 
@@ -46,9 +58,6 @@ func _physics_process(delta: float) -> void:
             jumped = true
     else:
         velocity.y -= movement_config.gravity * delta
-
-    if Input.is_action_just_pressed("quick_turn") and is_on_floor():
-        apply_quick_turn()
 
     if Input.is_action_just_pressed("fire"):
         fire_wasp()
@@ -129,8 +138,20 @@ func is_boosting() -> bool:
     return _boosting
 
 
+func is_quick_turning() -> bool:
+    return _quick_turn_active
+
+
 func apply_quick_turn() -> void:
-    rotation.y = wrapf(rotation.y + PI, -PI, PI)
+    if _quick_turn_active:
+        return
+
+    _quick_turn_active = true
+    _quick_turn_start_yaw = rotation.y
+    _quick_turn_remaining_degrees = rad_to_deg(PI)
+    _quick_turn_speed_degrees = rad_to_deg(PI) * float(movement_config.quick_turn_initial_speed_factor)
+    _clear_animation_sequence()
+    _play_animation_action(&"turn", movement_config.quick_turn_animation_speed_multiplier, false, true, 0.0)
 
 
 func fire_wasp() -> void:
@@ -149,6 +170,49 @@ func _apply_turn(delta: float, forward_input: float, turn_input: float) -> void:
         turn_speed *= movement_config.boost_turn_multiplier
 
     rotation.y -= deg_to_rad(turn_speed) * turn_input * delta
+
+
+func _process_quick_turn(delta: float, was_on_floor: bool) -> void:
+    _boosting = false
+    _advance_quick_turn(delta)
+
+    var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
+    horizontal_velocity = horizontal_velocity.move_toward(Vector3.ZERO, movement_config.deceleration * delta)
+    velocity.x = horizontal_velocity.x
+    velocity.z = horizontal_velocity.z
+    if not is_on_floor():
+        velocity.y -= movement_config.gravity * delta
+
+    move_and_slide()
+    _update_model_animation(0.0, 0.0, false, was_on_floor, is_on_floor(), horizontal_velocity.length())
+
+
+func _advance_quick_turn(delta: float) -> void:
+    if not _quick_turn_active:
+        return
+
+    if _quick_turn_remaining_degrees <= 0.0:
+        _finish_quick_turn()
+        return
+
+    var step_degrees: float = _quick_turn_speed_degrees * float(movement_config.quick_turn_time_units_per_second) * delta
+    if step_degrees <= 0.0:
+        return
+
+    step_degrees = minf(step_degrees, _quick_turn_remaining_degrees)
+    rotation.y = wrapf(rotation.y + deg_to_rad(step_degrees), -PI, PI)
+    _quick_turn_remaining_degrees -= step_degrees
+    _quick_turn_speed_degrees = _quick_turn_remaining_degrees * float(movement_config.quick_turn_followup_speed_factor)
+
+    if _quick_turn_remaining_degrees <= 0.0 or _quick_turn_speed_degrees <= float(movement_config.quick_turn_stop_speed_degrees):
+        _finish_quick_turn()
+
+
+func _finish_quick_turn() -> void:
+    rotation.y = wrapf(_quick_turn_start_yaw + PI, -PI, PI)
+    _quick_turn_active = false
+    _quick_turn_remaining_degrees = 0.0
+    _quick_turn_speed_degrees = 0.0
 
 
 func _update_boost_state(delta: float, forward_input: float) -> void:
@@ -195,6 +259,10 @@ func _configure_model_animation(assets: Node) -> void:
 
 func _update_model_animation(forward_input: float, turn_input: float, jumped: bool, was_on_floor: bool, on_floor: bool, horizontal_speed: float) -> void:
     if _animation_controller == null:
+        return
+
+    if _quick_turn_active:
+        _play_animation_action(&"turn", movement_config.quick_turn_animation_speed_multiplier, false, false, 0.0)
         return
 
     if jumped:

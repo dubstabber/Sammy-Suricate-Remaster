@@ -3,6 +3,7 @@ extends SceneTree
 const ASSETS_SCRIPT_PATH := "res://src/core/assets.gd"
 const WMB_MANIFEST_SCRIPT_PATH := "res://src/levels/wmb_manifest.gd"
 const PLAYER_SCENE_PATH := "res://scenes/player/player.tscn"
+const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
 
 var _failures: Array[String] = []
@@ -100,6 +101,8 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("model.punk.animated") != null, "Unable to load copied punk model resource.")
     _expect(assets.load_asset("model.boost") != null, "Unable to load copied boost model resource.")
     _expect(assets.load_asset("model.cactus1") != null, "Unable to load copied cactus model resource.")
+    _expect(assets.has_asset("texture.particle.small_star_1a"), "Asset catalog is missing original boost particle sprite.")
+    _expect(assets.load_asset("texture.particle.small_star_1a") != null, "Unable to load original boost particle sprite.")
     _expect(assets.get_model_scale("model.sammy.animated").is_equal_approx(Vector3(0.08, 0.08, 0.08)), "Sammy model scale should include original WDL scale 8.")
     _expect(assets.get_model_scale("model.rasta.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Rasta model should use default Acknex entity scale.")
     _expect(assets.get_model_rotation_degrees("model.sammy.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Sammy model should rotate Acknex +X forward to Godot -Z forward.")
@@ -243,8 +246,44 @@ func _test_player_scene() -> void:
                 _expect(is_equal_approx(animation_player.speed_scale, 2.0), "Changing active walk speed should update AnimationPlayer speed scale.")
     if player.has_method("get_facing_direction"):
         _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, -1.0)), "Player should move along its facing direction by default.")
+        var camera_script: GDScript = load(CAMERA_SCRIPT_PATH)
+        var parity_camera := Camera3D.new()
+        parity_camera.name = "QuickTurnParityCamera"
+        parity_camera.set_script(camera_script)
+        root.add_child(parity_camera)
+        parity_camera.target_path = parity_camera.get_path_to(player)
+        parity_camera.call("reset_to_target")
+        var initial_camera_offset := parity_camera.call("_get_follow_offset") as Vector3
         player.call("apply_quick_turn")
+        _expect(player.has_method("is_quick_turning"), "Player controller should expose quick-turn state for parity validation.")
+        _expect(bool(player.call("is_quick_turning")), "Quick turn should begin a staged original-style turn instead of snapping instantly.")
+        var quick_turn_controller := player.call("get_animation_controller") as Node
+        if quick_turn_controller != null:
+            _expect(String(quick_turn_controller.call("get_current_action")) == "turn", "Quick turn should restart Sammy's original turn animation.")
+            var quick_turn_animation_player := quick_turn_controller.get("animation_player") as AnimationPlayer
+            if quick_turn_animation_player != null:
+                _expect(is_equal_approx(quick_turn_animation_player.speed_scale, 2.0), "Quick turn should play the turn animation at PlayerAnimSpeedTurn * 2.")
+        player.call("_advance_quick_turn", 1.0 / 60.0)
+        var partial_facing := player.call("get_facing_direction") as Vector3
+        _expect(partial_facing.x < -0.01, "Quick turn should start in the original left-turn direction before reaching the 180-degree outcome.")
+        var partial_camera_offset := parity_camera.call("_get_follow_offset") as Vector3
+        _expect(partial_camera_offset.x > initial_camera_offset.x, "Camera follow offset should begin around the matching side of Sammy during quick turn.")
+        for quick_turn_step in range(120):
+            if not bool(player.call("is_quick_turning")):
+                break
+            player.call("_advance_quick_turn", 1.0 / 60.0)
+        _expect(not bool(player.call("is_quick_turning")), "Quick turn should finish after the original easing loop converges.")
         _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, 1.0)), "Quick turn should rotate Sammy 180 degrees.")
+        player.call("apply_quick_turn")
+        _expect(bool(player.call("is_quick_turning")), "A second quick turn should start after the first one finishes.")
+        player.call("_advance_quick_turn", 1.0 / 60.0)
+        for second_quick_turn_step in range(120):
+            if not bool(player.call("is_quick_turning")):
+                break
+            player.call("_advance_quick_turn", 1.0 / 60.0)
+        _expect(not bool(player.call("is_quick_turning")), "A second quick turn should not get stuck after yaw wrapping.")
+        _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, -1.0)), "Second quick turn should return Sammy to the original facing direction.")
+        parity_camera.queue_free()
         var fire_requests := int(player.call("get_fire_request_count"))
         player.call("fire_wasp")
         _expect(int(player.call("get_fire_request_count")) == fire_requests + 1, "Fire action hook should record a wasp-fire request placeholder.")
@@ -254,6 +293,11 @@ func _test_player_scene() -> void:
         var movement_config: Resource = player.get("movement_config")
         _expect(is_equal_approx(float(movement_config.get("boost_speed_multiplier")), 2.0), "Boost should expose the original acceleration control hook.")
         _expect(is_equal_approx(float(movement_config.get("boost_turn_multiplier")), 0.75), "Boost should reduce turn input like the original scripts.")
+        _expect(is_equal_approx(float(movement_config.get("quick_turn_time_units_per_second")), 16.0), "Quick turn should use the original WDL time-unit scale.")
+        _expect(is_equal_approx(float(movement_config.get("quick_turn_initial_speed_factor")), 0.25), "Quick turn should start with the original demi-tour speed factor.")
+        _expect(is_equal_approx(float(movement_config.get("quick_turn_followup_speed_factor")), 0.4), "Quick turn should converge with the original demi-tour follow-up factor.")
+        _expect(is_equal_approx(float(movement_config.get("quick_turn_stop_speed_degrees")), 2.0), "Quick turn should stop when the original demi-tour speed threshold is reached.")
+        _expect(is_equal_approx(float(movement_config.get("quick_turn_animation_speed_multiplier")), 2.0), "Quick turn should double the base turn animation speed.")
         _expect(is_equal_approx(float(movement_config.get("boost_capacity_max")), 150.0), "Boost capacity should use the original panel width.")
         _expect(is_equal_approx(float(movement_config.get("boost_initial_capacity")), 0.0), "Player should start without stored boost capacity.")
         _expect(is_equal_approx(float(movement_config.get("boost_pickup_capacity")), 150.0), "Prototype boost pickup should fill one full boost meter.")
@@ -348,14 +392,54 @@ func _test_prototype_world() -> void:
             _expect(boost_pickup.has_method("was_collected"), "Boost pickup should expose collected state.")
             _expect(is_equal_approx(float(boost_pickup.call("get_boost_amount")), 150.0), "Prototype boost pickup should fill the meter.")
             _expect(String(boost_pickup.get("collect_sound_asset_id")) == "sfx.boost_pickup", "Boost pickup should use the original chimes2 sound.")
+            _expect(is_equal_approx(float(boost_pickup.get("visual_ground_clearance")), 0.035), "Boost pickup should keep the visual model just above the floor.")
+            _expect(is_equal_approx(float(boost_pickup.get("boost_animation_speed")), 2.0), "Boost pickup should use the faster original InitBoost cycle rate.")
             var boost_model := boost_pickup.get_node_or_null("model_boost") as Node3D
             _expect(boost_model != null, "Boost pickup should spawn the animated boost model.")
             if boost_model != null:
+                var boost_bounds: AABB = assets.get_model_global_bounds(boost_model)
+                _expect(boost_bounds.position.y >= 0.025, "Boost pickup visual should not intersect the floor.")
                 var boost_controller := boost_model.get_node_or_null("ModelAnimationController")
                 _expect(boost_controller != null, "Boost pickup model should have generated animation controller.")
                 if boost_controller != null:
                     _expect(bool(boost_controller.call("has_action", "stand")), "Boost pickup model should expose stand animation.")
                     _expect(String(boost_controller.call("get_current_action")) == "stand", "Boost pickup model should autoplay stand animation.")
+                    var boost_animation_player := boost_controller.get("animation_player") as AnimationPlayer
+                    if boost_animation_player != null:
+                        _expect(boost_animation_player.speed_scale < 0.0, "Boost pickup stand animation should play in the original rotation direction.")
+                        _expect(is_equal_approx(boost_animation_player.speed_scale, -float(boost_pickup.get("boost_animation_speed"))), "Boost pickup stand animation should use the original faster cycle speed.")
+            var boost_effect := boost_pickup.get_node_or_null("BoostPickupEffect")
+            _expect(boost_effect != null, "Boost pickup should spawn the original ambient boost particle effect.")
+            if boost_effect != null:
+                _expect(bool(boost_effect.call("is_emitting_effect")), "Boost pickup particle effect should emit while the pickup is active.")
+                _expect(int(boost_effect.call("get_anchor_count")) == 2, "Boost pickup particle effect should use the two original vertex emitters.")
+                _expect(bool(boost_effect.call("follows_model_vertices")), "Boost pickup particle effect should follow the animated model vertices.")
+                _expect((boost_effect.call("get_tracked_vertex_indices") as PackedInt32Array) == PackedInt32Array([3, 11]), "Boost pickup particle effect should track original ent_vertex 3 and 11.")
+                _expect((boost_effect.call("get_exported_vertex_indices") as PackedInt32Array) == PackedInt32Array([2, 38]), "Boost pickup particle effect should map WDL vertices onto the duplicated exported mesh vertices.")
+                _expect(int(boost_effect.call("get_emitter_count")) == 2, "Boost pickup particle effect should create one particle emitter per original vertex.")
+                _expect(int(boost_effect.call("get_particle_amount_per_emitter")) >= 10, "Boost pickup particle emitters should keep a denser original-style stream alive.")
+                _expect((boost_effect.call("get_particle_quad_size") as Vector2).is_equal_approx(Vector2(0.1, 0.1)), "Boost pickup particles should use smaller original-style star sprites.")
+                var boost_scale_samples := boost_effect.call("get_particle_scale_curve_samples") as PackedFloat32Array
+                _expect(boost_scale_samples.size() == 3, "Boost pickup particle scale curve should expose start, midpoint, and end samples.")
+                if boost_scale_samples.size() == 3:
+                    _expect(is_equal_approx(boost_scale_samples[0], 1.0), "Boost pickup particles should start at full scale.")
+                    _expect(is_equal_approx(boost_scale_samples[1], 0.62), "Boost pickup particles should shrink more gradually during their lifetime.")
+                    _expect(is_equal_approx(boost_scale_samples[2], 0.14), "Boost pickup particles should end near the original particle kill-size ratio.")
+                    _expect(float(boost_effect.call("get_particle_scale_at_lifetime_ratio", 0.0)) > float(boost_effect.call("get_particle_scale_at_lifetime_ratio", 0.5)), "Boost pickup particle scale should decrease by mid-life.")
+                    _expect(float(boost_effect.call("get_particle_scale_at_lifetime_ratio", 0.5)) > float(boost_effect.call("get_particle_scale_at_lifetime_ratio", 1.0)), "Boost pickup particle scale should keep decreasing until death.")
+                _expect(int(boost_effect.call("restart_emitters")) == 2, "Boost pickup particle emitters should be restartable for importer/test validation.")
+                _expect(int(boost_effect.call("get_active_particle_count")) > 0, "Boost pickup particle effect should keep live sparkle quads after prewarming.")
+                _expect(float(boost_effect.call("get_first_particle_visual_scale")) > 0.0, "Boost pickup particle effect should apply per-particle visual scale.")
+                var first_particle_scale := float(boost_effect.call("get_first_particle_visual_scale"))
+                var first_particle_quad_size := boost_effect.call("get_first_particle_quad_size") as Vector2
+                boost_effect.call("_update_particles", 0.25)
+                _expect(float(boost_effect.call("get_first_particle_visual_scale")) < first_particle_scale, "Boost pickup live sparkle quads should visibly shrink as they age.")
+                _expect((boost_effect.call("get_first_particle_quad_size") as Vector2).x < first_particle_quad_size.x, "Boost pickup live sparkle quad geometry should shrink as particles age.")
+                var boost_emitter := boost_effect.get_node_or_null("BoostEmitter0") as Node3D
+                _expect(boost_emitter != null, "Boost pickup particle effect should expose a vertex-following emitter node.")
+                if boost_emitter != null:
+                    var emitter_position := boost_effect.call("get_emitter_local_position", 0) as Vector3
+                    _expect(boost_emitter.position.is_equal_approx(emitter_position), "Boost pickup emitter node should stay on the tracked model vertex.")
             var player := world.get_node_or_null("Player")
             if player != null and player.has_method("get_boost_capacity") and player.has_method("get_boost_capacity_max"):
                 _expect(is_equal_approx(float(player.call("get_boost_capacity")), 0.0), "Prototype player should start with empty boost before pickup collection.")
@@ -363,6 +447,8 @@ func _test_prototype_world() -> void:
                 _expect(bool(boost_pickup.call("collect", player)), "Boost pickup should collect when given the player.")
                 _expect(is_equal_approx(float(player.call("get_boost_capacity")), float(player.call("get_boost_capacity_max"))), "Boost pickup should fill the player meter.")
                 _expect(bool(boost_pickup.call("was_collected")), "Boost pickup should mark itself collected.")
+                if boost_effect != null:
+                    _expect(not bool(boost_effect.call("is_emitting_effect")), "Boost pickup particle effect should stop after collection.")
                 _expect(not boost_pickup.visible, "Boost pickup should hide after collection.")
     var audio := root.get_node_or_null("Audio")
     if audio != null:

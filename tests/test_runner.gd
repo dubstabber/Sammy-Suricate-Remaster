@@ -154,6 +154,9 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
     _expect(assets.has_asset("model.wasp1"), "Asset catalog is missing wasp projectile model.")
     _expect(assets.load_asset("model.wasp1") != null, "Unable to load wasp projectile model.")
+    _expect(assets.get_asset_path("model.wasp1") == "res://assets/models/wasp1/wasp1_animated.gltf", "Wasp runtime model should use the animated GLTF.")
+    _expect(assets.get_model_animation_library_path("model.wasp1") == "res://assets/animations/wasp1_clips.tres", "Wasp should use the generated animation library.")
+    _expect(assets.get_model_default_animation("model.wasp1") == "stand", "Wasp should expose the original stand animation as default.")
     _expect(assets.has_asset("sfx.error"), "Asset catalog is missing original rejected-action sound.")
     _expect(assets.load_asset("sfx.error") != null, "Unable to load original rejected-action sound.")
     _expect(assets.has_asset("sfx.takewasp"), "Asset catalog is missing original wasp pickup chime.")
@@ -180,11 +183,15 @@ func _test_animation_libraries() -> void:
     )
     _expect_animation_library("res://assets/animations/boost_clips.tres", ["stand"], ["stand"])
     _expect_animation_library("res://assets/animations/cactus1_clips.tres", ["stand"], ["stand"])
+    _expect_animation_library("res://assets/animations/wasp1_clips.tres", ["stand", "walk", "death"], ["stand", "walk"])
     _expect_clip_length("res://assets/animations/suricat1_clips.tres", "sautA", 100.0 / (30.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/suricat1_clips.tres", "tirA", 100.0 / (20.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/suricat1_clips.tres", "turn", 100.0 / (14.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/rasta_clips.tres", "attack", 100.0 / (6.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/punk_clips.tres", "stand", 100.0 / (3.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/wasp1_clips.tres", "stand", 100.0 / (3.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/wasp1_clips.tres", "walk", 100.0 / (0.5 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/wasp1_clips.tres", "death", 100.0 / (6.0 * 16.0 * 1.12))
 
 
 func _expect_animation_library(path: String, expected_clips: Array[String], looping_clips: Array[String]) -> void:
@@ -203,6 +210,8 @@ func _expect_animation_library(path: String, expected_clips: Array[String], loop
                 _expect(animation.loop_mode == Animation.LOOP_LINEAR, "Generated clip should loop: %s/%s" % [path, clip_name])
                 _expect_loop_wrap_pose(animation, path, clip_name)
     _expect(not library.has_animation("toto"), "Placeholder toto ranges should not become gameplay clips: %s" % path)
+    _expect(not library.has_animation("base"), "Placeholder base ranges should not become gameplay clips: %s" % path)
+    _expect(not library.has_animation("walk_trans"), "Placeholder transition ranges should not become gameplay clips: %s" % path)
 
 
 func _expect_loop_wrap_pose(animation: Animation, path: String, clip_name: String) -> void:
@@ -253,7 +262,7 @@ func _test_model_skin_alpha() -> void:
     _expect(_png_is_fully_opaque("res://assets/models/rasta/skins/rasta_skin0.png"), "Rasta RGB565 skin must stay opaque; black texels are painted detail.")
     _expect(_text_file_lacks("res://assets/models/Punk/Punk_animated.gltf", "\"alphaMode\""), "Punk material should not import as alpha masked.")
     _expect(_text_file_lacks("res://assets/models/rasta/rasta_animated.gltf", "\"alphaMode\""), "Rasta material should not import as alpha masked.")
-    _expect(_text_file_contains("res://assets/models/wasp1/wasp1.gltf", "\"alphaMode\": \"BLEND\""), "Wasp material should import with alpha blending enabled.")
+    _expect(_text_file_contains("res://assets/models/wasp1/wasp1_animated.gltf", "\"alphaMode\": \"BLEND\""), "Animated wasp material should import with alpha blending enabled.")
     for skin_index in range(7):
         _expect(_png_has_transparent_pixels("res://assets/models/wasp1/skins/wasp1_skin%d.png" % skin_index), "Wasp skin %d should preserve transparent color-key background pixels." % skin_index)
 
@@ -346,7 +355,7 @@ func _test_wasp_resources(assets: Node) -> void:
             var wasp_model := wasp_scene.instantiate() as Node3D
             _expect(bool(assets.call("apply_wasp_skin", wasp_model, 1)), "Applying a wasp skin should succeed for transparent material validation.")
             _expect(_model_uses_transparent_material(wasp_model), "Applying a wasp skin should enable material alpha transparency.")
-            wasp_model.free()
+            wasp_model.queue_free()
     var type_3: Resource = load(WASP_TYPE_3_PATH)
     _expect(type_3 != null and is_equal_approx(float(type_3.get("multi_shot_interval_seconds")), 0.125), "Type 3 should preserve the original waitt 2 spacing between triple shots.")
     var type_5: Resource = load(WASP_TYPE_5_PATH)
@@ -447,6 +456,17 @@ func _test_wasp_projectile_behaviors() -> void:
     var straight_projectile: Node = projectile_scene.instantiate()
     root.add_child(straight_projectile)
     straight_projectile.call("configure", type_2, null, Transform3D(Basis(), Vector3(0.0, 0.7, 0.0)))
+    var straight_visual := straight_projectile.get_node_or_null("WaspVisual") as Node3D
+    _expect(straight_visual != null, "Wasp projectile should spawn the original animated wasp model visual.")
+    var straight_controller := straight_projectile.call("get_animation_controller") as Node
+    _expect(straight_controller != null, "Wasp projectile should attach a generated animation controller.")
+    if straight_controller != null:
+        _expect(bool(straight_controller.call("has_action", "walk")), "Wasp projectile animation controller should expose walk.")
+        _expect(bool(straight_controller.call("has_action", "death")), "Wasp projectile animation controller should expose death.")
+        _expect(String(straight_controller.call("get_current_action")) == "walk", "Wasp projectile should play the original walk cycle while flying.")
+        var straight_animation_player := straight_controller.get("animation_player") as AnimationPlayer
+        if straight_animation_player != null:
+            _expect(is_equal_approx(straight_animation_player.speed_scale, float(type_2.get("wdl_speed_units"))), "Wasp projectile walk cycle should scale from the original SpeedWasp units.")
     var straight_before := straight_projectile.call("get_velocity") as Vector3
     straight_projectile.call("_physics_process", 0.1)
     var straight_after := straight_projectile.call("get_velocity") as Vector3
@@ -474,9 +494,20 @@ func _test_wasp_projectile_behaviors() -> void:
     _expect(float(dive_projectile.call("get_pitch_degrees")) < 0.0, "Type 5 should pitch downward after its original dive delay.")
     _expect(dive_velocity.y < 0.0, "Type 5 should move downward once the dive phase starts.")
 
+    var death_projectile: Node = projectile_scene.instantiate()
+    root.add_child(death_projectile)
+    death_projectile.call("configure", type_2, null, Transform3D(Basis(), Vector3(0.0, 0.7, 0.0)))
+    death_projectile.call("_despawn", false)
+    _expect(bool(death_projectile.call("is_consumed")), "Consumed wasp projectile should mark itself consumed before death cleanup.")
+    _expect(bool(death_projectile.call("is_death_animation_active")), "Consumed wasp projectile should play its original death animation before cleanup.")
+    var death_controller := death_projectile.call("get_animation_controller") as Node
+    if death_controller != null:
+        _expect(String(death_controller.call("get_current_action")) == "death", "Consumed wasp projectile should switch to the original death cycle.")
+
     straight_projectile.queue_free()
     homing_projectile.queue_free()
     dive_projectile.queue_free()
+    death_projectile.queue_free()
     target.queue_free()
     await process_frame
 
@@ -951,6 +982,14 @@ func _test_prototype_world() -> void:
             if wasp_model != null and pickup_wasp_type != null and assets != null and assets.has_method("load_wasp_skin_texture"):
                 var expected_pickup_skin := assets.call("load_wasp_skin_texture", int(pickup_wasp_type.get("skin_index"))) as Texture2D
                 _expect(expected_pickup_skin != null and _model_uses_texture(wasp_model, expected_pickup_skin), "Wasp pickup visual should use the configured type skin.")
+                var pickup_controller := wasp_pickup.call("get_animation_controller") as Node
+                _expect(pickup_controller != null, "Wasp pickup should attach a generated animation controller.")
+                if pickup_controller != null:
+                    _expect(bool(pickup_controller.call("has_action", "stand")), "Wasp pickup animation controller should expose stand.")
+                    _expect(String(pickup_controller.call("get_current_action")) == "stand", "Wasp pickup should play the original stand cycle.")
+                var pickup_rotation_before := wasp_model.rotation.y
+                wasp_pickup.call("_process", 0.5)
+                _expect(absf(wasp_model.rotation.y - pickup_rotation_before) > 0.01, "Wasp pickup should rotate at the original idle pan rate.")
             var wasp_pickup_nodes := [
                 "",
                 "WaspPickupType1",
@@ -976,6 +1015,10 @@ func _test_prototype_world() -> void:
                 if typed_wasp_model != null and typed_wasp_type != null and assets != null and assets.has_method("load_wasp_skin_texture"):
                     var typed_expected_skin := assets.call("load_wasp_skin_texture", int(typed_wasp_type.get("skin_index"))) as Texture2D
                     _expect(typed_expected_skin != null and _model_uses_texture(typed_wasp_model, typed_expected_skin), "Wasp type %d pickup visual should use the configured type skin." % type_id)
+                    var typed_wasp_controller := typed_wasp_pickup.call("get_animation_controller") as Node
+                    _expect(typed_wasp_controller != null, "Wasp type %d pickup should attach a generated animation controller." % type_id)
+                    if typed_wasp_controller != null:
+                        _expect(String(typed_wasp_controller.call("get_current_action")) == "stand", "Wasp type %d pickup should play the original stand cycle." % type_id)
             var player_for_wasp := world.get_node_or_null("Player")
             if player_for_wasp != null and player_for_wasp.has_method("get_wasp_inventory"):
                 var inventory: Node = player_for_wasp.call("get_wasp_inventory")

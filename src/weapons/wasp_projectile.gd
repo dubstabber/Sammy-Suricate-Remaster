@@ -2,6 +2,9 @@ extends Area3D
 class_name WaspProjectile
 
 const WASP_TYPE_SCRIPT := preload("res://src/resources/wasp_type.gd")
+const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
+const WALK_ACTION := &"walk"
+const DEATH_ACTION := &"death"
 
 @export var model_asset_id: String = "model.wasp1"
 @export var hit_sound_asset_id: String = "sfx.wasp_kaput"
@@ -11,6 +14,7 @@ var _source_player: Node = null
 var _velocity: Vector3 = Vector3.ZERO
 var _lifetime_remaining: float = 0.0
 var _model_instance: Node3D = null
+var _animation_controller: Node = null
 var _consumed: bool = false
 var _forward_direction: Vector3 = Vector3.FORWARD
 var _pitch_degrees: float = 0.0
@@ -33,6 +37,7 @@ func configure(wasp_type: Resource, source_player: Node, spawn_transform: Transf
 	_initialize_dive_arc()
 	_refresh_velocity()
 	_spawn_visual()
+	_refresh_visual_orientation()
 
 
 func _physics_process(delta: float) -> void:
@@ -48,6 +53,7 @@ func _physics_process(delta: float) -> void:
 	if _can_home():
 		_update_homing(delta)
 	_refresh_velocity()
+	_refresh_visual_orientation()
 	global_position += _velocity * delta
 
 
@@ -80,6 +86,22 @@ func _spawn_visual() -> void:
 	_model_instance.rotation_degrees = assets.get_model_rotation_degrees(model_asset_id)
 	add_child(_model_instance)
 	_apply_wasp_skin(assets)
+	_configure_model_animation(assets)
+
+
+func _configure_model_animation(assets: Node) -> void:
+	if _model_instance == null:
+		return
+
+	var library_path: String = assets.get_model_animation_library_path(model_asset_id)
+	if library_path.is_empty():
+		return
+
+	_animation_controller = MODEL_ANIMATION_CONTROLLER_SCRIPT.new()
+	_animation_controller.name = "ModelAnimationController"
+	_model_instance.add_child(_animation_controller)
+	_animation_controller.call("configure", _model_instance, library_path, String(WALK_ACTION), false)
+	_play_visual_action(WALK_ACTION, _get_wasp_walk_animation_speed(), true)
 
 
 func _get_wasp_visual_scale() -> float:
@@ -110,7 +132,8 @@ func _despawn(play_hit_sound: bool) -> void:
 		var audio := get_node_or_null("/root/Audio")
 		if audio != null and audio.has_method("play_sfx"):
 			audio.call("play_sfx", hit_sound_asset_id)
-	queue_free()
+	var cleanup_delay := _play_visual_action(DEATH_ACTION, 1.0, true)
+	_queue_cleanup_after_death(cleanup_delay)
 
 
 func get_wasp_type() -> Resource:
@@ -131,6 +154,14 @@ func is_dive_homing_unlocked() -> bool:
 
 func is_consumed() -> bool:
 	return _consumed
+
+
+func get_animation_controller() -> Node:
+	return _animation_controller
+
+
+func is_death_animation_active() -> bool:
+	return _consumed and _animation_controller != null
 
 
 func _initialize_dive_arc() -> void:
@@ -242,6 +273,14 @@ func _refresh_velocity() -> void:
 		_velocity = _forward_direction.normalized() * speed
 
 
+func _refresh_visual_orientation() -> void:
+	if _velocity.length_squared() <= 0.0001:
+		return
+	var transform := global_transform
+	transform.basis = _basis_from_direction(_velocity)
+	global_transform = transform
+
+
 func _direction_from_pitch() -> Vector3:
 	var horizontal := _horizontal_direction(_forward_direction)
 	var pitch_radians := deg_to_rad(_pitch_degrees)
@@ -267,6 +306,18 @@ func _turn_direction_toward(current: Vector3, target: Vector3, turn_speed_degree
 	return current_direction.slerp(target_direction, weight).normalized()
 
 
+func _basis_from_direction(direction: Vector3) -> Basis:
+	var forward := direction.normalized()
+	if forward == Vector3.ZERO:
+		return Basis()
+	var up := Vector3.UP
+	if absf(forward.dot(up)) > 0.98:
+		up = Vector3.RIGHT
+	var right := forward.cross(up).normalized()
+	var corrected_up := right.cross(forward).normalized()
+	return Basis(right, corrected_up, -forward)
+
+
 func _horizontal_direction(direction: Vector3) -> Vector3:
 	var horizontal := Vector3(direction.x, 0.0, direction.z)
 	if horizontal.length_squared() <= 0.0001:
@@ -290,3 +341,40 @@ func _get_wasp_bool(property_name: StringName, fallback: bool) -> bool:
 	if raw_value == null:
 		return fallback
 	return bool(raw_value)
+
+
+func _play_visual_action(action: StringName, custom_speed: float, restart: bool) -> float:
+	if _animation_controller == null or not _animation_controller.has_method("play_action"):
+		return 0.0
+	if not bool(_animation_controller.call("play_action", action, 0.0, custom_speed, false, restart)):
+		return 0.0
+	return _get_visual_action_length_seconds(action, custom_speed)
+
+
+func _get_visual_action_length_seconds(action: StringName, custom_speed: float) -> float:
+	if _animation_controller == null:
+		return 0.0
+	var animation_player := _animation_controller.get("animation_player") as AnimationPlayer
+	if animation_player == null:
+		return 0.0
+	var animation_name := StringName("actions/%s" % String(action))
+	if not animation_player.has_animation(animation_name):
+		return 0.0
+	var speed := maxf(absf(custom_speed), 0.001)
+	return animation_player.get_animation(animation_name).length / speed
+
+
+func _get_wasp_walk_animation_speed() -> float:
+	return maxf(_get_wasp_float("wdl_speed_units", 1.0), 0.001)
+
+
+func _queue_cleanup_after_death(delay_seconds: float) -> void:
+	if delay_seconds <= 0.0 or not is_inside_tree():
+		queue_free()
+		return
+	var timer := get_tree().create_timer(delay_seconds)
+	timer.timeout.connect(_on_death_animation_finished)
+
+
+func _on_death_animation_finished() -> void:
+	queue_free()

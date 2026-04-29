@@ -129,11 +129,13 @@ const CATALOG := {
         "description": "Original WaspKaputt_son wasp impact sound"
     },
     "model.wasp1": {
-        "path": "res://assets/models/wasp1/wasp1.gltf",
-        "source": "extract-sammy-assets/extracted/godot/models/wasp1/wasp1.gltf",
+        "path": "res://assets/models/wasp1/wasp1_animated.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/wasp1/wasp1_animated.gltf",
         "kind": "model",
-        "description": "Original wasp projectile model",
-        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION
+        "description": "Original wasp projectile morph-target animation model",
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
+        "animation_library": "res://assets/animations/wasp1_clips.tres",
+        "default_animation": "stand"
     },
     "sfx.player": {
         "path": "res://assets/audio/haway.wav",

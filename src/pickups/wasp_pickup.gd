@@ -1,21 +1,33 @@
 extends Area3D
 class_name WaspPickup
 
+const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
+const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
+const IDLE_TURN_DEGREES_PER_TIME_UNIT := 1.0
+
 @export var wasp_type: Resource = null
 @export var ammo_amount: int = 20
 @export var model_asset_id: String = "model.wasp1"
 @export var collect_sound_asset_id: String = "sfx.takewasp"
 @export var visual_scale_multiplier: float = 1.0
 @export var visual_ground_clearance: float = 0.05
+@export var idle_turn_degrees_per_second: float = IDLE_TURN_DEGREES_PER_TIME_UNIT * ACKNEX_TIME_UNITS_PER_SECOND
 
 var _collected := false
 var _model_instance: Node3D = null
+var _animation_controller: Node = null
 
 
 func _ready() -> void:
 	add_to_group("pickup")
 	body_entered.connect(_on_body_entered)
 	_spawn_model()
+
+
+func _process(delta: float) -> void:
+	if _collected or _model_instance == null:
+		return
+	_model_instance.rotate_y(deg_to_rad(idle_turn_degrees_per_second * delta))
 
 
 func collect(player: Node) -> bool:
@@ -32,6 +44,10 @@ func get_wasp_type() -> Resource:
 
 func get_ammo_amount() -> int:
 	return ammo_amount
+
+
+func get_animation_controller() -> Node:
+	return _animation_controller
 
 
 func _on_body_entered(body: Node3D) -> void:
@@ -76,7 +92,23 @@ func _spawn_model() -> void:
 	_model_instance.rotation_degrees = assets.get_model_rotation_degrees(model_asset_id)
 	add_child(_model_instance)
 	_apply_wasp_skin(assets)
+	_configure_model_animation(assets)
 	_lift_model_above_ground(assets)
+
+
+func _configure_model_animation(assets: Node) -> void:
+	if _model_instance == null:
+		return
+
+	var library_path: String = assets.get_model_animation_library_path(model_asset_id)
+	if library_path.is_empty():
+		return
+
+	_animation_controller = MODEL_ANIMATION_CONTROLLER_SCRIPT.new()
+	_animation_controller.name = "ModelAnimationController"
+	_model_instance.add_child(_animation_controller)
+	var default_animation: String = assets.get_model_default_animation(model_asset_id)
+	_animation_controller.call("configure", _model_instance, library_path, default_animation, true)
 
 
 func _get_wasp_visual_scale() -> float:

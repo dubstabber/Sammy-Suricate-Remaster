@@ -4,6 +4,8 @@ const OUTPUT_DIR := "res://assets/animations"
 const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
 const GODOT_PLAYBACK_SPEED_CORRECTION := 1.12
 const PLACEHOLDER_CLIPS := {
+    "base": true,
+    "walk_trans": true,
     "toto": true
 }
 
@@ -86,6 +88,17 @@ const MODEL_CONFIGS := [
         "looping": ["stand"],
         "duration_overrides": {
             "stand": 1.2
+        }
+    },
+    {
+        "name": "wasp1",
+        "gltf_path": "res://assets/models/wasp1/wasp1_animated.gltf",
+        "output_path": "res://assets/animations/wasp1_clips.tres",
+        "looping": ["stand", "walk"],
+        "step_speeds": {
+            "stand": 3.0,
+            "walk": 0.5,
+            "death": 6.0
         }
     }
 ]

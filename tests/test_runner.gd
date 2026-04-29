@@ -499,6 +499,17 @@ func _test_player_scene() -> void:
                 _expect(root.get_child_count() == children_before, "Accepted fire should defer wasp projectile creation until tirA completes.")
                 _expect(not bool(player.call("fire_wasp")), "A second fire input during the original shooting state should be rejected quietly.")
                 _expect(int(player.call("get_fire_request_count")) == fire_requests + 1, "Rejected cooldown fire should not increment accepted fire count.")
+                player.set("velocity", Vector3(0.0, 0.0, -5.2))
+                player.set("rotation", Vector3.ZERO)
+                Input.action_press("move_forward")
+                Input.action_press("turn_right")
+                player.call("_physics_process", minf(fire_spawn_delay * 0.25, 1.0 / 60.0))
+                Input.action_release("move_forward")
+                Input.action_release("turn_right")
+                var locked_velocity := player.get("velocity") as Vector3
+                var locked_horizontal_speed := Vector3(locked_velocity.x, 0.0, locked_velocity.z).length()
+                _expect(locked_horizontal_speed < 5.2, "Accepted fire should temporarily damp Sammy's movement like PlayerEtat 2.")
+                _expect(is_equal_approx((player as Node3D).rotation.y, 0.0), "Accepted fire should suppress turn input while Sammy is shooting.")
                 if controller != null:
                     _expect(String(controller.call("get_current_action")) == "tirA", "Accepted fire should start Sammy's original tirA animation.")
                     var fire_animation_player := controller.get("animation_player") as AnimationPlayer

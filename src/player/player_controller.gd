@@ -76,8 +76,17 @@ func _physics_process(delta: float) -> void:
         _process_quick_turn(delta, was_on_floor)
         return
 
+    if Input.is_action_just_pressed("fire"):
+        fire_wasp()
+
+    var movement_locked := _wasp_fire_active
+    if movement_locked:
+        forward_input = 0.0
+        turn_input = 0.0
+
     _update_boost_state(delta, forward_input)
-    _apply_turn(delta, forward_input, turn_input)
+    if not movement_locked:
+        _apply_turn(delta, forward_input, turn_input)
 
     var target_velocity: Vector3 = get_facing_direction() * forward_input * _current_walk_speed(_boosting)
     var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
@@ -89,15 +98,12 @@ func _physics_process(delta: float) -> void:
 
     var jumped := false
     if is_on_floor():
-        if Input.is_action_just_pressed("jump"):
+        if not movement_locked and Input.is_action_just_pressed("jump"):
             velocity.y = movement_config.jump_velocity
             jumped = true
             _jump_fire_blocked = true
     else:
         velocity.y -= movement_config.gravity * delta
-
-    if Input.is_action_just_pressed("fire"):
-        fire_wasp()
 
     move_and_slide()
     if is_on_floor() and not jumped:

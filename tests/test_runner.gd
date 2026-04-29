@@ -6,9 +6,12 @@ const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const PLAYER_SCENE_PATH := "res://scenes/player/player.tscn"
 const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
+const WASP_TYPE_2_PATH := "res://assets/wasps/type_2.tres"
+const WASP_INVENTORY_SCRIPT_PATH := "res://src/weapons/wasp_inventory.gd"
 const WORLD_LAYER := 1
 const CHARACTER_LAYER := 2
 const PICKUP_SENSOR_LAYER := 4
+const PROJECTILE_LAYER := 8
 const WORLD_AND_CHARACTER_MASK := 3
 
 var _failures: Array[String] = []
@@ -29,6 +32,9 @@ func _run() -> void:
     _test_animation_libraries()
     _test_model_skin_alpha()
     _test_wmb_manifest()
+    _test_wasp_resources(assets)
+    _test_wasp_inventory()
+    await _test_wasp_projectile_damages_enemy()
     await _test_player_scene()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
@@ -102,6 +108,7 @@ func _test_collision_layer_names() -> void:
     _expect(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_1")) == "world", "3D physics layer 1 should be named world.")
     _expect(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_2")) == "character", "3D physics layer 2 should be named character.")
     _expect(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_3")) == "pickup_sensor", "3D physics layer 3 should be named pickup_sensor.")
+    _expect(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_4")) == "projectile", "3D physics layer 4 should be named projectile.")
 
 
 func _test_asset_catalog(assets: Node) -> void:
@@ -132,6 +139,12 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
+    _expect(assets.has_asset("model.wasp1"), "Asset catalog is missing wasp projectile model.")
+    _expect(assets.load_asset("model.wasp1") != null, "Unable to load wasp projectile model.")
+    _expect(assets.has_asset("sfx.takewasp"), "Asset catalog is missing original wasp pickup chime.")
+    _expect(assets.load_asset("sfx.takewasp") != null, "Unable to load original wasp pickup chime.")
+    _expect(assets.has_asset("sfx.wasp_kaput"), "Asset catalog is missing wasp impact sound.")
+    _expect(assets.load_asset("sfx.wasp_kaput") != null, "Unable to load wasp impact sound.")
 
 
 func _test_animation_libraries() -> void:
@@ -240,6 +253,101 @@ func _test_main_scene() -> void:
     await process_frame
 
 
+func _test_wasp_resources(assets: Node) -> void:
+    var wasp_type: Resource = load(WASP_TYPE_2_PATH)
+    _expect(wasp_type != null, "Wasp type 2 resource should load.")
+    if wasp_type == null:
+        return
+    _expect(StringName(wasp_type.get("id")) == &"type_2", "Wasp type 2 should expose id type_2.")
+    _expect(int(wasp_type.get("damage")) == 2, "Wasp type 2 should deal 2 damage per original WDL skin/damage table.")
+    _expect(int(wasp_type.get("skin_index")) == 2, "Wasp type 2 should use the original red wasp skin index.")
+    if assets != null and assets.has_method("load_wasp_skin_texture"):
+        _expect(assets.call("load_wasp_skin_texture", int(wasp_type.get("skin_index"))) != null, "Wasp type 2 skin texture should load from the runtime asset slice.")
+    _expect(int(wasp_type.get("multi_shot_count")) == 1, "Wasp type 2 should fire a single projectile per shot.")
+    _expect(not bool(wasp_type.get("homing")), "Wasp type 2 should not be homing.")
+    _expect(float(wasp_type.get("lifetime_seconds")) > 0.0, "Wasp type 2 should have a positive lifetime.")
+    _expect(float(wasp_type.get("speed")) > 0.0, "Wasp type 2 should have positive forward speed.")
+
+
+func _test_wasp_inventory() -> void:
+    var inventory_script: GDScript = load(WASP_INVENTORY_SCRIPT_PATH)
+    var inventory: Node = inventory_script.new()
+    var type_a: Resource = load(WASP_TYPE_2_PATH)
+    var type_b_script: GDScript = load("res://src/resources/wasp_type.gd")
+    var type_b: Resource = type_b_script.new()
+    type_b.set("id", &"type_other")
+    type_b.set("damage", 1)
+    type_b.set("speed", 14.0)
+    type_b.set("lifetime_seconds", 8.0)
+
+    _expect(not bool(inventory.call("has_ammo")), "Empty wasp inventory should report no ammo.")
+    _expect(not bool(inventory.call("consume_ammo", 1)), "Empty wasp inventory should refuse to consume ammo.")
+
+    inventory.call("add_ammo", type_a, 5)
+    _expect(int(inventory.call("get_ammo_count")) == 5, "Adding ammo should set the ammo count.")
+    _expect(inventory.call("get_current_type") == type_a, "Adding ammo should set the current type.")
+    _expect(bool(inventory.call("has_ammo")), "Inventory should report ammo after pickup.")
+
+    inventory.call("add_ammo", type_a, 3)
+    _expect(int(inventory.call("get_ammo_count")) == 8, "Adding the same type should accumulate ammo.")
+
+    var ejected_state := {"emitted": false, "replaced": null}
+    inventory.connect("active_wasps_ejected", func(replaced: Resource) -> void:
+        ejected_state["emitted"] = true
+        ejected_state["replaced"] = replaced)
+
+    inventory.call("add_ammo", type_b, 4)
+    _expect(bool(ejected_state["emitted"]), "Switching wasp type should emit the active_wasps_ejected signal.")
+    _expect(ejected_state["replaced"] == type_a, "Eject signal should report the replaced wasp type.")
+    _expect(inventory.call("get_current_type") == type_b, "Switching wasp type should replace the current type.")
+    _expect(int(inventory.call("get_ammo_count")) == 4, "Switching wasp type should reset to the new ammo count.")
+
+    _expect(bool(inventory.call("consume_ammo", 1)), "Consuming ammo should succeed when ammo is available.")
+    _expect(int(inventory.call("get_ammo_count")) == 3, "Consuming ammo should decrement the count.")
+
+    while bool(inventory.call("consume_ammo", 1)):
+        pass
+    _expect(int(inventory.call("get_ammo_count")) == 0, "Inventory should reach zero ammo after full drain.")
+    _expect(inventory.call("get_current_type") == null, "Reaching zero ammo should clear the current wasp type.")
+    _expect(not bool(inventory.call("has_ammo")), "Inventory should report no ammo after drain.")
+
+    inventory.queue_free()
+
+
+func _test_wasp_projectile_damages_enemy() -> void:
+    var enemy_scene: PackedScene = load("res://scenes/enemies/punk_enemy.tscn")
+    var enemy: Node = enemy_scene.instantiate()
+    enemy.set("affected_by_gravity", false)
+    enemy.set("max_health", 5)
+    root.add_child(enemy)
+    enemy.global_position = Vector3(0.0, 0.0, -3.0)
+    await physics_frame
+
+    var projectile_scene: PackedScene = load("res://scenes/weapons/wasp_projectile.tscn")
+    var projectile: Node = projectile_scene.instantiate()
+    var wasp_type: Resource = load(WASP_TYPE_2_PATH)
+    root.add_child(projectile)
+    var spawn_transform := Transform3D(Basis(), Vector3(0.0, 0.7, -2.0))
+    projectile.call("configure", wasp_type, null, spawn_transform)
+
+    _expect(int(projectile.get("collision_layer")) == PROJECTILE_LAYER, "Wasp projectile should live on the projectile collision layer.")
+    _expect(int(projectile.get("collision_mask")) == WORLD_AND_CHARACTER_MASK, "Wasp projectile should detect world and character bodies.")
+
+    for step in 60:
+        if not is_instance_valid(projectile) or bool(projectile.call("is_consumed")):
+            break
+        await physics_frame
+
+    _expect(int(enemy.call("get_health")) <= 5 - int(wasp_type.get("damage")), "Wasp projectile should reduce enemy health on contact.")
+    _expect(not is_instance_valid(projectile) or bool(projectile.call("is_consumed")), "Wasp projectile should despawn after hitting an enemy.")
+
+    if is_instance_valid(projectile):
+        projectile.queue_free()
+    if is_instance_valid(enemy):
+        enemy.queue_free()
+    await process_frame
+
+
 func _test_player_scene() -> void:
     var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
     var player: Node = player_scene.instantiate()
@@ -325,6 +433,32 @@ func _test_player_scene() -> void:
         var controller := player.call("get_animation_controller") as Node
         if controller != null:
             _expect(String(controller.call("get_current_action")) == "tirA", "Fire action should start Sammy's original tirA animation.")
+        _expect(player.has_method("get_wasp_inventory"), "Player controller should expose a wasp inventory accessor.")
+        if player.has_method("get_wasp_inventory"):
+            var inventory: Node = player.call("get_wasp_inventory")
+            _expect(inventory != null, "Player should auto-spawn a WaspInventory child node.")
+            if inventory != null:
+                _expect(int(inventory.call("get_ammo_count")) == 0, "Firing without ammo should not decrement below zero.")
+                _expect(not bool(inventory.call("has_ammo")), "Player should start without wasp ammo.")
+                var wasp_type: Resource = load(WASP_TYPE_2_PATH)
+                inventory.call("add_ammo", wasp_type, 3)
+                var children_before := root.get_child_count()
+                player.call("fire_wasp")
+                _expect(int(inventory.call("get_ammo_count")) == 2, "Firing with ammo should decrement the ammo count by one.")
+                _expect(root.get_child_count() == children_before + 1, "Firing should add a wasp projectile to the player's parent.")
+                var spawned_projectile := root.get_child(root.get_child_count() - 1)
+                _expect(spawned_projectile.has_method("get_wasp_type"), "Firing should spawn a wasp projectile node.")
+                if spawned_projectile.has_method("get_wasp_type"):
+                    _expect(spawned_projectile.call("get_wasp_type") == wasp_type, "Spawned projectile should keep the active wasp type.")
+                var assets := root.get_node_or_null("Assets")
+                if assets != null and assets.has_method("load_wasp_skin_texture"):
+                    var expected_skin := assets.call("load_wasp_skin_texture", int(wasp_type.get("skin_index"))) as Texture2D
+                    _expect(expected_skin != null and _model_uses_texture(spawned_projectile, expected_skin), "Spawned wasp projectile should use the active type skin.")
+                spawned_projectile.queue_free()
+                inventory.call("consume_ammo", 2)
+                var ammo_after_drain := int(inventory.call("get_ammo_count"))
+                player.call("fire_wasp")
+                _expect(int(inventory.call("get_ammo_count")) == ammo_after_drain, "Firing without ammo should leave the ammo count unchanged.")
         var movement_config: Resource = player.get("movement_config")
         _expect(is_equal_approx(float(movement_config.get("boost_speed_multiplier")), 2.0), "Boost should expose the original acceleration control hook.")
         _expect(is_equal_approx(float(movement_config.get("boost_turn_multiplier")), 0.75), "Boost should reduce turn input like the original scripts.")
@@ -544,6 +678,38 @@ func _test_prototype_world() -> void:
                     if stopped_emitter != null:
                         _expect(not stopped_emitter.emitting, "Boost pickup GPU particle emitters should stop after collection.")
                 _expect(not boost_pickup.visible, "Boost pickup should hide after collection.")
+        var wasp_pickup := world.get_node_or_null("WaspPickup") as Area3D
+        _expect(wasp_pickup != null, "Prototype world should spawn the wasp pickup as an Area3D.")
+        if wasp_pickup != null:
+            _expect(wasp_pickup.collision_layer == PICKUP_SENSOR_LAYER, "Wasp pickup should live on the pickup sensor collision layer.")
+            _expect(wasp_pickup.collision_mask == CHARACTER_LAYER, "Wasp pickup should monitor solid characters without blocking them.")
+            _expect(wasp_pickup.has_method("collect"), "Wasp pickup should expose a collection hook for tests/importers.")
+            _expect(wasp_pickup.has_method("was_collected"), "Wasp pickup should expose collected state.")
+            _expect(wasp_pickup.has_method("get_wasp_type"), "Wasp pickup should expose its configured wasp type.")
+            _expect(int(wasp_pickup.call("get_ammo_amount")) == 20, "Prototype wasp pickup should grant the original-style ammo bundle.")
+            _expect(String(wasp_pickup.get("collect_sound_asset_id")) == "sfx.takewasp", "Wasp pickup should use the original TakeWasp sound.")
+            var pickup_wasp_type: Resource = wasp_pickup.call("get_wasp_type")
+            _expect(pickup_wasp_type == load(WASP_TYPE_2_PATH), "Prototype wasp pickup should be configured for type 2.")
+            var wasp_model := wasp_pickup.get_node_or_null("WaspPickupVisual") as Node3D
+            _expect(wasp_model != null, "Wasp pickup should spawn the original wasp model visual.")
+            if wasp_model != null and pickup_wasp_type != null and assets != null and assets.has_method("load_wasp_skin_texture"):
+                var expected_pickup_skin := assets.call("load_wasp_skin_texture", int(pickup_wasp_type.get("skin_index"))) as Texture2D
+                _expect(expected_pickup_skin != null and _model_uses_texture(wasp_model, expected_pickup_skin), "Wasp pickup visual should use the configured type skin.")
+            var player_for_wasp := world.get_node_or_null("Player")
+            if player_for_wasp != null and player_for_wasp.has_method("get_wasp_inventory"):
+                var inventory: Node = player_for_wasp.call("get_wasp_inventory")
+                _expect(inventory != null, "Prototype player should expose a wasp inventory for pickups.")
+                if inventory != null:
+                    _expect(int(inventory.call("get_ammo_count")) == 0, "Prototype player should start without wasp ammo before pickup collection.")
+                    wasp_pickup.set("collect_sound_asset_id", "")
+                    _expect(bool(wasp_pickup.call("collect", player_for_wasp)), "Wasp pickup should collect when given the player.")
+                    _expect(inventory.call("get_current_type") == pickup_wasp_type, "Wasp pickup should set the active wasp type.")
+                    _expect(int(inventory.call("get_ammo_count")) == int(wasp_pickup.call("get_ammo_amount")), "Wasp pickup should add its ammo amount to the inventory.")
+                    _expect(bool(wasp_pickup.call("was_collected")), "Wasp pickup should mark itself collected.")
+                    _expect(not wasp_pickup.visible, "Wasp pickup should hide after collection.")
+                    await process_frame
+                    _expect(not wasp_pickup.monitoring, "Wasp pickup should stop monitoring after collection.")
+                    _expect(not wasp_pickup.monitorable, "Wasp pickup should stop being monitorable after collection.")
     await _expect_solid_collision_contacts(world)
     await _expect_enemy_gravity(world)
     var audio := root.get_node_or_null("Audio")
@@ -602,6 +768,20 @@ func _expect_enemy_gravity(world: Node) -> void:
         await physics_frame
         await physics_frame
         _expect(enemy.global_position.y < raised_y, "Enemy should fall under original-style gravity when raised above the floor: %s" % enemy_path)
+
+
+func _model_uses_texture(node: Node, texture: Texture2D) -> bool:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            var material := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
+            if material != null and material.albedo_texture == texture:
+                return true
+
+    for child in node.get_children():
+        if _model_uses_texture(child, texture):
+            return true
+    return false
 
 
 func _expect(condition: bool, message: String) -> void:

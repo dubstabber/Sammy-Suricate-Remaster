@@ -11,13 +11,40 @@ const ACKNEX_TICKS_PER_SECOND := 16.0
 @export var original_gravity_velocity: float = -4.0
 @export var original_gravity_acceleration: float = 3.0
 @export var terminal_fall_speed: float = -40.0
+@export var max_health: int = 3
+
+signal damaged(amount: int, source: Node)
+signal died(source: Node)
 
 var _fall_velocity_y: float = 0.0
+var _health: int = 0
+var _is_dead: bool = false
 
 
 func _ready() -> void:
 	add_to_group("enemy")
+	_health = max_health
 	_apply_asset_catalog_settings()
+
+
+func take_damage(amount: int, source: Node = null) -> void:
+	if _is_dead or amount <= 0:
+		return
+	_health -= amount
+	damaged.emit(amount, source)
+	if _health <= 0:
+		_health = 0
+		_is_dead = true
+		died.emit(source)
+		queue_free()
+
+
+func get_health() -> int:
+	return _health
+
+
+func is_dead() -> bool:
+	return _is_dead
 
 
 func _physics_process(delta: float) -> void:

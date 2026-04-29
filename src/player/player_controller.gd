@@ -3,10 +3,14 @@ class_name SammyPlayerController
 
 const PLAYER_MOVEMENT_CONFIG_SCRIPT := preload("res://src/resources/player_movement_config.gd")
 const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
+const WASP_INVENTORY_SCRIPT := preload("res://src/weapons/wasp_inventory.gd")
+const WASP_PROJECTILE_SCENE := preload("res://scenes/weapons/wasp_projectile.tscn")
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
 @export var quick_turn_sound_asset_id: String = "sfx.quick_turn"
+@export var fire_sound_asset_id: String = "sfx.wasp"
+@export var wasp_muzzle_offset: Vector3 = Vector3(0.0, 0.6, -0.4)
 
 @onready var visual_pivot: Node3D = $VisualPivot
 
@@ -21,12 +25,27 @@ var _quick_turn_active: bool = false
 var _quick_turn_start_yaw: float = 0.0
 var _quick_turn_remaining_degrees: float = 0.0
 var _quick_turn_speed_degrees: float = 0.0
+var _wasp_inventory: Node = null
 
 
 func _ready() -> void:
     add_to_group("player")
     _boost_capacity = clampf(movement_config.boost_initial_capacity, 0.0, movement_config.boost_capacity_max)
+    _ensure_wasp_inventory()
     _spawn_model()
+
+
+func _ensure_wasp_inventory() -> void:
+    _wasp_inventory = get_node_or_null("WaspInventory")
+    if _wasp_inventory != null:
+        return
+    _wasp_inventory = WASP_INVENTORY_SCRIPT.new()
+    _wasp_inventory.name = "WaspInventory"
+    add_child(_wasp_inventory)
+
+
+func get_wasp_inventory() -> Node:
+    return _wasp_inventory
 
 
 func _physics_process(delta: float) -> void:
@@ -159,6 +178,38 @@ func apply_quick_turn() -> void:
 func fire_wasp() -> void:
     _fire_requests += 1
     _start_animation_sequence([&"tirA", &"tirB"])
+    if _wasp_inventory == null or not _wasp_inventory.has_method("has_ammo"):
+        return
+    if not bool(_wasp_inventory.call("has_ammo")):
+        return
+    var wasp_type: Resource = _wasp_inventory.call("get_current_type")
+    if wasp_type == null:
+        return
+    if not bool(_wasp_inventory.call("consume_ammo", 1)):
+        return
+    _spawn_wasp_projectile(wasp_type)
+    _play_fire_sound()
+
+
+func _spawn_wasp_projectile(wasp_type: Resource) -> void:
+    var parent: Node = get_parent()
+    if parent == null:
+        return
+    var projectile: Node = WASP_PROJECTILE_SCENE.instantiate()
+    if projectile == null:
+        return
+    parent.add_child(projectile)
+    var spawn_transform := global_transform
+    spawn_transform.origin += global_transform.basis * wasp_muzzle_offset
+    projectile.call("configure", wasp_type, self, spawn_transform)
+
+
+func _play_fire_sound() -> void:
+    if fire_sound_asset_id.is_empty():
+        return
+    var audio := get_node_or_null("/root/Audio")
+    if audio != null and audio.has_method("play_sfx"):
+        audio.call("play_sfx", fire_sound_asset_id)
 
 
 func _apply_turn(delta: float, forward_input: float, turn_input: float) -> void:

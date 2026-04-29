@@ -110,6 +110,25 @@ const CATALOG := {
         "kind": "audio",
         "description": "Wasp sound"
     },
+    "sfx.takewasp": {
+        "path": "res://assets/audio/takewasp.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/takewasp.wav",
+        "kind": "audio",
+        "description": "Original TakeWasp_son wasp pickup chime"
+    },
+    "sfx.wasp_kaput": {
+        "path": "res://assets/audio/WaspKapu.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/WaspKapu.wav",
+        "kind": "audio",
+        "description": "Original WaspKaputt_son wasp impact sound"
+    },
+    "model.wasp1": {
+        "path": "res://assets/models/wasp1/wasp1.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/wasp1/wasp1.gltf",
+        "kind": "model",
+        "description": "Original wasp projectile model",
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION
+    },
     "sfx.player": {
         "path": "res://assets/audio/haway.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/haway.wav",
@@ -209,6 +228,31 @@ func get_model_default_animation(entry_id: String) -> String:
     return entry.default_animation
 
 
+func get_wasp_skin_path(skin_index: int) -> String:
+    if skin_index < 0:
+        return ""
+    return "res://assets/models/wasp1/skins/wasp1_skin%d.png" % skin_index
+
+
+func load_wasp_skin_texture(skin_index: int) -> Texture2D:
+    var texture_path := get_wasp_skin_path(skin_index)
+    if texture_path.is_empty():
+        return null
+    if not ResourceLoader.exists(texture_path) and not FileAccess.file_exists(texture_path):
+        return null
+    return load(texture_path) as Texture2D
+
+
+func apply_wasp_skin(model_root: Node3D, skin_index: int) -> bool:
+    if model_root == null:
+        return false
+    var texture := load_wasp_skin_texture(skin_index)
+    if texture == null:
+        return false
+    _apply_texture_to_meshes(model_root, texture)
+    return true
+
+
 func align_model_instance_to_ground(model_root: Node3D, ground_y: float = 0.0) -> void:
     var bounds := get_model_global_bounds(model_root)
     if bounds.size == Vector3.ZERO:
@@ -267,6 +311,23 @@ func _accumulate_mesh_bounds(node: Node, state: Dictionary) -> void:
 
     for child in node.get_children():
         _accumulate_mesh_bounds(child, state)
+
+
+func _apply_texture_to_meshes(node: Node, texture: Texture2D) -> void:
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            var base_material := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
+            var material: StandardMaterial3D = null
+            if base_material != null:
+                material = base_material.duplicate() as StandardMaterial3D
+            else:
+                material = StandardMaterial3D.new()
+            material.albedo_texture = texture
+            mesh_instance.set_surface_override_material(surface_index, material)
+
+    for child in node.get_children():
+        _apply_texture_to_meshes(child, texture)
 
 
 func _transform_aabb(transform: Transform3D, bounds: AABB) -> AABB:

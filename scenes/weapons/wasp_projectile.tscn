@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/weapons/wasp_projectile.gd" id="1_wasp_projectile"]
+[ext_resource type="Script" path="res://src/editor/sammy_editor_model_preview.gd" id="2_preview"]
+[ext_resource type="Resource" path="res://assets/wasps/type_2.tres" id="3_wasp_type"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_wasp"]
 radius = 0.18
@@ -12,3 +14,8 @@ script = ExtResource("1_wasp_projectile")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("SphereShape3D_wasp")
+
+[node name="EditorPreview" type="Node3D" parent="."]
+script = ExtResource("2_preview")
+asset_id = "model.wasp1"
+wasp_type = ExtResource("3_wasp_type")

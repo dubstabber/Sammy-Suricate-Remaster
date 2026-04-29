@@ -4,8 +4,12 @@ const ASSETS_SCRIPT_PATH := "res://src/core/assets.gd"
 const WMB_MANIFEST_SCRIPT_PATH := "res://src/levels/wmb_manifest.gd"
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const PLAYER_SCENE_PATH := "res://scenes/player/player.tscn"
+const EDITOR_PREVIEW_SCRIPT_PATH := "res://src/editor/sammy_editor_model_preview.gd"
 const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
+const WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/wasp_pickup.tscn"
+const BOOST_PICKUP_SCENE_PATH := "res://scenes/pickups/boost_pickup.tscn"
+const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
 const WASP_TYPE_PATHS := [
     "",
     "res://assets/wasps/type_1.tres",
@@ -41,6 +45,7 @@ func _run() -> void:
     _test_display_settings()
     _test_collision_layer_names()
     _test_asset_catalog(assets)
+    await _test_editor_model_previews()
     _test_animation_libraries()
     _test_model_skin_alpha()
     _test_wmb_manifest()
@@ -163,6 +168,55 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.takewasp") != null, "Unable to load original wasp pickup chime.")
     _expect(assets.has_asset("sfx.wasp_kaput"), "Asset catalog is missing wasp impact sound.")
     _expect(assets.load_asset("sfx.wasp_kaput") != null, "Unable to load wasp impact sound.")
+
+
+func _test_editor_model_previews() -> void:
+    _expect(FileAccess.file_exists(EDITOR_PREVIEW_SCRIPT_PATH), "Editor model preview helper script should exist.")
+    _expect_scene_editor_preview(PLAYER_SCENE_PATH, "VisualPivot/EditorPreview", "model.sammy.animated", 0.0, "")
+    _expect_scene_editor_preview(WASP_PICKUP_SCENE_PATH, "EditorPreview", "model.wasp1", 0.05, WASP_TYPE_2_PATH, NodePath(".."))
+    _expect_scene_editor_preview(WASP_PROJECTILE_SCENE_PATH, "EditorPreview", "model.wasp1", 0.0, WASP_TYPE_2_PATH)
+    _expect_scene_editor_preview(BOOST_PICKUP_SCENE_PATH, "EditorPreview", "model.boost", 0.035, "")
+
+    await _expect_editor_preview_removed_at_runtime(PLAYER_SCENE_PATH, "VisualPivot/EditorPreview")
+    await _expect_editor_preview_removed_at_runtime(WASP_PICKUP_SCENE_PATH, "EditorPreview")
+    await _expect_editor_preview_removed_at_runtime(WASP_PROJECTILE_SCENE_PATH, "EditorPreview")
+    await _expect_editor_preview_removed_at_runtime(BOOST_PICKUP_SCENE_PATH, "EditorPreview")
+
+
+func _expect_scene_editor_preview(scene_path: String, preview_path: String, expected_asset_id: String, expected_ground_clearance: float, expected_wasp_type_path: String, expected_wasp_source_path: NodePath = NodePath("")) -> void:
+    var scene := load(scene_path) as PackedScene
+    _expect(scene != null, "Scene with editor preview should load: %s" % scene_path)
+    if scene == null:
+        return
+
+    var instance := scene.instantiate()
+    var preview := instance.get_node_or_null(preview_path)
+    _expect(preview != null, "Scene should serialize an editor preview node: %s/%s" % [scene_path, preview_path])
+    if preview != null:
+        var preview_script := preview.get_script() as Script
+        _expect(preview_script != null and preview_script.resource_path == EDITOR_PREVIEW_SCRIPT_PATH, "Editor preview should use the shared preview helper: %s/%s" % [scene_path, preview_path])
+        _expect(String(preview.get("asset_id")) == expected_asset_id, "Editor preview should target the expected asset: %s" % scene_path)
+        _expect(is_equal_approx(float(preview.get("visual_ground_clearance")), expected_ground_clearance), "Editor preview should preserve its configured ground clearance: %s" % scene_path)
+        if not expected_wasp_type_path.is_empty():
+            var preview_wasp_type := preview.get("wasp_type") as Resource
+            _expect(preview_wasp_type != null and preview_wasp_type.resource_path == expected_wasp_type_path, "Wasp editor preview should expose the fallback wasp type: %s" % scene_path)
+        if not expected_wasp_source_path.is_empty():
+            _expect(preview.get("wasp_type_source_path") == expected_wasp_source_path, "Wasp pickup preview should follow the parent wasp type override.")
+    instance.free()
+
+
+func _expect_editor_preview_removed_at_runtime(scene_path: String, preview_path: String) -> void:
+    var scene := load(scene_path) as PackedScene
+    if scene == null:
+        return
+
+    var instance := scene.instantiate()
+    instance.set_physics_process(false)
+    root.add_child(instance)
+    await process_frame
+    _expect(instance.get_node_or_null(preview_path) == null, "Editor preview should remove itself at runtime: %s/%s" % [scene_path, preview_path])
+    instance.queue_free()
+    await process_frame
 
 
 func _test_animation_libraries() -> void:

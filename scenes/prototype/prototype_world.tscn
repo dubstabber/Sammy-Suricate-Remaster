@@ -53,6 +53,7 @@ light_energy = 1.5
 omni_range = 18.0
 
 [node name="Player" parent="." unique_id=1034430013 instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1735701, 0)
 
 [node name="PrototypeCamera" type="Camera3D" parent="." unique_id=1505781596]
 script = ExtResource("3_camera")
@@ -100,10 +101,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 [node name="Enemies" type="Node3D" parent="." unique_id=2053414251]
 
 [node name="model_rasta_animated" parent="Enemies" unique_id=1440628449 instance=ExtResource("7_rasta")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -4.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.3265041, -4.5)
 
 [node name="model_punk_animated" parent="Enemies" unique_id=1739606368 instance=ExtResource("8_punk")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -4.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.44621444, -4.5)
 
 [node name="DebugOverlay" parent="." unique_id=428286293 instance=ExtResource("4_debug")]
 player_path = NodePath("../Player")

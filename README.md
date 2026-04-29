@@ -5,14 +5,15 @@ Godot 4.6 scaffold for reimplementing Sammy Suricate from the extracted Acknex/G
 ## Layout
 
 - `assets/`: curated runtime asset slice copied from `extract-sammy-assets/`.
-- `scenes/`: runnable Godot scenes, including `scenes/main.tscn`.
-- `src/`: game systems, services, player control, camera, resources, and level metadata boundary.
+- `scenes/`: runnable Godot scenes and editor-placeable prototype prefabs, including `scenes/main.tscn`.
+- `src/`: game systems, services, player control, camera, reusable scene wiring, resources, and level metadata boundary.
 - `tests/`: headless smoke tests for scaffold health.
 - `extract-sammy-assets/`: source extraction workspace; keep this as evidence/source material, not runtime code.
 
 Prototype music autoplay is disabled by default so headless validation exits cleanly.
 Set `sammy/runtime/autoplay_music` to `true` when you want the prototype scene to start the copied OGG track automatically.
 The project renders to a 1280x960 internal viewport and scales that image to the game window while preserving the 4:3 aspect ratio.
+Prototype level objects are placed in the Godot scenes so designers can move, duplicate, or replace them in the editor without editing the world script.
 
 ## Controls
 

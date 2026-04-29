@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/props/model_prop.gd" id="1_prop"]
+[ext_resource type="PackedScene" path="res://assets/models/cactus1/cactus1_animated.gltf" id="2_model"]
+[ext_resource type="Script" path="res://src/animation/model_animation_controller.gd" id="3_animation"]
+
+[node name="model_cactus1" type="Node3D"]
+script = ExtResource("1_prop")
+asset_id = "model.cactus1"
+
+[node name="Visual" parent="." instance=ExtResource("2_model")]
+scale = Vector3(0.01, 0.01, 0.01)
+
+[node name="ModelAnimationController" type="Node" parent="."]
+script = ExtResource("3_animation")
+animation_library_path = "res://assets/animations/cactus1_clips.tres"
+default_action = "stand"
+model_root_path = NodePath("../Visual")

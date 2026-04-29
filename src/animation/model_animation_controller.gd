@@ -7,11 +7,21 @@ const DEFAULT_BLEND_SECONDS := 0.18
 @export var animation_library_path: String = ""
 @export var default_action: String = "stand"
 @export var default_blend_seconds: float = DEFAULT_BLEND_SECONDS
+@export var model_root_path: NodePath
+@export var autoplay_on_ready: bool = true
 
 var animation_player: AnimationPlayer
 
 var _current_action: StringName = &""
 var _current_speed: float = 1.0
+
+
+func _ready() -> void:
+    if animation_player != null or animation_library_path.is_empty():
+        return
+    var model_root := _resolve_model_root()
+    if model_root != null:
+        configure(model_root, animation_library_path, default_action, autoplay_on_ready)
 
 
 func configure(model_root: Node, library_path: String, initial_action: String = "stand", autoplay: bool = true) -> bool:
@@ -80,6 +90,12 @@ func get_current_action() -> StringName:
 
 func _qualified_action_name(action: StringName) -> StringName:
     return StringName("%s/%s" % [ACTION_LIBRARY_NAME, action])
+
+
+func _resolve_model_root() -> Node:
+    if not model_root_path.is_empty():
+        return get_node_or_null(model_root_path)
+    return get_parent()
 
 
 func _find_animation_player(node: Node) -> AnimationPlayer:

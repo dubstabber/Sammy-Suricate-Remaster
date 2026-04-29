@@ -1,133 +1,45 @@
 extends Node3D
 
-const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
-const CAMERA_SCRIPT := preload("res://src/camera/third_person_camera.gd")
-const DEBUG_OVERLAY_SCENE := preload("res://scenes/ui/debug_overlay.tscn")
-const BOOST_PICKUP_SCENE := preload("res://scenes/pickups/boost_pickup.tscn")
 const WMB_MANIFEST_SCRIPT := preload("res://src/levels/wmb_manifest.gd")
-const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
 const WMB_MANIFEST_PATH := "res://assets/metadata/wmb_manifest.json"
+
+@export var player_path: NodePath = ^"Player"
+@export var camera_path: NodePath = ^"PrototypeCamera"
+@export var debug_overlay_path: NodePath = ^"DebugOverlay"
 
 var player: CharacterBody3D
 var camera: Camera3D
 
 
 func _ready() -> void:
-	_build_environment()
-	_spawn_player()
-	_spawn_camera()
-	_spawn_props()
-	_spawn_debug_overlay()
+	_resolve_scene_nodes()
+	_configure_camera()
+	_configure_debug_overlay()
 	_load_level_manifest()
 	_start_music()
 
 
-func _build_environment() -> void:
-	var floor_body := StaticBody3D.new()
-	floor_body.name = "PrototypeFloor"
-	add_child(floor_body)
-
-	var floor_mesh := MeshInstance3D.new()
-	floor_mesh.name = "FloorMesh"
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(24.0, 24.0)
-	floor_mesh.mesh = plane
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.22, 0.32, 0.26)
-	material.roughness = 0.85
-	floor_mesh.material_override = material
-	floor_body.add_child(floor_mesh)
-
-	var collision := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(24.0, 1.0, 24.0)
-	collision.shape = shape
-	collision.position.y = -0.5
-	floor_body.add_child(collision)
-
-	var sun := DirectionalLight3D.new()
-	sun.name = "Sun"
-	sun.light_energy = 2.3
-	sun.rotation_degrees = Vector3(-55.0, 35.0, 0.0)
-	add_child(sun)
-
-	var fill := OmniLight3D.new()
-	fill.name = "FillLight"
-	fill.position = Vector3(0.0, 5.0, 2.0)
-	fill.light_energy = 1.5
-	fill.omni_range = 18.0
-	add_child(fill)
+func _resolve_scene_nodes() -> void:
+	player = get_node_or_null(player_path) as CharacterBody3D
+	if player == null:
+		player = get_tree().get_first_node_in_group("player") as CharacterBody3D
+	camera = get_node_or_null(camera_path) as Camera3D
 
 
-func _spawn_player() -> void:
-	player = PLAYER_SCENE.instantiate()
-	player.name = "Player"
-	player.position = Vector3.ZERO
-	add_child(player)
-
-
-func _spawn_camera() -> void:
-	camera = Camera3D.new()
-	camera.name = "PrototypeCamera"
-	camera.set_script(CAMERA_SCRIPT)
-	add_child(camera)
-	camera.target_path = camera.get_path_to(player)
-	camera.reset_to_target()
-
-
-func _spawn_props() -> void:
-	_spawn_asset_prop("model.cactus1", Vector3(-4.0, 0.0, -2.0))
-	_spawn_boost_pickup(Vector3(3.5, 0.0, -1.5))
-	_spawn_asset_prop("model.rasta.animated", Vector3(-2.0, 0.0, -4.5))
-	_spawn_asset_prop("model.punk.animated", Vector3(2.0, 0.0, -4.5))
-	_spawn_asset_prop("model.sky3", Vector3(0.0, -0.2, 0.0))
-
-
-func _spawn_asset_prop(asset_id: String, prop_position: Vector3) -> void:
-	var assets := get_node_or_null("/root/Assets")
-	if assets == null:
+func _configure_camera() -> void:
+	if camera == null or player == null:
 		return
-	var packed_scene: PackedScene = assets.load_asset(asset_id)
-	if packed_scene == null:
+	camera.set("target_path", camera.get_path_to(player))
+	if camera.has_method("reset_to_target"):
+		camera.call("reset_to_target")
+
+
+func _configure_debug_overlay() -> void:
+	if player == null:
 		return
-
-	var instance := packed_scene.instantiate() as Node3D
-	instance.name = asset_id.replace(".", "_")
-	instance.position = prop_position
-	instance.scale = assets.get_model_scale(asset_id)
-	instance.rotation_degrees = assets.get_model_rotation_degrees(asset_id)
-	add_child(instance)
-	if assets.should_ground_model(asset_id):
-		assets.align_model_instance_to_ground(instance, prop_position.y)
-	_configure_prop_animation(instance, assets, asset_id)
-
-
-func _spawn_boost_pickup(pickup_position: Vector3) -> void:
-	var pickup := BOOST_PICKUP_SCENE.instantiate()
-	pickup.name = "BoostPickup"
-	pickup.position = pickup_position
-	if player != null:
-		var movement_config: Resource = player.get("movement_config")
-		pickup.set("boost_amount", float(movement_config.get("boost_pickup_capacity")))
-	add_child(pickup)
-
-
-func _configure_prop_animation(instance: Node3D, assets: Node, asset_id: String) -> void:
-	var library_path: String = assets.get_model_animation_library_path(asset_id)
-	if library_path.is_empty():
-		return
-
-	var controller := MODEL_ANIMATION_CONTROLLER_SCRIPT.new()
-	controller.name = "ModelAnimationController"
-	instance.add_child(controller)
-	controller.configure(instance, library_path, assets.get_model_default_animation(asset_id))
-
-
-func _spawn_debug_overlay() -> void:
-	var overlay := DEBUG_OVERLAY_SCENE.instantiate()
-	overlay.name = "DebugOverlay"
-	add_child(overlay)
-	overlay.player_path = overlay.get_path_to(player)
+	var overlay := get_node_or_null(debug_overlay_path)
+	if overlay != null:
+		overlay.set("player_path", overlay.get_path_to(player))
 
 
 func _load_level_manifest() -> void:

@@ -2,6 +2,7 @@ extends SceneTree
 
 const ASSETS_SCRIPT_PATH := "res://src/core/assets.gd"
 const WMB_MANIFEST_SCRIPT_PATH := "res://src/levels/wmb_manifest.gd"
+const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const PLAYER_SCENE_PATH := "res://scenes/player/player.tscn"
 const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
@@ -25,6 +26,7 @@ func _run() -> void:
     _test_wmb_manifest()
     await _test_player_scene()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
+    await _test_main_scene()
     await _test_prototype_world()
     ProjectSettings.set_setting("sammy/test/skip_music", false)
 
@@ -213,6 +215,20 @@ func _text_file_lacks(path: String, needle: String) -> bool:
     return not file.get_as_text().contains(needle)
 
 
+func _test_main_scene() -> void:
+    var main_scene: PackedScene = load(MAIN_SCENE_PATH)
+    _expect(main_scene != null, "Unable to load main scene.")
+    if main_scene == null:
+        return
+
+    var main: Node = main_scene.instantiate()
+    _expect(main.get_node_or_null("PrototypeWorld") != null, "Main scene should instance PrototypeWorld in the editor.")
+    root.add_child(main)
+    await process_frame
+    main.queue_free()
+    await process_frame
+
+
 func _test_player_scene() -> void:
     var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
     var player: Node = player_scene.instantiate()
@@ -360,31 +376,41 @@ func _test_player_scene() -> void:
 func _test_prototype_world() -> void:
     var prototype_scene: PackedScene = load(PROTOTYPE_SCENE_PATH)
     var world: Node = prototype_scene.instantiate()
+    _expect(world.get_node_or_null("PrototypeFloor") != null, "Prototype floor should be serialized in the scene.")
+    _expect(world.get_node_or_null("Sun") != null, "Prototype lighting should be serialized in the scene.")
+    _expect(world.get_node_or_null("Player") != null, "Prototype player should be editor-instanced.")
+    _expect(world.get_node_or_null("PrototypeCamera") != null, "Prototype camera should be editor-instanced.")
+    _expect(world.get_node_or_null("BoostPickup") != null, "Prototype boost pickup should be editor-instanced.")
+    _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
+    var props := world.get_node_or_null("Props")
+    _expect(props != null, "Prototype scene should expose a designer-editable Props container.")
+    for prop_path in ["Props/model_cactus1", "Props/model_rasta_animated", "Props/model_punk_animated", "Props/model_sky3"]:
+        _expect(world.get_node_or_null(prop_path) != null, "Prototype prop should be editor-instanced: %s" % prop_path)
     root.add_child(world)
     await process_frame
     await process_frame
-    _expect(world.get_node_or_null("Player") != null, "Prototype world did not spawn player.")
+    _expect(world.get_node_or_null("Player") != null, "Prototype world is missing its editor-instanced player.")
     var camera := world.get_node_or_null("PrototypeCamera")
-    _expect(camera != null, "Prototype world did not spawn camera.")
+    _expect(camera != null, "Prototype world is missing its editor-instanced camera.")
     if camera != null:
         _expect(is_equal_approx(camera.follow_distance, 4.25), "Prototype camera should use original-informed close follow distance.")
         _expect(is_equal_approx(camera.fov, 60.0), "Prototype camera should match original CameraArcVoulu.")
         var camera_position: Vector3 = camera.global_position
         camera.call("cycle_camera_mode")
         _expect(not camera.global_position.is_equal_approx(camera_position), "Camera change should cycle the prototype camera offset.")
-    _expect(world.get_node_or_null("Sun") != null, "Prototype world did not create lighting.")
+    _expect(world.get_node_or_null("Sun") != null, "Prototype world is missing editor-authored lighting.")
     _expect(world.has_meta("wmb_manifest_counts"), "Prototype world did not read WMB manifest metadata.")
     var assets := root.get_node_or_null("Assets")
     if assets != null:
         for node_name in ["model_rasta_animated", "model_punk_animated"]:
-            var model := world.get_node_or_null(node_name) as Node3D
-            _expect(model != null, "Prototype world should spawn grounded character model: %s" % node_name)
+            var model := world.get_node_or_null("Props/%s" % node_name) as Node3D
+            _expect(model != null, "Prototype world should contain grounded character model: %s" % node_name)
             if model != null:
                 var bounds: AABB = assets.get_model_global_bounds(model)
                 _expect(absf(bounds.position.y) < 0.01, "Prototype character model should be grounded: %s" % node_name)
         for node_name in ["model_rasta_animated", "model_punk_animated", "model_cactus1"]:
-            var model := world.get_node_or_null(node_name) as Node3D
-            _expect(model != null, "Prototype world should spawn animated catalog model: %s" % node_name)
+            var model := world.get_node_or_null("Props/%s" % node_name) as Node3D
+            _expect(model != null, "Prototype world should contain animated catalog model: %s" % node_name)
             if model != null:
                 var controller := model.get_node_or_null("ModelAnimationController")
                 _expect(controller != null, "Prototype model should have generated animation controller: %s" % node_name)

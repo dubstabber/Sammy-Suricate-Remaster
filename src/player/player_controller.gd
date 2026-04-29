@@ -39,6 +39,7 @@ var _pending_wasp_type: Resource = null
 var _wasp_projectile_spawned: bool = false
 var _wasp_spawn_delay_remaining: float = 0.0
 var _wasp_recovery_remaining: float = 0.0
+var _jump_fire_blocked: bool = false
 
 
 func _ready() -> void:
@@ -91,6 +92,7 @@ func _physics_process(delta: float) -> void:
         if Input.is_action_just_pressed("jump"):
             velocity.y = movement_config.jump_velocity
             jumped = true
+            _jump_fire_blocked = true
     else:
         velocity.y -= movement_config.gravity * delta
 
@@ -98,6 +100,8 @@ func _physics_process(delta: float) -> void:
         fire_wasp()
 
     move_and_slide()
+    if is_on_floor() and not jumped:
+        _jump_fire_blocked = false
     _update_model_animation(forward_input, turn_input, jumped, was_on_floor, is_on_floor(), horizontal_velocity.length())
 
 
@@ -177,6 +181,10 @@ func is_quick_turning() -> bool:
     return _quick_turn_active
 
 
+func is_jump_fire_blocked() -> bool:
+    return _jump_fire_blocked
+
+
 func apply_quick_turn() -> void:
     if _quick_turn_active or _wasp_fire_active:
         return
@@ -191,7 +199,7 @@ func apply_quick_turn() -> void:
 
 
 func fire_wasp() -> bool:
-    if _wasp_fire_active:
+    if _wasp_fire_active or _jump_fire_blocked:
         return false
     if _wasp_inventory == null or not _wasp_inventory.has_method("has_ammo"):
         _play_no_wasp_sound()

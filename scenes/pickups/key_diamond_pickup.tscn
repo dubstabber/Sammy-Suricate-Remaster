@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/pickups/key_diamond_pickup.gd" id="1_key_pickup"]
+[ext_resource type="Resource" path="res://assets/key_diamonds/red.tres" id="2_key_type"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_key_diamond"]
+radius = 0.45
+
+[node name="KeyDiamondPickup" type="Area3D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_key_pickup")
+key_type = ExtResource("2_key_type")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.35, 0)
+shape = SubResource("SphereShape3D_key_diamond")

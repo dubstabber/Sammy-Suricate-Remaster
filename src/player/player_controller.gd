@@ -5,6 +5,9 @@ const PLAYER_MOVEMENT_CONFIG_SCRIPT := preload("res://src/resources/player_movem
 const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
 const WASP_INVENTORY_SCRIPT := preload("res://src/weapons/wasp_inventory.gd")
 const WASP_PROJECTILE_SCENE := preload("res://scenes/weapons/wasp_projectile.tscn")
+const KEY_DIAMOND_RULES_SCRIPT := preload("res://src/resources/key_diamond_rules.gd")
+const KEY_DIAMOND_PICKUP_SCENE := preload("res://scenes/pickups/key_diamond_pickup.tscn")
+const KEY_MIX_EFFECT_SCRIPT := preload("res://src/effects/key_mix_effect.gd")
 const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
 const GODOT_PLAYBACK_SPEED_CORRECTION := 1.12
 const WASP_FIRE_STEP_RANGE := 100.0
@@ -27,6 +30,8 @@ const CHARACTER_COLLISION_MASK := 1 << 1
 @export var quick_turn_sound_asset_id: String = "sfx.quick_turn"
 @export var fire_sound_asset_id: String = "sfx.wasp"
 @export var no_wasp_sound_asset_id: String = "sfx.error"
+@export var key_mix_sound_asset_id: String = "sfx.key_mix"
+@export var key_mix_end_sound_asset_id: String = "sfx.key_mix_end"
 @export var wasp_muzzle_offset: Vector3 = Vector3(0.0, 0.6, -0.4)
 @export var max_health: float = 48.0
 @export var damage_invulnerability_seconds: float = 0.0
@@ -45,6 +50,9 @@ signal death_started(source: Node)
 signal life_lost(lives_remaining: int)
 signal respawned()
 signal game_over()
+signal key_diamond_changed(current_key_id: int, previous_key_id: int)
+signal key_diamond_mixed(first_key_id: int, second_key_id: int, mixed_key_id: int)
+signal key_diamond_ejected(key_id: int, pickup: Node)
 
 @onready var visual_pivot: Node3D = $VisualPivot
 
@@ -79,6 +87,8 @@ var _game_over: bool = false
 var _death_timer: float = 0.0
 var _respawn_transform: Transform3D
 var _has_respawn_transform: bool = false
+var _current_key_id: int = KEY_DIAMOND_RULES_SCRIPT.KEY_NONE
+var _last_ejected_key: Node = null
 
 
 func _ready() -> void:
@@ -201,6 +211,54 @@ func _ensure_wasp_inventory() -> void:
 
 func get_wasp_inventory() -> Node:
     return _wasp_inventory
+
+
+func collect_key_diamond(key_type: Resource, _source: Node = null) -> bool:
+    if key_type == null:
+        return false
+    var incoming_key_id := int(key_type.get("key_id"))
+    if not KEY_DIAMOND_RULES_SCRIPT.is_valid_key_id(incoming_key_id):
+        return false
+
+    var previous_key_id := _current_key_id
+    var mixed_key_id := KEY_DIAMOND_RULES_SCRIPT.mix_keys(previous_key_id, incoming_key_id)
+    if previous_key_id == KEY_DIAMOND_RULES_SCRIPT.KEY_NONE:
+        _set_current_key_id(incoming_key_id)
+    elif mixed_key_id != KEY_DIAMOND_RULES_SCRIPT.KEY_NONE:
+        _set_current_key_id(mixed_key_id)
+        _spawn_key_mix_effect(previous_key_id, incoming_key_id, mixed_key_id)
+        key_diamond_mixed.emit(previous_key_id, incoming_key_id, mixed_key_id)
+    else:
+        _set_current_key_id(incoming_key_id)
+        _spawn_ejected_key(previous_key_id)
+    return true
+
+
+func set_current_key_id(key_id: int) -> bool:
+    if key_id != KEY_DIAMOND_RULES_SCRIPT.KEY_NONE and not KEY_DIAMOND_RULES_SCRIPT.is_valid_key_id(key_id):
+        return false
+    _set_current_key_id(key_id)
+    return true
+
+
+func clear_current_key() -> void:
+    _set_current_key_id(KEY_DIAMOND_RULES_SCRIPT.KEY_NONE)
+
+
+func get_current_key_id() -> int:
+    return _current_key_id
+
+
+func get_current_key_name() -> String:
+    return KEY_DIAMOND_RULES_SCRIPT.key_name(_current_key_id)
+
+
+func get_last_ejected_key() -> Node:
+    return _last_ejected_key
+
+
+func can_open_key_gate(required_key_id: int, strict_match: bool = false) -> bool:
+    return KEY_DIAMOND_RULES_SCRIPT.can_open_gate(_current_key_id, required_key_id, strict_match)
 
 
 func _physics_process(delta: float) -> void:
@@ -691,6 +749,49 @@ func _play_quick_turn_sound() -> void:
     var audio := get_node_or_null("/root/Audio")
     if audio != null and audio.has_method("play_sfx"):
         audio.call("play_sfx", quick_turn_sound_asset_id)
+
+
+func _set_current_key_id(key_id: int) -> void:
+    if _current_key_id == key_id:
+        return
+    var previous_key_id := _current_key_id
+    _current_key_id = key_id
+    key_diamond_changed.emit(_current_key_id, previous_key_id)
+
+
+func _spawn_ejected_key(key_id: int) -> Node:
+    var parent := get_parent()
+    if parent == null or key_id == KEY_DIAMOND_RULES_SCRIPT.KEY_NONE:
+        return null
+    var pickup := KEY_DIAMOND_PICKUP_SCENE.instantiate() as Node3D
+    if pickup == null:
+        return null
+    if pickup.has_method("configure_for_key_id"):
+        pickup.call("configure_for_key_id", key_id)
+    parent.add_child(pickup)
+    pickup.global_position = global_position - get_facing_direction() * 1.15 + Vector3(0.0, 0.02, 0.0)
+    _last_ejected_key = pickup
+    key_diamond_ejected.emit(key_id, pickup)
+    return pickup
+
+
+func _spawn_key_mix_effect(first_key_id: int, second_key_id: int, _mixed_key_id: int) -> void:
+    var parent := get_parent()
+    if parent == null:
+        return
+    _play_key_sfx(key_mix_sound_asset_id)
+    var effect := KEY_MIX_EFFECT_SCRIPT.new() as Node3D
+    effect.name = "KeyMixEffect"
+    parent.add_child(effect)
+    effect.call("configure", self, first_key_id, second_key_id, key_mix_end_sound_asset_id)
+
+
+func _play_key_sfx(asset_id: String) -> void:
+    if asset_id.is_empty():
+        return
+    var audio := get_node_or_null("/root/Audio")
+    if audio != null and audio.has_method("play_sfx"):
+        audio.call("play_sfx", asset_id)
 
 
 func _update_boost_state(delta: float, forward_input: float) -> void:

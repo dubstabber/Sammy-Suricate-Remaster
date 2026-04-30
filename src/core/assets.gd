@@ -140,6 +140,60 @@ const CATALOG := {
         "kind": "texture",
         "description": "Original +100 flying score sprite sheet"
     },
+    "texture.key_diamond.red": {
+        "path": "res://assets/textures/key_diamonds/gemre+17.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/gemre+17.png",
+        "kind": "texture",
+        "description": "Original red key-diamond sprite sheet"
+    },
+    "texture.key_diamond.yellow": {
+        "path": "res://assets/textures/key_diamonds/gemye+17.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/gemye+17.png",
+        "kind": "texture",
+        "description": "Original yellow key-diamond sprite sheet"
+    },
+    "texture.key_diamond.orange": {
+        "path": "res://assets/textures/key_diamonds/gemor+17.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/gemor+17.png",
+        "kind": "texture",
+        "description": "Original orange mixed key-diamond sprite sheet"
+    },
+    "texture.key_diamond.blue": {
+        "path": "res://assets/textures/key_diamonds/gembl+17.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/gembl+17.png",
+        "kind": "texture",
+        "description": "Original blue key-diamond sprite sheet"
+    },
+    "texture.key_diamond.magenta": {
+        "path": "res://assets/textures/key_diamonds/gemma+17.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/gemma+17.png",
+        "kind": "texture",
+        "description": "Original magenta mixed key-diamond sprite sheet"
+    },
+    "texture.key_diamond.green": {
+        "path": "res://assets/textures/key_diamonds/gemve+17.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/gemve+17.png",
+        "kind": "texture",
+        "description": "Original green mixed key-diamond sprite sheet"
+    },
+    "texture.key_diamond.multi": {
+        "path": "res://assets/textures/key_diamonds/gemmu+17.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/gemmu+17.png",
+        "kind": "texture",
+        "description": "Original all-key/multi key-diamond sprite sheet"
+    },
+    "texture.ui.gem_panel_bar": {
+        "path": "res://assets/textures/ui/hbargems.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/hbargems.png",
+        "kind": "texture",
+        "description": "Original key-diamond panel strip"
+    },
+    "texture.ui.gem_panel_background": {
+        "path": "res://assets/textures/ui/fondgems.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fondgems.png",
+        "kind": "texture",
+        "description": "Original key-diamond panel background"
+    },
     "music.sammy01": {
         "path": "res://assets/audio/sammy01.ogg",
         "source": "extract-sammy-assets/extracted/godot/audio/sammy01.ogg",
@@ -151,6 +205,12 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/audio/gemding2.wav",
         "kind": "audio",
         "description": "Gem pickup sound"
+    },
+    "sfx.colored_gem": {
+        "path": "res://assets/audio/gemding2.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/gemding2.wav",
+        "kind": "audio",
+        "description": "Original ColoredGem_son used by key-diamond pickups"
     },
     "sfx.diamond": {
         "path": "res://assets/audio/diam.wav",
@@ -175,6 +235,30 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/audio/Blouit.wav",
         "kind": "audio",
         "description": "Original Blouit_son used by RetourneSammy quick turn"
+    },
+    "sfx.key_mix": {
+        "path": "res://assets/audio/Gemmix.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/Gemmix.wav",
+        "kind": "audio",
+        "description": "Original GemMixing_son used when two key diamonds combine"
+    },
+    "sfx.key_mix_end": {
+        "path": "res://assets/audio/EndGemmi.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/EndGemmi.wav",
+        "kind": "audio",
+        "description": "Original EndGemMixing_son used at the end of key mixing"
+    },
+    "sfx.door_open": {
+        "path": "res://assets/audio/dooropen.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/dooropen.wav",
+        "kind": "audio",
+        "description": "Original DoorOpen_son"
+    },
+    "sfx.door_close": {
+        "path": "res://assets/audio/doorclos.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/doorclos.wav",
+        "kind": "audio",
+        "description": "Original DoorClose_son"
     },
     "sfx.hit": {
         "path": "res://assets/audio/Hit1.wav",

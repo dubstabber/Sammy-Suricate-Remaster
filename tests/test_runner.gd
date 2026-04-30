@@ -12,7 +12,20 @@ const WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/wasp_pickup.tscn"
 const BOOST_PICKUP_SCENE_PATH := "res://scenes/pickups/boost_pickup.tscn"
 const EYE_OF_TRUTH_PICKUP_SCENE_PATH := "res://scenes/pickups/eye_of_truth_pickup.tscn"
 const DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/diamond_pickup.tscn"
+const KEY_DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/key_diamond_pickup.tscn"
+const KEY_GATE_SCENE_PATH := "res://scenes/gates/key_gate.tscn"
+const KEY_DIAMOND_PANEL_SCENE_PATH := "res://scenes/ui/key_diamond_panel.tscn"
 const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
+const KEY_DIAMOND_RULES_SCRIPT_PATH := "res://src/resources/key_diamond_rules.gd"
+const KEY_DIAMOND_TYPE_PATHS := [
+    "",
+    "res://assets/key_diamonds/red.tres",
+    "res://assets/key_diamonds/yellow.tres",
+    "res://assets/key_diamonds/orange.tres",
+    "res://assets/key_diamonds/blue.tres",
+    "res://assets/key_diamonds/magenta.tres",
+    "res://assets/key_diamonds/green.tres"
+]
 const WASP_TYPE_PATHS := [
     "",
     "res://assets/wasps/type_1.tres",
@@ -57,6 +70,7 @@ func _run() -> void:
     _test_wmb_manifest()
     _test_wasp_resources(assets)
     _test_wasp_inventory()
+    await _test_key_diamond_system(assets)
     await _test_eye_of_truth_pickup(game, assets)
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
@@ -75,6 +89,11 @@ func _run() -> void:
     await _test_main_scene()
     await _test_prototype_world()
     ProjectSettings.set_setting("sammy/test/skip_music", false)
+
+    _stop_audio_for_shutdown()
+    await process_frame
+    await process_frame
+    await process_frame
 
     if _failures.is_empty():
         print("All scaffold smoke tests passed.")
@@ -107,6 +126,16 @@ func _ensure_game_service() -> Node:
     game.name = "Game"
     root.add_child(game)
     return game
+
+
+func _stop_audio_for_shutdown() -> void:
+    var audio := root.get_node_or_null("Audio")
+    if audio == null:
+        return
+    if audio.has_method("stop_music"):
+        audio.call("stop_music")
+    if audio.has_method("stop_sfx"):
+        audio.call("stop_sfx")
 
 
 func _test_input_actions() -> void:
@@ -184,6 +213,18 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("texture.diamond.default") != null, "Unable to load original score diamond sprite sheet.")
     _expect(assets.load_asset("texture.score.plus50") != null, "Unable to load original +50 score sprite sheet.")
     _expect(assets.load_asset("texture.score.plus100") != null, "Unable to load original +100 score sprite sheet.")
+    for key_asset_id in [
+        "texture.key_diamond.red",
+        "texture.key_diamond.yellow",
+        "texture.key_diamond.orange",
+        "texture.key_diamond.blue",
+        "texture.key_diamond.magenta",
+        "texture.key_diamond.green",
+        "texture.key_diamond.multi"
+    ]:
+        _expect(assets.load_asset(key_asset_id) != null, "Unable to load original key diamond texture: %s" % key_asset_id)
+    _expect(assets.load_asset("texture.ui.gem_panel_bar") != null, "Unable to load original key panel strip.")
+    _expect(assets.load_asset("texture.ui.gem_panel_background") != null, "Unable to load original key panel background.")
     _expect(assets.get_model_scale("model.sammy.animated").is_equal_approx(Vector3(0.08, 0.08, 0.08)), "Sammy model scale should include original WDL scale 8.")
     _expect(assets.get_model_scale("model.rasta.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Rasta model should use default Acknex entity scale.")
     _expect(assets.get_model_rotation_degrees("model.sammy.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Sammy model should rotate Acknex +X forward to Godot -Z forward.")
@@ -213,6 +254,11 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.takewasp") != null, "Unable to load original wasp pickup chime.")
     _expect(assets.has_asset("sfx.wasp_kaput"), "Asset catalog is missing wasp impact sound.")
     _expect(assets.load_asset("sfx.wasp_kaput") != null, "Unable to load wasp impact sound.")
+    _expect(assets.load_asset("sfx.colored_gem") != null, "Unable to load original ColoredGem_son.")
+    _expect(assets.load_asset("sfx.key_mix") != null, "Unable to load original GemMixing_son.")
+    _expect(assets.load_asset("sfx.key_mix_end") != null, "Unable to load original EndGemMixing_son.")
+    _expect(assets.load_asset("sfx.door_open") != null, "Unable to load original DoorOpen_son.")
+    _expect(assets.load_asset("sfx.door_close") != null, "Unable to load original DoorClose_son.")
 
 
 func _test_eye_of_truth_state(game: Node) -> void:
@@ -1026,6 +1072,150 @@ func _test_wasp_inventory() -> void:
     _expect(not bool(inventory.call("has_ammo")), "Inventory should report no ammo after drain.")
 
     inventory.queue_free()
+
+
+func _test_key_diamond_system(assets: Node) -> void:
+    _expect(assets != null, "Key diamond tests need Assets service.")
+    if assets == null:
+        return
+
+    var rules: GDScript = load(KEY_DIAMOND_RULES_SCRIPT_PATH)
+    _expect(rules != null, "Key diamond rules script should load.")
+    if rules == null:
+        return
+    _expect(int(rules.call("mix_keys", 1, 2)) == 3, "Red plus yellow should mix into orange like gems.wdl.")
+    _expect(int(rules.call("mix_keys", 1, 4)) == 5, "Red plus blue should mix into magenta like gems.wdl.")
+    _expect(int(rules.call("mix_keys", 2, 4)) == 6, "Yellow plus blue should mix into green like gems.wdl.")
+    _expect(int(rules.call("mix_keys", 3, 4)) == 0, "Already mixed keys should not chain-mix into another color.")
+    _expect(bool(rules.call("can_open_gate", 3, 3, true)), "Strict orange gates should accept orange.")
+    _expect(not bool(rules.call("can_open_gate", 1, 3, true)), "Strict orange gates should reject red alone.")
+    _expect(bool(rules.call("can_open_gate", 1, 3, false)), "Normal orange gates should allow a red primary component like the WDL bit check.")
+    _expect(not bool(rules.call("can_open_gate", 3, 1, false)), "Mixed orange should not open a normal red gate unless it is an exact match.")
+    _expect(bool(rules.call("can_open_gate", 255, 6, true)), "All-key state should open strict keyed gates.")
+
+    for key_id in range(1, KEY_DIAMOND_TYPE_PATHS.size()):
+        var key_type: Resource = load(KEY_DIAMOND_TYPE_PATHS[key_id])
+        _expect(key_type != null, "Key diamond resource should load for key id %d." % key_id)
+        if key_type == null:
+            continue
+        _expect(int(key_type.get("key_id")) == key_id, "Key diamond resource should preserve WDL key id %d." % key_id)
+        _expect(int(key_type.get("panel_slot")) == key_id, "Key diamond resource should map to its original panel slot: %d." % key_id)
+        _expect(assets.load_asset(String(key_type.get("texture_asset_id"))) != null, "Key diamond resource texture should load for key id %d." % key_id)
+
+    var all_key_type: Resource = load("res://assets/key_diamonds/all.tres")
+    _expect(all_key_type != null and int(all_key_type.get("key_id")) == 255, "All-key resource should preserve the WDL 255 key state.")
+    _expect(all_key_type != null and int(all_key_type.get("panel_slot")) == 7, "All-key resource should use the original panel slot 7.")
+
+    var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
+    var player: Node = player_scene.instantiate()
+    player.set("key_mix_sound_asset_id", "")
+    player.set("key_mix_end_sound_asset_id", "")
+    root.add_child(player)
+    await process_frame
+    _expect(player.has_method("collect_key_diamond"), "Player should expose key-diamond collection.")
+    _expect(player.has_method("can_open_key_gate"), "Player should expose key-gate matching.")
+    _expect(int(player.call("get_current_key_id")) == 0, "Player should start without a key diamond.")
+
+    var panel_scene := load(KEY_DIAMOND_PANEL_SCENE_PATH) as PackedScene
+    var panel := panel_scene.instantiate()
+    root.add_child(panel)
+    await process_frame
+    _expect(not bool(panel.call("is_showing_key")), "Key panel should stay hidden before a key is held.")
+
+    var pickup_scene := load(KEY_DIAMOND_PICKUP_SCENE_PATH) as PackedScene
+    _expect(pickup_scene != null, "Key diamond pickup scene should load.")
+    if pickup_scene == null:
+        player.queue_free()
+        panel.queue_free()
+        await process_frame
+        return
+
+    var non_player := Node3D.new()
+    non_player.name = "NonPlayerKeyContact"
+    root.add_child(non_player)
+
+    var red_pickup := pickup_scene.instantiate() as Area3D
+    red_pickup.set("collect_sound_asset_id", "")
+    root.add_child(red_pickup)
+    await process_frame
+    _expect(red_pickup.collision_layer == PICKUP_SENSOR_LAYER, "Key diamond pickup should live on the pickup sensor collision layer.")
+    _expect(red_pickup.collision_mask == CHARACTER_LAYER, "Key diamond pickup should monitor characters without blocking them.")
+    _expect(red_pickup.has_method("collect"), "Key diamond pickup should expose a collection hook.")
+    _expect(red_pickup.has_method("get_key_id"), "Key diamond pickup should expose its key id.")
+    _expect(int(red_pickup.call("get_key_id")) == 1, "Default key diamond pickup should be red.")
+    var red_visual := red_pickup.call("get_visual_sprite") as Sprite3D
+    _expect(red_visual != null, "Key diamond pickup should spawn a sprite visual.")
+    if red_visual != null:
+        _expect(red_visual.texture == assets.load_asset("texture.key_diamond.red"), "Red key pickup should use the original red gem sheet.")
+        _expect(red_visual.hframes == 17, "Key pickup should preserve the original 17-frame sheet.")
+    _expect(not bool(red_pickup.call("collect", non_player)), "Key diamond pickup should ignore non-player bodies.")
+    _expect(bool(red_pickup.call("collect", player)), "Player should collect a red key diamond.")
+    _expect(int(player.call("get_current_key_id")) == 1, "Collecting red should set PlayerKey to 1.")
+    panel.call("_process", 0.0)
+    _expect(bool(panel.call("is_showing_key")), "Key panel should appear after collecting a key.")
+    _expect(int(panel.call("get_displayed_key_id")) == 1, "Key panel should show the red key.")
+    _expect(int(panel.call("get_displayed_panel_slot")) == 1, "Key panel should select the red atlas slot.")
+    await process_frame
+    _expect(not red_pickup.monitoring, "Key pickup should stop monitoring after collection.")
+    _expect(not red_pickup.monitorable, "Key pickup should stop being monitorable after collection.")
+
+    var yellow_pickup := pickup_scene.instantiate() as Area3D
+    yellow_pickup.set("key_type", load("res://assets/key_diamonds/yellow.tres"))
+    yellow_pickup.set("collect_sound_asset_id", "")
+    root.add_child(yellow_pickup)
+    await process_frame
+    _expect(bool(yellow_pickup.call("collect", player)), "Player should collect a yellow key diamond.")
+    _expect(int(player.call("get_current_key_id")) == 3, "Red plus yellow should update PlayerKey to orange.")
+    var mix_effect := root.get_node_or_null("KeyMixEffect")
+    _expect(mix_effect != null, "Mixing two primary key diamonds should spawn the original-style mix effect.")
+    if mix_effect != null:
+        _expect(int(mix_effect.call("get_sprite_count")) == 2, "Mix effect should orbit the two source key sprites.")
+        _expect((mix_effect.call("get_key_ids") as PackedInt32Array) == PackedInt32Array([1, 2]), "Mix effect should remember the mixed source keys.")
+    panel.call("_process", 0.0)
+    _expect(int(panel.call("get_displayed_key_id")) == 3, "Key panel should show the mixed orange key.")
+    _expect(int(panel.call("get_displayed_panel_slot")) == 3, "Key panel should select the orange atlas slot.")
+
+    var blue_pickup := pickup_scene.instantiate() as Area3D
+    blue_pickup.set("key_type", load("res://assets/key_diamonds/blue.tres"))
+    blue_pickup.set("collect_sound_asset_id", "")
+    root.add_child(blue_pickup)
+    await process_frame
+    _expect(bool(blue_pickup.call("collect", player)), "Player should collect a blue key diamond after holding orange.")
+    _expect(int(player.call("get_current_key_id")) == 4, "Incompatible key pickup should replace the held key.")
+    var ejected_key := player.call("get_last_ejected_key") as Node
+    _expect(ejected_key != null, "Replacing an incompatible key should eject the previous key as a recoverable pickup.")
+    if ejected_key != null:
+        _expect(int(ejected_key.call("get_key_id")) == 3, "Ejected key pickup should preserve the previous orange key.")
+
+    var gate_scene := load(KEY_GATE_SCENE_PATH) as PackedScene
+    var gate := gate_scene.instantiate() as StaticBody3D
+    gate.set("open_sound_asset_id", "")
+    root.add_child(gate)
+    await process_frame
+    _expect(gate.collision_layer == WORLD_LAYER, "Key gate should start as a world collision body.")
+    _expect(gate.collision_mask == CHARACTER_LAYER, "Key gate should block solid characters.")
+    _expect(int(gate.call("get_required_key_id")) == 3, "Prototype key gate should default to orange.")
+    _expect(bool(gate.call("is_strict_match")), "Prototype key gate should require exact orange for this smoke path.")
+    _expect(not bool(gate.call("can_player_open", player)), "Strict orange gate should reject the currently held blue key.")
+    _expect(bool(player.call("set_current_key_id", 3)), "Test should be able to restore the orange key.")
+    _expect(bool(gate.call("can_player_open", player)), "Strict orange gate should accept the mixed orange key.")
+    _expect(bool(gate.call("try_open", player)), "Strict orange gate should open for the mixed orange key.")
+    await process_frame
+    _expect(bool(gate.call("is_open")), "Key gate should report open after accepting the key.")
+    _expect(gate.collision_layer == 0, "Open key gate should stop blocking the world layer.")
+
+    gate.queue_free()
+    blue_pickup.queue_free()
+    yellow_pickup.queue_free()
+    red_pickup.queue_free()
+    non_player.queue_free()
+    panel.queue_free()
+    player.queue_free()
+    if ejected_key != null:
+        ejected_key.queue_free()
+    if mix_effect != null:
+        mix_effect.queue_free()
+    await process_frame
 
 
 func _test_wasp_projectile_damages_enemy() -> void:
@@ -2150,6 +2340,10 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("EyeOfTruthPickup") != null, "Prototype Eye of Truth pickup should be editor-instanced.")
     _expect(world.get_node_or_null("DiamondPickup50") != null, "Prototype score diamond should be editor-instanced.")
     _expect(world.get_node_or_null("DiamondPickup100") != null, "Prototype +100 score diamond should be editor-instanced.")
+    _expect(world.get_node_or_null("KeyDiamondRed") != null, "Prototype red key diamond should be editor-instanced.")
+    _expect(world.get_node_or_null("KeyDiamondYellow") != null, "Prototype yellow key diamond should be editor-instanced.")
+    _expect(world.get_node_or_null("OrangeKeyGate") != null, "Prototype orange key gate should be editor-instanced.")
+    _expect(world.get_node_or_null("KeyDiamondPanel") != null, "Prototype key-diamond panel should be editor-instanced.")
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
     var floor := world.get_node_or_null("PrototypeFloor") as StaticBody3D
     _expect(floor != null, "Prototype floor should be a StaticBody3D.")
@@ -2191,6 +2385,7 @@ func _test_prototype_world() -> void:
         _expect(debug_label != null and debug_label.text.contains("Last pickup: +0"), "Prototype debug overlay should show no pickup score delta before diamond collection.")
         _expect(debug_label != null and debug_label.text.contains("Health: 48 / 48"), "Prototype debug overlay should show the original WindowHearts readout at full hp.")
         _expect(debug_label != null and debug_label.text.contains("Lives: 3 / 19"), "Prototype debug overlay should show the original-style BallesJoueur1 lives readout.")
+        _expect(debug_label != null and debug_label.text.contains("Key: None"), "Prototype debug overlay should show no key before key-diamond collection.")
     var camera := world.get_node_or_null("PrototypeCamera")
     _expect(camera != null, "Prototype world is missing its editor-instanced camera.")
     if camera != null:
@@ -2366,6 +2561,55 @@ func _test_prototype_world() -> void:
         _expect(hundred_diamond != null, "Prototype world should expose a +100 score diamond for playtesting.")
         if hundred_diamond != null:
             _expect(int(hundred_diamond.call("get_points")) == 100, "Prototype +100 diamond should preserve its configured point value.")
+        var key_panel := world.get_node_or_null("KeyDiamondPanel")
+        _expect(key_panel != null, "Prototype world should expose the key-diamond panel.")
+        if key_panel != null:
+            _expect(not bool(key_panel.call("is_showing_key")), "Prototype key panel should start hidden before a key is held.")
+        var red_key_pickup := world.get_node_or_null("KeyDiamondRed") as Area3D
+        var yellow_key_pickup := world.get_node_or_null("KeyDiamondYellow") as Area3D
+        var orange_gate := world.get_node_or_null("OrangeKeyGate") as StaticBody3D
+        _expect(red_key_pickup != null, "Prototype world should expose a red key diamond.")
+        _expect(yellow_key_pickup != null, "Prototype world should expose a yellow key diamond.")
+        _expect(orange_gate != null, "Prototype world should expose a strict orange key gate.")
+        if red_key_pickup != null and yellow_key_pickup != null and orange_gate != null:
+            _expect(red_key_pickup.collision_layer == PICKUP_SENSOR_LAYER, "Prototype red key diamond should live on the pickup sensor layer.")
+            _expect(red_key_pickup.collision_mask == CHARACTER_LAYER, "Prototype red key diamond should monitor characters.")
+            _expect(int(red_key_pickup.call("get_key_id")) == 1, "Prototype red key diamond should preserve key id 1.")
+            _expect(int(yellow_key_pickup.call("get_key_id")) == 2, "Prototype yellow key diamond should preserve key id 2.")
+            var red_key_visual := red_key_pickup.call("get_visual_sprite") as Sprite3D
+            _expect(red_key_visual != null, "Prototype red key diamond should spawn a sprite visual.")
+            if red_key_visual != null:
+                _expect(red_key_visual.texture == assets.load_asset("texture.key_diamond.red"), "Prototype red key diamond should use the original red sheet.")
+                _expect(red_key_visual.hframes == 17, "Prototype red key diamond should preserve the 17-frame sheet.")
+            _expect(orange_gate.collision_layer == WORLD_LAYER, "Prototype key gate should block as world geometry before opening.")
+            _expect(orange_gate.collision_mask == CHARACTER_LAYER, "Prototype key gate should block solid characters.")
+            _expect(int(orange_gate.call("get_required_key_id")) == 3, "Prototype gate should require orange.")
+            _expect(bool(orange_gate.call("is_strict_match")), "Prototype gate should require the mixed orange key, not a primary component.")
+            var player_for_key := world.get_node_or_null("Player")
+            if player_for_key != null and player_for_key.has_method("collect_key_diamond"):
+                player_for_key.set("key_mix_sound_asset_id", "")
+                player_for_key.set("key_mix_end_sound_asset_id", "")
+                _expect(not bool(orange_gate.call("can_player_open", player_for_key)), "Prototype orange gate should reject an empty key state.")
+                red_key_pickup.set("collect_sound_asset_id", "")
+                yellow_key_pickup.set("collect_sound_asset_id", "")
+                _expect(bool(red_key_pickup.call("collect", player_for_key)), "Prototype player should collect the red key diamond.")
+                _expect(int(player_for_key.call("get_current_key_id")) == 1, "Prototype red key should set PlayerKey to 1.")
+                _expect(not bool(orange_gate.call("can_player_open", player_for_key)), "Strict orange gate should reject red alone.")
+                _expect(bool(yellow_key_pickup.call("collect", player_for_key)), "Prototype player should collect the yellow key diamond.")
+                _expect(int(player_for_key.call("get_current_key_id")) == 3, "Prototype red plus yellow should mix into orange.")
+                if key_panel != null:
+                    key_panel.call("_process", 0.0)
+                    _expect(bool(key_panel.call("is_showing_key")), "Prototype key panel should appear after a key is held.")
+                    _expect(int(key_panel.call("get_displayed_key_id")) == 3, "Prototype key panel should show the mixed orange key.")
+                if debug_overlay != null and debug_label != null:
+                    debug_overlay.call("_physics_process", 0.0)
+                    _expect(debug_label.text.contains("Key: Orange"), "Prototype debug overlay should show the mixed orange key.")
+                _expect(bool(orange_gate.call("can_player_open", player_for_key)), "Prototype orange gate should accept the mixed orange key.")
+                orange_gate.set("open_sound_asset_id", "")
+                _expect(bool(orange_gate.call("try_open", player_for_key)), "Prototype orange gate should open for the mixed orange key.")
+                await process_frame
+                _expect(bool(orange_gate.call("is_open")), "Prototype orange gate should report open after the key check.")
+                _expect(orange_gate.collision_layer == 0, "Prototype orange gate should stop blocking after opening.")
         var wasp_pickup := world.get_node_or_null("WaspPickup") as Area3D
         _expect(wasp_pickup != null, "Prototype world should spawn the wasp pickup as an Area3D.")
         if wasp_pickup != null:

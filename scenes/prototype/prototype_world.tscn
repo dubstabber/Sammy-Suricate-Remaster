@@ -19,6 +19,11 @@
 [ext_resource type="Resource" path="res://assets/wasps/type_7.tres" id="16_wasp_type_7"]
 [ext_resource type="PackedScene" path="res://scenes/pickups/eye_of_truth_pickup.tscn" id="17_eye_truth"]
 [ext_resource type="PackedScene" path="res://scenes/pickups/diamond_pickup.tscn" id="18_diamond"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/key_diamond_pickup.tscn" id="19_key_pickup"]
+[ext_resource type="Resource" path="res://assets/key_diamonds/red.tres" id="20_key_red"]
+[ext_resource type="Resource" path="res://assets/key_diamonds/yellow.tres" id="21_key_yellow"]
+[ext_resource type="PackedScene" path="res://scenes/gates/key_gate.tscn" id="22_key_gate"]
+[ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="23_key_panel"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.22, 0.32, 0.26, 1)
@@ -77,6 +82,19 @@ points = 100
 [node name="DiamondPickup50B" parent="." unique_id=1932031839 instance=ExtResource("18_diamond")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 21.048233)
 
+[node name="KeyDiamondRed" parent="." instance=ExtResource("19_key_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 18)
+key_type = ExtResource("20_key_red")
+
+[node name="KeyDiamondYellow" parent="." instance=ExtResource("19_key_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 18)
+key_type = ExtResource("21_key_yellow")
+
+[node name="OrangeKeyGate" parent="." instance=ExtResource("22_key_gate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, 14.5)
+required_key_id = 3
+strict_match = true
+
 [node name="WaspPickup" parent="." unique_id=1444880792 instance=ExtResource("10_wasp_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0, -2)
 wasp_type = ExtResource("11_wasp_type_2")
@@ -125,4 +143,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.44621444, -4.5)
 run_speed = 6.0
 
 [node name="DebugOverlay" parent="." unique_id=428286293 instance=ExtResource("4_debug")]
+player_path = NodePath("../Player")
+
+[node name="KeyDiamondPanel" parent="." instance=ExtResource("23_key_panel")]
 player_path = NodePath("../Player")

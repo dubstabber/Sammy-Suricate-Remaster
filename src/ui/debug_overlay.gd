@@ -44,6 +44,8 @@ func _physics_process(_delta: float) -> void:
                     float(_player.call("get_boost_capacity")),
                     float(_player.call("get_boost_capacity_max"))
             ])
+        if _player.has_method("get_current_key_name"):
+            lines.append("Key: %s" % String(_player.call("get_current_key_name")))
         lines.append("Wasps: %d" % _get_player_wasp_count())
     _label.text = "\n".join(lines)
 

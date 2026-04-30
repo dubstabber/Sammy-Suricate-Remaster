@@ -37,6 +37,12 @@ func stop_music() -> void:
         _music_player.stream = null
 
 
+func stop_sfx() -> void:
+    for player in _sfx_players:
+        player.stop()
+        player.stream = null
+
+
 func play_sfx(asset_id: String) -> void:
     var stream := _load_stream(asset_id)
     if stream == null or _sfx_players.is_empty():
@@ -50,9 +56,7 @@ func play_sfx(asset_id: String) -> void:
 
 func _exit_tree() -> void:
     stop_music()
-    for player in _sfx_players:
-        player.stop()
-        player.stream = null
+    stop_sfx()
 
 
 func _load_stream(asset_id: String) -> AudioStream:

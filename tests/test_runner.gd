@@ -58,6 +58,7 @@ func _run() -> void:
     await _test_enemy_random_run_trigger()
     await _test_enemy_friend_call_key_distinguishes_families()
     await _test_player_real_push_integration()
+    await _test_player_enemy_hit_push_integration()
     await _test_player_scene()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
@@ -1231,6 +1232,58 @@ func _test_player_real_push_integration() -> void:
     await process_frame
 
 
+func _test_player_enemy_hit_push_integration() -> void:
+    var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
+    var player: CharacterBody3D = player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    player.global_position = Vector3(0.0, 0.0, -0.85)
+
+    var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    enemy.set("affected_by_gravity", false)
+    enemy.set("max_health", 5.0)
+    enemy.set("enemy_resistance", 5.0)
+    enemy.set("react_range", 5.0)
+    enemy.set("attack_range", 1.2)
+    enemy.set("attack_strike_ratio", 0.1)
+    enemy.set("hargne_enemy", 2.0)
+    enemy.set("run_speed", 6.0)
+    enemy.set("wait_min", 999.0)
+    enemy.set("wait_max", 999.0)
+    enemy.set("turn_rate_deg_per_sec", 720.0)
+    root.add_child(enemy)
+    enemy.global_position = Vector3.ZERO
+    await physics_frame
+
+    Input.action_press("move_back")
+    var starting_health := float(player.call("get_health"))
+    var hit_frames := 0
+    while hit_frames < 90 and is_equal_approx(float(player.call("get_health")), starting_health):
+        await physics_frame
+        hit_frames += 1
+
+    var health_after_hit := float(player.call("get_health"))
+    var position_after_hit := player.global_position
+    var push_velocity_after_hit := player.call("get_enemy_push_velocity") as Vector3
+    _expect(health_after_hit < starting_health, "Prototype-speed enemy contact should damage the real player scene.")
+    _expect(push_velocity_after_hit.z < -0.1, "Enemy hit push should point away from the enemy body, not merely rely on collision separation.")
+    _expect(push_velocity_after_hit.length() >= 4.0 and push_velocity_after_hit.length() <= 7.5, "Prototype-speed enemy hits should be a bounded original-style BounceForce1 bump, not a launch.")
+
+    for _i in 3:
+        await physics_frame
+    var position_after_push_frames := player.global_position
+    var hit_push_displacement := position_after_hit.z - position_after_push_frames.z
+    _expect(
+            hit_push_displacement > 0.04 and hit_push_displacement < 0.4,
+            "Enemy hit push should visibly nudge Sammy away while held input resists it, without launching him."
+    )
+
+    Input.action_release("move_back")
+    enemy.queue_free()
+    player.queue_free()
+    await process_frame
+
+
 func _make_ai_test_player() -> Node3D:
     var script := GDScript.new()
     script.source_code = "extends CharacterBody3D\n" \
@@ -1328,6 +1381,18 @@ func _test_player_scene() -> void:
         if player.has_method("apply_enemy_push") and player.has_method("get_enemy_push_velocity"):
             _expect(is_equal_approx(float(player.get("enemy_push_weight_force")), 0.8), "Player enemy push should use original PoidPlayer1.")
             _expect(is_equal_approx(float(player.get("enemy_push_damping_per_second")), 10.0), "Player enemy push damping should use original AmortiBouncePlayer.")
+            _expect(is_equal_approx(float(player.get("enemy_push_collision_normal_speed")), 7.2), "Player enemy collision push should convert original IntensiteBlobBounce into a bounded player bounce cadence.")
+            _expect(is_equal_approx(float(player.get("enemy_push_immediate_seconds")), 0.04), "Enemy hit push should apply a short immediate shove before per-frame damping.")
+            var enemy_source := Node3D.new()
+            root.add_child(enemy_source)
+            enemy_source.global_position = (player as Node3D).global_position + Vector3(0.0, 0.0, 1.0)
+            player.call("apply_enemy_push", Vector3.ZERO, 1.0, enemy_source)
+            var normal_push_velocity := player.call("get_enemy_push_velocity") as Vector3
+            _expect(normal_push_velocity.z < -7.1 and normal_push_velocity.z > -7.3, "Enemy-sourced hits should derive a bounded normal push from enemy-to-player contact.")
+            player.call("apply_enemy_push", Vector3(9.0, 0.0, 0.0), 1.5, enemy_source)
+            var enemy_source_velocity := player.call("get_enemy_push_velocity") as Vector3
+            _expect(is_equal_approx(enemy_source_velocity.length(), 7.2), "Real enemy hit push should use the normal collision shove instead of lunge-speed launch velocity.")
+            enemy_source.queue_free()
             var position_before_push := (player as Node3D).global_position
             player.call("apply_enemy_push", Vector3(2.0, 0.0, 0.0), 2.0, null)
             var initial_push_velocity := player.call("get_enemy_push_velocity") as Vector3

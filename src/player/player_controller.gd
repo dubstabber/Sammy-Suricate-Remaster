@@ -16,6 +16,8 @@ const PLAYER_LANDING_END_STEP_RANGE := 90.0
 const PLAYER_LANDING_END_STEP_SPEED := 14.0
 const PLAYER_LANDING_TURN_STEP_SPEED := 18.0
 const PLAYER_LANDING_INPUT_STEP_SPEED := 36.0
+const ACKNEX_TO_GODOT_SCALE := 0.01
+const PLAYER_BOUNCE_TICKS_PER_SECOND := ACKNEX_TIME_UNITS_PER_SECOND * 1.5
 const CHARACTER_COLLISION_MASK := 1 << 1
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
@@ -26,10 +28,12 @@ const CHARACTER_COLLISION_MASK := 1 << 1
 @export var wasp_muzzle_offset: Vector3 = Vector3(0.0, 0.6, -0.4)
 @export var max_health: float = 48.0
 @export var damage_invulnerability_seconds: float = 0.0
-# WDL InitLvl/player: WindowHeartsOrg = 48, PoidPlayer1 = 0.8, AmortiBouncePlayer = 10.
+# WDL InitLvl/player: WindowHeartsOrg = 48, PoidPlayer1 = 0.8,
+# IntensiteBlobBounce = 30, AmortiBouncePlayer = 10.
 @export var enemy_push_weight_force: float = 0.8
 @export var enemy_push_damping_per_second: float = 10.0
 @export var enemy_push_max_source_speed: float = 2.7
+@export var enemy_push_collision_normal_speed: float = 30.0 * ACKNEX_TO_GODOT_SCALE * PLAYER_BOUNCE_TICKS_PER_SECOND
 @export var enemy_push_immediate_seconds: float = 0.04
 
 signal damaged(amount: float, source: Node)
@@ -108,10 +112,22 @@ func is_in_invulnerability_window() -> bool:
 func apply_enemy_push(source_velocity: Vector3, source_bounce_force: float = 1.0, _source: Node = null) -> void:
     var horizontal_source := source_velocity
     horizontal_source.y = 0.0
-    var max_source_speed := maxf(enemy_push_max_source_speed, 0.0)
-    if max_source_speed > 0.0 and horizontal_source.length() > max_source_speed:
-        horizontal_source = horizontal_source.normalized() * max_source_speed
-    _enemy_push_velocity = horizontal_source * maxf(enemy_push_weight_force, 0.0) * maxf(source_bounce_force, 0.0)
+    var push_direction := _resolve_enemy_push_direction(horizontal_source, _source)
+    if push_direction.length_squared() <= 0.0:
+        _enemy_push_velocity = Vector3.ZERO
+        return
+
+    var push_speed := maxf(enemy_push_collision_normal_speed, 0.0) if _source is Node3D else 0.0
+    if not (_source is Node3D):
+        var max_source_speed := maxf(enemy_push_max_source_speed, 0.0)
+        if max_source_speed > 0.0 and horizontal_source.length() > max_source_speed:
+            horizontal_source = horizontal_source.normalized() * max_source_speed
+        push_speed = horizontal_source.length() * maxf(enemy_push_weight_force, 0.0) * maxf(source_bounce_force, 0.0)
+    if push_speed <= 0.0:
+        _enemy_push_velocity = Vector3.ZERO
+        return
+
+    _enemy_push_velocity = push_direction * push_speed
     _apply_enemy_push_immediate_displacement(_enemy_push_velocity * maxf(enemy_push_immediate_seconds, 0.0))
 
 
@@ -163,7 +179,7 @@ func _physics_process(delta: float) -> void:
     var rate: float = movement_config.acceleration if absf(forward_input) > 0.0 else movement_config.deceleration
     _input_horizontal_velocity = _input_horizontal_velocity.move_toward(target_velocity, rate * delta)
 
-    _set_horizontal_velocity(_input_horizontal_velocity + _enemy_push_velocity)
+    _set_horizontal_velocity(_input_horizontal_velocity)
     var applied_push_velocity := _enemy_push_velocity
     var horizontal_velocity := _input_horizontal_velocity
 
@@ -176,7 +192,8 @@ func _physics_process(delta: float) -> void:
     else:
         velocity.y -= movement_config.gravity * delta
 
-    _move_and_slide_with_enemy_push_mask(applied_push_velocity)
+    move_and_slide()
+    _apply_enemy_push_frame_displacement(applied_push_velocity, delta)
     _decay_enemy_push(delta)
     var on_floor := is_on_floor()
     if not was_on_floor and on_floor:
@@ -532,12 +549,13 @@ func _process_quick_turn(delta: float, was_on_floor: bool) -> void:
     _advance_quick_turn(delta)
 
     _input_horizontal_velocity = _input_horizontal_velocity.move_toward(Vector3.ZERO, movement_config.deceleration * delta)
-    _set_horizontal_velocity(_input_horizontal_velocity + _enemy_push_velocity)
+    _set_horizontal_velocity(_input_horizontal_velocity)
     var applied_push_velocity := _enemy_push_velocity
     if not is_on_floor():
         velocity.y -= movement_config.gravity * delta
 
-    _move_and_slide_with_enemy_push_mask(applied_push_velocity)
+    move_and_slide()
+    _apply_enemy_push_frame_displacement(applied_push_velocity, delta)
     _decay_enemy_push(delta)
     _update_model_animation(0.0, 0.0, false, was_on_floor, is_on_floor(), _input_horizontal_velocity.length())
 
@@ -547,14 +565,21 @@ func _set_horizontal_velocity(horizontal_velocity: Vector3) -> void:
     velocity.z = horizontal_velocity.z
 
 
-func _move_and_slide_with_enemy_push_mask(applied_push_velocity: Vector3) -> void:
-    if applied_push_velocity.length_squared() <= 0.0:
-        move_and_slide()
+func _resolve_enemy_push_direction(horizontal_source: Vector3, source: Node) -> Vector3:
+    if source is Node3D:
+        var away_from_source := global_position - (source as Node3D).global_position
+        away_from_source.y = 0.0
+        if away_from_source.length_squared() > 0.0:
+            return away_from_source.normalized()
+    if horizontal_source.length_squared() > 0.0:
+        return horizontal_source.normalized()
+    return Vector3.ZERO
+
+
+func _apply_enemy_push_frame_displacement(applied_push_velocity: Vector3, delta: float) -> void:
+    if applied_push_velocity.length_squared() <= 0.0 or delta <= 0.0:
         return
-    var saved_collision_mask := collision_mask
-    collision_mask = saved_collision_mask & ~CHARACTER_COLLISION_MASK
-    move_and_slide()
-    collision_mask = saved_collision_mask
+    _apply_enemy_push_immediate_displacement(applied_push_velocity * delta)
 
 
 func _apply_enemy_push_immediate_displacement(displacement: Vector3) -> void:

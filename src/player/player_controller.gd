@@ -702,7 +702,7 @@ func _update_boost_state_from_input(delta: float, forward_input: float, boost_pr
         _boosting = false
         return
 
-    _boosting = forward_input > 0.0 and boost_pressed and _boost_capacity > 0.0
+    _boosting = not is_zero_approx(forward_input) and boost_pressed and _boost_capacity > 0.0
     if not _boosting:
         return
 

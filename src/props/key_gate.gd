@@ -9,6 +9,8 @@ const MATCH_USE_STRICT_PROPERTY := 0
 const MATCH_COMPONENT_OR_EXACT := 1
 const MATCH_EXACT_ONLY := 2
 const MATCH_UNLOCKED := 3
+const MATCH_NEVER := 4
+const MATCH_ANY_KEY := 5
 
 const CLOSE_STAY_OPEN := 0
 const CLOSE_AUTO := 1
@@ -29,6 +31,8 @@ const DOOR_PATTERN_ALL := 5
 const DOOR_MODEL_ROOT_NAME := "DoorModelRoot"
 const ORIGINAL_GATE_MODEL_ROOT := "res://assets/models/gates"
 const PERMANENT_LOCKED_OPEN_WMB_NAME := "doordark.wmb"
+const SOURCE_MODEL_AUTO_CLOSE_DELAY_SECONDS := 1.0
+const SOURCE_MODEL_CLOSE_SPEED := 80.0
 
 # InitLvl.wdl sets SpeedGemKey = 12. Converted to Godot meters/sec
 # through the existing 0.01 Acknex-to-Godot scale and 16 ticks/sec.
@@ -36,8 +40,16 @@ const DEFAULT_KEY_FLIGHT_SPEED := 12.0 * 0.01 * 16.0
 
 @export var required_key_id: int = 3
 @export var strict_match: bool = true
-@export_enum("Use strict_match property", "Component or Exact", "Exact Only", "Unlocked") var match_mode: int = MATCH_USE_STRICT_PROPERTY
+@export_enum("Use strict_match property", "Component or Exact", "Exact Only", "Unlocked", "Never", "Any Key") var match_mode: int = MATCH_USE_STRICT_PROPERTY
 @export_enum("Stay Open", "Auto Close", "Permanent Consume") var close_mode: int = CLOSE_STAY_OPEN
+@export var use_wdl_door_fields: bool = false
+@export var use_source_wmb_behavior: bool = false
+@export var wdl_skill6_required_key: int = KEY_RULES.KEY_NONE
+@export var wdl_skill5_close_speed: float = 0.0
+@export var wdl_skill8_hold_units: float = 4.0
+@export var wdl_flag5_permanent: bool = false
+@export var wdl_flag6_unlocked: bool = false
+@export var wdl_flag7_exact_match: bool = false
 @export var open_sound_asset_id: String = "sfx.door_open"
 @export var close_sound_asset_id: String = "sfx.door_close"
 @export var open_height: float = 2.2
@@ -84,7 +96,7 @@ func _process(delta: float) -> void:
 	if _visual == null:
 		return
 	var target := _target_visual_position()
-	var speed := close_speed if _state == STATE_CLOSING else open_speed
+	var speed := _effective_close_speed() if _state == STATE_CLOSING else open_speed
 	_visual.position = _visual.position.move_toward(target, maxf(speed, 0.0) * safe_delta)
 	if _visual.position.is_equal_approx(target):
 		_on_visual_reached_target()
@@ -94,15 +106,15 @@ func try_open(player: Node) -> bool:
 	if _state == STATE_LOCKED_OPEN:
 		return true
 	if _open:
-		if close_mode == CLOSE_AUTO:
+		if _effective_close_mode() == CLOSE_AUTO:
 			_state = STATE_OPEN
-			_open_hold_remaining = maxf(auto_close_delay_seconds, 0.0)
+			_open_hold_remaining = _effective_auto_close_delay_seconds()
 		return true
 	if not can_player_open(player):
 		return false
 
 	var consumed_key_id := KEY_RULES.KEY_NONE
-	if close_mode == CLOSE_PERMANENT_CONSUME and _effective_match_mode() != MATCH_UNLOCKED:
+	if _effective_close_mode() == CLOSE_PERMANENT_CONSUME and _effective_match_mode() != MATCH_UNLOCKED:
 		consumed_key_id = _consume_player_key(player)
 		if consumed_key_id == KEY_RULES.KEY_NONE:
 			return false
@@ -110,7 +122,7 @@ func try_open(player: Node) -> bool:
 
 	_begin_open()
 	_play_sfx(open_sound_asset_id)
-	if close_mode == CLOSE_PERMANENT_CONSUME and consumed_key_id != KEY_RULES.KEY_NONE:
+	if _effective_close_mode() == CLOSE_PERMANENT_CONSUME and consumed_key_id != KEY_RULES.KEY_NONE:
 		_spawn_key_flight(player as Node3D, consumed_key_id)
 	return true
 
@@ -121,7 +133,13 @@ func can_player_open(player: Node) -> bool:
 	if player.has_method("get_current_key_id"):
 		return _can_key_open(int(player.call("get_current_key_id")))
 	if player.has_method("can_open_key_gate"):
-		return bool(player.call("can_open_key_gate", required_key_id, _effective_strict_match()))
+		if _effective_match_mode() == MATCH_NEVER:
+			return false
+		if _effective_match_mode() == MATCH_UNLOCKED:
+			return true
+		if _effective_match_mode() == MATCH_ANY_KEY:
+			return false
+		return bool(player.call("can_open_key_gate", _effective_required_key_id(), _effective_strict_match()))
 	return false
 
 
@@ -130,7 +148,7 @@ func is_open() -> bool:
 
 
 func get_required_key_id() -> int:
-	return required_key_id
+	return _effective_required_key_id()
 
 
 func is_strict_match() -> bool:
@@ -146,7 +164,7 @@ func get_effective_match_mode() -> int:
 
 
 func get_close_mode() -> int:
-	return close_mode
+	return _effective_close_mode()
 
 
 func is_permanently_open() -> bool:
@@ -231,8 +249,8 @@ func _apply_key_color() -> void:
 	if _visual == null:
 		return
 	var material := StandardMaterial3D.new()
-	var color_key_id := required_key_id
-	if _effective_match_mode() == MATCH_UNLOCKED or required_key_id == KEY_RULES.KEY_NONE:
+	var color_key_id := _effective_required_key_id()
+	if _effective_match_mode() == MATCH_UNLOCKED or color_key_id == KEY_RULES.KEY_NONE:
 		color_key_id = KEY_RULES.KEY_ALL
 	material.albedo_color = KEY_RULES.key_color(color_key_id)
 	material.roughness = 0.75
@@ -255,13 +273,13 @@ func _rebuild_door_visual_model() -> void:
 	_visual_signature = "%s:%d:%d" % [
 		_normalized_source_wmb_name(),
 		int(style.get("pattern", DOOR_PATTERN_KEYED)),
-		int(style.get("key_id", required_key_id))
+		int(style.get("key_id", _effective_required_key_id()))
 	]
 
 	var main_mesh := BoxMesh.new()
 	main_mesh.size = style.get("panel_size", Vector3(1.72, 1.42, 0.18))
 	_visual.mesh = main_mesh
-	_visual.material_override = _make_door_material(style.get("panel_color", KEY_RULES.key_color(required_key_id)), 0.08)
+	_visual.material_override = _make_door_material(style.get("panel_color", KEY_RULES.key_color(_effective_required_key_id())), 0.08)
 
 	var root := Node3D.new()
 	root.name = DOOR_MODEL_ROOT_NAME
@@ -274,7 +292,7 @@ func _rebuild_door_visual_model() -> void:
 
 	match int(style.get("pattern", DOOR_PATTERN_KEYED)):
 		DOOR_PATTERN_MIXED:
-			_add_mixed_key_pattern(root, int(style.get("key_id", required_key_id)))
+			_add_mixed_key_pattern(root, int(style.get("key_id", _effective_required_key_id())))
 		DOOR_PATTERN_EXIT:
 			_add_exit_pattern(root)
 		DOOR_PATTERN_DARK:
@@ -284,7 +302,7 @@ func _rebuild_door_visual_model() -> void:
 		DOOR_PATTERN_ALL:
 			_add_all_key_pattern(root)
 		_:
-			_add_keyed_pattern(root, int(style.get("key_id", required_key_id)))
+			_add_keyed_pattern(root, int(style.get("key_id", _effective_required_key_id())))
 
 
 func _build_original_door_visual_model() -> bool:
@@ -367,7 +385,7 @@ func _accumulate_mesh_bounds(root: Node3D, node: Node, bounds_state: Array) -> v
 func _begin_open() -> void:
 	_open = true
 	_state = STATE_OPENING
-	_open_hold_remaining = maxf(auto_close_delay_seconds, 0.0)
+	_open_hold_remaining = _effective_auto_close_delay_seconds()
 	if _collision_shape != null:
 		_collision_shape.set_deferred("disabled", true)
 	set_deferred("collision_layer", 0)
@@ -402,7 +420,7 @@ func _lock_open_permanently() -> void:
 
 
 func _update_open_hold(delta: float) -> void:
-	if _state != STATE_OPEN or close_mode != CLOSE_AUTO:
+	if _state != STATE_OPEN or _effective_close_mode() != CLOSE_AUTO:
 		return
 	if _open_hold_remaining > 0.0:
 		_open_hold_remaining = maxf(0.0, _open_hold_remaining - delta)
@@ -419,7 +437,7 @@ func _target_visual_position() -> Vector3:
 
 func _on_visual_reached_target() -> void:
 	if _state == STATE_OPENING:
-		if close_mode == CLOSE_PERMANENT_CONSUME and not _permanent_key_flight_active:
+		if _effective_close_mode() == CLOSE_PERMANENT_CONSUME and not _permanent_key_flight_active:
 			_lock_open_permanently()
 		else:
 			_state = STATE_OPEN
@@ -428,31 +446,128 @@ func _on_visual_reached_target() -> void:
 
 
 func _effective_match_mode() -> int:
+	if use_wdl_door_fields:
+		if wdl_flag6_unlocked:
+			return MATCH_UNLOCKED
+		if wdl_skill6_required_key == KEY_RULES.KEY_NONE:
+			return MATCH_NEVER
+		if wdl_flag7_exact_match:
+			return MATCH_EXACT_ONLY
+		return MATCH_COMPONENT_OR_EXACT
+	var source_behavior := _source_wmb_behavior()
+	if not source_behavior.is_empty():
+		return int(source_behavior["match_mode"])
 	if match_mode == MATCH_USE_STRICT_PROPERTY:
 		return MATCH_EXACT_ONLY if strict_match else MATCH_COMPONENT_OR_EXACT
 	return match_mode
+
+
+func _effective_close_mode() -> int:
+	if use_wdl_door_fields:
+		if wdl_flag5_permanent:
+			return CLOSE_PERMANENT_CONSUME
+		if not is_zero_approx(wdl_skill5_close_speed):
+			return CLOSE_AUTO
+		return CLOSE_STAY_OPEN
+	var source_behavior := _source_wmb_behavior()
+	if not source_behavior.is_empty():
+		return int(source_behavior["close_mode"])
+	return close_mode
+
+
+func _effective_required_key_id() -> int:
+	if use_wdl_door_fields:
+		return wdl_skill6_required_key
+	var source_behavior := _source_wmb_behavior()
+	if not source_behavior.is_empty():
+		return int(source_behavior["required_key_id"])
+	return required_key_id
+
+
+func _effective_auto_close_delay_seconds() -> float:
+	if use_wdl_door_fields:
+		var hold_units := wdl_skill8_hold_units
+		if is_zero_approx(hold_units):
+			hold_units = 4.0
+		return maxf(hold_units, 0.0) / 4.0
+	var source_behavior := _source_wmb_behavior()
+	if not source_behavior.is_empty():
+		return float(source_behavior["auto_close_delay_seconds"])
+	return maxf(auto_close_delay_seconds, 0.0)
+
+
+func _effective_close_speed() -> float:
+	if use_wdl_door_fields and not is_zero_approx(wdl_skill5_close_speed):
+		return absf(wdl_skill5_close_speed)
+	var source_behavior := _source_wmb_behavior()
+	if not source_behavior.is_empty():
+		return float(source_behavior["close_speed"])
+	return close_speed
 
 
 func _effective_strict_match() -> bool:
 	return _effective_match_mode() == MATCH_EXACT_ONLY
 
 
+func _source_wmb_behavior() -> Dictionary:
+	if not use_source_wmb_behavior:
+		return {}
+	var source := _explicit_source_wmb_name()
+	if source.is_empty():
+		return {}
+	if source == "dfixall.wmb":
+		return _make_source_wmb_behavior(KEY_RULES.KEY_ALL, MATCH_ANY_KEY, CLOSE_PERMANENT_CONSUME)
+	if source == "doorexit.wmb" or source == "doordark.wmb" or source.begins_with("doorwk"):
+		return {}
+	var key_id := _key_id_from_source_wmb(source)
+	if key_id == KEY_RULES.KEY_NONE:
+		return {}
+	if source.begins_with("dfix"):
+		return _make_source_wmb_behavior(key_id, MATCH_EXACT_ONLY, CLOSE_PERMANENT_CONSUME)
+	if source.begins_with("done"):
+		return _make_source_wmb_behavior(key_id, MATCH_EXACT_ONLY, CLOSE_STAY_OPEN)
+	if source.begins_with("door"):
+		return _make_source_wmb_behavior(key_id, MATCH_EXACT_ONLY, CLOSE_AUTO)
+	return {}
+
+
+func _make_source_wmb_behavior(key_id: int, source_match_mode: int, source_close_mode: int) -> Dictionary:
+	return {
+		"required_key_id": key_id,
+		"match_mode": source_match_mode,
+		"close_mode": source_close_mode,
+		"auto_close_delay_seconds": SOURCE_MODEL_AUTO_CLOSE_DELAY_SECONDS,
+		"close_speed": SOURCE_MODEL_CLOSE_SPEED
+	}
+
+
 func _can_key_open(key_id: int) -> bool:
 	match _effective_match_mode():
 		MATCH_UNLOCKED:
 			return true
+		MATCH_NEVER:
+			return false
+		MATCH_ANY_KEY:
+			return key_id != KEY_RULES.KEY_NONE
 		MATCH_EXACT_ONLY:
-			return KEY_RULES.can_open_gate(key_id, required_key_id, true)
+			return KEY_RULES.can_open_gate(key_id, _effective_required_key_id(), true)
 		MATCH_COMPONENT_OR_EXACT:
-			return KEY_RULES.can_open_gate(key_id, required_key_id, false)
-	return KEY_RULES.can_open_gate(key_id, required_key_id, strict_match)
+			return KEY_RULES.can_open_gate(key_id, _effective_required_key_id(), false)
+	return KEY_RULES.can_open_gate(key_id, _effective_required_key_id(), strict_match)
 
 
 func _consume_player_key(player: Node) -> int:
 	if player == null:
 		return KEY_RULES.KEY_NONE
+	if player.has_method("get_current_key_id"):
+		var current_key_id := int(player.call("get_current_key_id"))
+		if current_key_id == KEY_RULES.KEY_NONE or not _can_key_open(current_key_id):
+			return KEY_RULES.KEY_NONE
+		if player.has_method("set_current_key_id"):
+			player.call("set_current_key_id", KEY_RULES.KEY_NONE)
+		return current_key_id
 	if player.has_method("consume_key_for_gate"):
-		return int(player.call("consume_key_for_gate", required_key_id, _effective_strict_match()))
+		return int(player.call("consume_key_for_gate", _effective_required_key_id(), _effective_strict_match()))
 	if player.has_method("get_current_key_id") and _can_key_open(int(player.call("get_current_key_id"))):
 		return int(player.call("get_current_key_id"))
 	return KEY_RULES.KEY_NONE
@@ -491,8 +606,8 @@ func _play_sfx(asset_id: String) -> void:
 func _door_visual_style() -> Dictionary:
 	var source := _normalized_source_wmb_name()
 	var key_id := _key_id_from_source_wmb(source)
-	if key_id == KEY_RULES.KEY_NONE and required_key_id != KEY_RULES.KEY_NONE:
-		key_id = required_key_id
+	if key_id == KEY_RULES.KEY_NONE and _effective_required_key_id() != KEY_RULES.KEY_NONE:
+		key_id = _effective_required_key_id()
 	var pattern := DOOR_PATTERN_KEYED
 	var panel_color := KEY_RULES.key_color(key_id)
 	var trim_color := Color(0.22, 0.2, 0.17, 1.0)
@@ -529,8 +644,12 @@ func _door_visual_style() -> Dictionary:
 
 
 func _normalized_source_wmb_name() -> String:
-	var source := source_wmb_name.get_file().to_lower()
-	return source if not source.is_empty() else _default_source_wmb_name_for_key(required_key_id)
+	var source := _explicit_source_wmb_name()
+	return source if not source.is_empty() else _default_source_wmb_name_for_key(_effective_required_key_id())
+
+
+func _explicit_source_wmb_name() -> String:
+	return source_wmb_name.get_file().to_lower()
 
 
 func _default_source_wmb_name_for_key(key_id: int) -> String:

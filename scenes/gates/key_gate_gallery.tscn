@@ -44,60 +44,70 @@ key_type = ExtResource("9_key_all")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0, -1.5)
 required_key_id = 1
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doorRed.wmb"
 
 [node name="YellowExactGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0, 0, -1.5)
 required_key_id = 2
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "dooryell.wmb"
 
 [node name="BlueExactGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -1.5)
 required_key_id = 4
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doorBlue.wmb"
 
 [node name="OrangeComponentGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
 required_key_id = 3
-match_mode = 1
+match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doororan.wmb"
 
 [node name="MagentaComponentGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0, -1.5)
 required_key_id = 5
-match_mode = 1
+match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doormage.wmb"
 
 [node name="GreenComponentGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.0, 0, -1.5)
 required_key_id = 6
-match_mode = 1
+match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doorgree.wmb"
 
 [node name="OrangeStrictGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0, -5)
 required_key_id = 3
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doororan.wmb"
 
 [node name="MagentaStrictGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0, 0, -5)
 required_key_id = 5
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doormage.wmb"
 
 [node name="GreenStrictGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -5)
 required_key_id = 6
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doorgree.wmb"
 
 [node name="AllKeyStrictGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
 required_key_id = 6
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doorgree.wmb"
 
 [node name="UnlockedScannerGate" parent="." instance=ExtResource("2_key_gate")]
@@ -110,133 +120,146 @@ source_wmb_name = "doordark.wmb"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.0, 0, -5)
 required_key_id = 1
 match_mode = 2
-close_mode = 1
-auto_close_delay_seconds = 0.6
+use_source_wmb_behavior = true
 source_wmb_name = "doorRed.wmb"
 
 [node name="PermanentConsumeGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 0, -5)
 required_key_id = 2
 match_mode = 2
-close_mode = 2
-source_wmb_name = "dooryell.wmb"
+use_source_wmb_behavior = true
+source_wmb_name = "dfixyell.wmb"
 
 [node name="ExitModelGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0, -8.5)
 required_key_id = 0
-match_mode = 3
+match_mode = 4
 source_wmb_name = "doorexit.wmb"
 
 [node name="DarkModelGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0, 0, -8.5)
 required_key_id = 0
-match_mode = 3
+match_mode = 4
 source_wmb_name = "doordark.wmb"
 
 [node name="DoorMagAliasGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -8.5)
 required_key_id = 5
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doormag.wmb"
 
 [node name="WeakDoor1ModelGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -8.5)
 required_key_id = 0
-match_mode = 3
+match_mode = 4
 source_wmb_name = "doorwk1.wmb"
 
 [node name="WeakDoor2ModelGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0, -8.5)
 required_key_id = 0
-match_mode = 3
+match_mode = 4
 source_wmb_name = "doorwk2.wmb"
 
 [node name="WeakDoor3ModelGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.0, 0, -8.5)
 required_key_id = 0
-match_mode = 3
+match_mode = 4
 source_wmb_name = "doorwk3.wmb"
 
 [node name="WeakDoor4ModelGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 0, -8.5)
 required_key_id = 0
-match_mode = 3
+match_mode = 4
 source_wmb_name = "doorwk4.wmb"
 
 [node name="FixedRedGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0, -12)
 required_key_id = 1
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "dfixRed.wmb"
 
 [node name="FixedYellowGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0, 0, -12)
 required_key_id = 2
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "dfixyell.wmb"
 
 [node name="FixedOrangeGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -12)
 required_key_id = 3
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "dfixOran.wmb"
 
 [node name="FixedBlueGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -12)
 required_key_id = 4
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "dfixblue.wmb"
 
 [node name="FixedMagentaGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0, -12)
 required_key_id = 5
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "dfixmag.wmb"
 
 [node name="FixedGreenGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.0, 0, -12)
 required_key_id = 6
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "dfixgree.wmb"
 
 [node name="FixedAllGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 0, -12)
 required_key_id = 255
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "dfixall.wmb"
 
 [node name="DoneRedGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0, -15.5)
 required_key_id = 1
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doneRed.wmb"
 
 [node name="DoneYellowGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0, 0, -15.5)
 required_key_id = 2
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doneyell.wmb"
 
 [node name="DoneOrangeGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -15.5)
 required_key_id = 3
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doneOran.wmb"
 
 [node name="DoneBlueGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -15.5)
 required_key_id = 4
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doneBlue.wmb"
 
 [node name="DoneMagentaGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0, -15.5)
 required_key_id = 5
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "doneMage.wmb"
 
 [node name="DoneGreenGate" parent="." instance=ExtResource("2_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.0, 0, -15.5)
 required_key_id = 6
 match_mode = 2
+use_source_wmb_behavior = true
 source_wmb_name = "donegree.wmb"

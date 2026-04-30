@@ -1,6 +1,7 @@
 extends SceneTree
 
 const ASSETS_SCRIPT_PATH := "res://src/core/assets.gd"
+const GAME_SCRIPT_PATH := "res://src/core/game.gd"
 const WMB_MANIFEST_SCRIPT_PATH := "res://src/levels/wmb_manifest.gd"
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const PLAYER_SCENE_PATH := "res://scenes/player/player.tscn"
@@ -9,6 +10,7 @@ const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
 const WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/wasp_pickup.tscn"
 const BOOST_PICKUP_SCENE_PATH := "res://scenes/pickups/boost_pickup.tscn"
+const EYE_OF_TRUTH_PICKUP_SCENE_PATH := "res://scenes/pickups/eye_of_truth_pickup.tscn"
 const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
 const WASP_TYPE_PATHS := [
     "",
@@ -39,21 +41,25 @@ func _init() -> void:
 
 func _run() -> void:
     var assets := _ensure_assets_service()
+    var game := _ensure_game_service()
     await process_frame
 
     _test_input_actions()
     _test_display_settings()
     _test_collision_layer_names()
     _test_asset_catalog(assets)
+    _test_eye_of_truth_state(game)
     await _test_editor_model_previews(assets)
     _test_animation_libraries()
     _test_model_skin_alpha()
     _test_wmb_manifest()
     _test_wasp_resources(assets)
     _test_wasp_inventory()
+    await _test_eye_of_truth_pickup(game, assets)
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
     await _test_enemy_ai_behavior()
+    await _test_enemy_visibility_range(game)
     await _test_enemy_ignores_dead_player()
     await _test_enemy_blocked_roar()
     await _test_enemy_random_run_trigger()
@@ -86,6 +92,18 @@ func _ensure_assets_service() -> Node:
     assets.name = "Assets"
     root.add_child(assets)
     return assets
+
+
+func _ensure_game_service() -> Node:
+    var existing := root.get_node_or_null("Game")
+    if existing != null:
+        return existing
+
+    var game_script: GDScript = load(GAME_SCRIPT_PATH)
+    var game: Node = game_script.new()
+    game.name = "Game"
+    root.add_child(game)
+    return game
 
 
 func _test_input_actions() -> void:
@@ -149,6 +167,17 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("model.cactus1") != null, "Unable to load copied cactus model resource.")
     _expect(assets.has_asset("texture.particle.small_star_1a"), "Asset catalog is missing original boost particle sprite.")
     _expect(assets.load_asset("texture.particle.small_star_1a") != null, "Unable to load original boost particle sprite.")
+    _expect(assets.has_asset("model.enemy_visibility_range"), "Asset catalog is missing the original Eye of Truth range circle model.")
+    _expect(assets.load_asset("model.enemy_visibility_range") != null, "Unable to load original Eye of Truth range circle model.")
+    _expect(assets.has_asset("model.eye_of_truth"), "Asset catalog is missing the original Eye of Truth pickup model.")
+    _expect(assets.load_asset("model.eye_of_truth") != null, "Unable to load original Eye of Truth pickup model.")
+    for skin_number in range(1, 4):
+        _expect(assets.load_asset("texture.enemy_visibility_range.skin_%d" % skin_number) != null, "Unable to load Eye of Truth range skin %d." % skin_number)
+        _expect(assets.call("load_enemy_visibility_range_skin_texture", skin_number) != null, "Asset helper should load Eye of Truth range skin %d." % skin_number)
+    _expect(assets.load_asset("texture.eye_truth.panel") != null, "Unable to load original Eye of Truth panel texture.")
+    _expect(_png_has_transparent_pixels("res://assets/models/Paneye/skins/Paneye_skin0.png"), "Eye of Truth panel texture should preserve original transparent cutout pixels.")
+    _expect(assets.load_asset("texture.particle.eye_truth_1") != null, "Unable to load original Eye of Truth particle sprite 1.")
+    _expect(assets.load_asset("texture.particle.eye_truth_2") != null, "Unable to load original Eye of Truth particle sprite 2.")
     _expect(assets.get_model_scale("model.sammy.animated").is_equal_approx(Vector3(0.08, 0.08, 0.08)), "Sammy model scale should include original WDL scale 8.")
     _expect(assets.get_model_scale("model.rasta.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Rasta model should use default Acknex entity scale.")
     _expect(assets.get_model_rotation_degrees("model.sammy.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Sammy model should rotate Acknex +X forward to Godot -Z forward.")
@@ -164,6 +193,7 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.has_asset("music.sammy01"), "Asset catalog is missing copied music resource.")
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")
+    _expect(assets.load_asset("sfx.eye_truth") != null, "Unable to load original EyeTruth sound.")
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
     _expect(assets.has_asset("model.wasp1"), "Asset catalog is missing wasp projectile model.")
     _expect(assets.load_asset("model.wasp1") != null, "Unable to load wasp projectile model.")
@@ -178,12 +208,102 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.wasp_kaput") != null, "Unable to load wasp impact sound.")
 
 
+func _test_eye_of_truth_state(game: Node) -> void:
+    _expect(game != null, "Game service should be available for Eye of Truth state.")
+    if game == null:
+        return
+    _expect(game.has_method("activate_eye_of_truth"), "Game should expose Eye of Truth activation.")
+    _expect(game.has_method("is_eye_of_truth_active"), "Game should expose Eye of Truth active state.")
+    _expect(game.has_method("get_eye_of_truth_remaining_seconds"), "Game should expose Eye of Truth remaining time.")
+    if not game.has_method("activate_eye_of_truth") or not game.has_method("is_eye_of_truth_active"):
+        return
+
+    game.call("clear_eye_of_truth")
+    _expect(not bool(game.call("is_eye_of_truth_active")), "Eye of Truth should start inactive.")
+    game.call("activate_eye_of_truth")
+    _expect(bool(game.call("is_eye_of_truth_active")), "Eye of Truth should activate with the original duration.")
+    _expect(is_equal_approx(float(game.call("get_eye_of_truth_remaining_seconds")), 16.0), "Eye of Truth default duration should preserve DureeEyeTruthOrg 256 ticks at 16 Hz.")
+    game.call("_process", 8.0)
+    _expect(is_equal_approx(float(game.call("get_eye_of_truth_remaining_seconds")), 8.0), "Eye of Truth timer should count down in seconds.")
+    game.call("_process", 9.0)
+    _expect(not bool(game.call("is_eye_of_truth_active")), "Eye of Truth should expire after its duration elapses.")
+    game.call("clear_eye_of_truth")
+
+
+func _test_eye_of_truth_pickup(game: Node, assets: Node) -> void:
+    _expect(game != null and assets != null, "Eye of Truth pickup test needs Game and Assets services.")
+    if game == null or assets == null:
+        return
+    game.call("clear_eye_of_truth")
+
+    var scene := load(EYE_OF_TRUTH_PICKUP_SCENE_PATH) as PackedScene
+    _expect(scene != null, "Eye of Truth pickup scene should load.")
+    if scene == null:
+        return
+
+    var pickup := scene.instantiate() as Area3D
+    _expect(pickup != null, "Eye of Truth pickup should instantiate as an Area3D.")
+    if pickup == null:
+        return
+    root.add_child(pickup)
+    await process_frame
+
+    _expect(pickup.collision_layer == PICKUP_SENSOR_LAYER, "Eye of Truth pickup should live on the pickup sensor collision layer.")
+    _expect(pickup.collision_mask == CHARACTER_LAYER, "Eye of Truth pickup should monitor solid characters without blocking them.")
+    _expect(pickup.has_method("collect"), "Eye of Truth pickup should expose a collection hook for tests/importers.")
+    _expect(pickup.has_method("was_collected"), "Eye of Truth pickup should expose collected state.")
+    _expect(is_equal_approx(float(pickup.call("get_effect_duration_seconds")), 16.0), "Eye of Truth pickup should use the original 256-tick duration.")
+    _expect(String(pickup.get("collect_sound_asset_id")) == "sfx.eye_truth", "Eye of Truth pickup should use the original EyeTruth sound.")
+    var visual := pickup.call("get_visual_model") as Node3D
+    _expect(visual != null, "Eye of Truth pickup should spawn the original eye model visual.")
+    if visual != null:
+        var bounds: AABB = assets.get_model_global_bounds(visual)
+        _expect(bounds.size != Vector3.ZERO, "Eye of Truth pickup visual should have imported model bounds.")
+        var mesh_instance := visual as MeshInstance3D
+        var quad: QuadMesh = null
+        if mesh_instance != null:
+            quad = mesh_instance.mesh as QuadMesh
+        _expect(quad != null, "Eye of Truth pickup visual should render as the transparent Paneye billboard panel.")
+        if quad != null:
+            _expect(absf(quad.size.x - 0.564505) < 0.001 and absf(quad.size.y - 0.19125) < 0.001, "Eye of Truth pickup visual should use the original Paneye model dimensions.")
+            _expect(quad.size.x > quad.size.y * 2.5, "Eye of Truth pickup should be wide like the original Paneye model, not narrow and tall.")
+        var eye_texture := assets.load_asset("texture.eye_truth.panel") as Texture2D
+        _expect(eye_texture != null and _model_uses_texture(visual, eye_texture), "Eye of Truth pickup visual should use the transparent original eye texture.")
+        _expect(_model_uses_transparency_mode(visual, BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR), "Eye of Truth pickup visual should cut out keyed transparent pixels.")
+        _expect(_model_uses_alpha_scissor_threshold(visual, 0.5), "Eye of Truth pickup visual should keep binary cutout alpha.")
+        _expect(_model_uses_texture_filter(visual, BaseMaterial3D.TEXTURE_FILTER_NEAREST), "Eye of Truth pickup visual should keep the original pixel edge crisp.")
+        var visual_rotation_y := visual.rotation.y
+        var visual_y := visual.position.y
+        pickup.call("_process", 0.5)
+        _expect(is_equal_approx(visual.rotation.y, visual_rotation_y), "Eye of Truth pickup should not spin constantly around the Godot Y axis.")
+        _expect(absf(visual.position.y - visual_y) > 0.001, "Eye of Truth pickup should use the original-style vertical sustentation motion.")
+
+    var player_stub := Node3D.new()
+    player_stub.name = "EyeOfTruthCollector"
+    root.add_child(player_stub)
+    pickup.set("collect_sound_asset_id", "")
+    _expect(bool(pickup.call("collect", player_stub)), "Eye of Truth pickup should collect when given the player.")
+    _expect(bool(game.call("is_eye_of_truth_active")), "Collecting Eye of Truth should activate the global range effect.")
+    _expect(bool(pickup.call("was_collected")), "Eye of Truth pickup should mark itself collected.")
+    _expect(not pickup.visible, "Eye of Truth pickup should hide after collection.")
+    _expect(not bool(pickup.call("collect", player_stub)), "Eye of Truth pickup should not collect twice.")
+    await process_frame
+    _expect(not pickup.monitoring, "Eye of Truth pickup should stop monitoring after collection.")
+    _expect(not pickup.monitorable, "Eye of Truth pickup should stop being monitorable after collection.")
+
+    game.call("clear_eye_of_truth")
+    player_stub.queue_free()
+    pickup.queue_free()
+    await process_frame
+
+
 func _test_editor_model_previews(assets: Node) -> void:
     _expect(FileAccess.file_exists(EDITOR_PREVIEW_SCRIPT_PATH), "Editor model preview helper script should exist.")
     _expect_scene_editor_preview(PLAYER_SCENE_PATH, "VisualPivot/EditorPreview", "model.sammy.animated", 0.0, "")
     _expect_scene_editor_preview(WASP_PICKUP_SCENE_PATH, "EditorPreview", "model.wasp1", 0.05, WASP_TYPE_2_PATH, NodePath(".."))
     _expect_scene_editor_preview(WASP_PROJECTILE_SCENE_PATH, "EditorPreview", "model.wasp1", 0.0, WASP_TYPE_2_PATH)
     _expect_scene_editor_preview(BOOST_PICKUP_SCENE_PATH, "EditorPreview", "model.boost", 0.035, "")
+    _expect_scene_editor_preview(EYE_OF_TRUTH_PICKUP_SCENE_PATH, "EditorPreview", "model.eye_of_truth", 0.05, "")
     _expect_editor_preview_forces_double_sided_materials(assets)
     await _expect_editor_preview_applies_static_pose(assets)
 
@@ -191,6 +311,7 @@ func _test_editor_model_previews(assets: Node) -> void:
     await _expect_editor_preview_removed_at_runtime(WASP_PICKUP_SCENE_PATH, "EditorPreview")
     await _expect_editor_preview_removed_at_runtime(WASP_PROJECTILE_SCENE_PATH, "EditorPreview")
     await _expect_editor_preview_removed_at_runtime(BOOST_PICKUP_SCENE_PATH, "EditorPreview")
+    await _expect_editor_preview_removed_at_runtime(EYE_OF_TRUTH_PICKUP_SCENE_PATH, "EditorPreview")
 
 
 func _expect_scene_editor_preview(scene_path: String, preview_path: String, expected_asset_id: String, expected_ground_clearance: float, expected_wasp_type_path: String, expected_wasp_source_path: NodePath = NodePath("")) -> void:
@@ -1081,6 +1202,63 @@ func _test_enemy_ai_behavior() -> void:
     await process_frame
 
 
+func _test_enemy_visibility_range(game: Node) -> void:
+    const STATE_CHASE := 2
+    _expect(game != null, "Enemy visibility range test needs the Game service.")
+    if game == null:
+        return
+    game.call("clear_eye_of_truth")
+
+    var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    enemy.set("affected_by_gravity", false)
+    enemy.set("max_health", 5)
+    enemy.set("enemy_resistance", 5.0)
+    enemy.set("react_range", 5.0)
+    enemy.set("attack_range", 1.2)
+    enemy.set("wait_min", 999.0)
+    enemy.set("wait_max", 999.0)
+    enemy.set("turn_rate_deg_per_sec", 720.0)
+    root.add_child(enemy)
+    enemy.global_position = Vector3.ZERO
+    await physics_frame
+
+    _expect(enemy.has_method("get_visibility_range_node"), "Enemy should expose its Eye of Truth range helper.")
+    _expect(enemy.call("get_visibility_range_node") != null, "Enemy should create an Eye of Truth range helper.")
+    _expect(not bool(enemy.call("is_visibility_range_visible")), "Enemy range helper should stay hidden while Eye of Truth is inactive.")
+
+    game.call("activate_eye_of_truth", 16.0)
+    await physics_frame
+    _expect(bool(enemy.call("is_visibility_range_visible")), "Enemy range helper should show while Eye of Truth is active.")
+    _expect(is_equal_approx(float(enemy.call("get_visibility_range_display_radius")), 5.0), "Enemy range helper should display the current react_range radius.")
+    _expect(int(enemy.call("get_visibility_range_skin_number")) == 1, "Inactive idle enemies should use the original first range-circle skin.")
+    _expect(int(enemy.call("get_visibility_range_original_frame")) == 99, "Far/no-target range circles should hold the original high-distance frame.")
+
+    var player_stub := _make_ai_test_player()
+    root.add_child(player_stub)
+    player_stub.global_position = Vector3(0.0, 0.0, -3.0)
+    await physics_frame
+    await physics_frame
+    _expect(int(enemy.call("get_state")) == STATE_CHASE, "Enemy should still enter CHASE from react_range while the visual helper is active.")
+    _expect(int(enemy.call("get_visibility_range_skin_number")) == 3, "Chasing enemies with a seen player should use the original third range-circle skin.")
+    _expect(int(enemy.call("get_visibility_range_original_frame")) >= 55, "Chase range circles should use the original chase frame floor.")
+
+    enemy.set("react_range", 7.5)
+    await physics_frame
+    _expect(is_equal_approx(float(enemy.call("get_visibility_range_display_radius")), 7.5), "Enemy range helper should track react_range changes without restarting AI.")
+
+    enemy.call("take_damage", 99.0, null)
+    await physics_frame
+    _expect(not bool(enemy.call("is_visibility_range_visible")), "Dead enemies should hide their Eye of Truth range circle.")
+
+    game.call("clear_eye_of_truth")
+    if is_instance_valid(player_stub):
+        player_stub.queue_free()
+    if is_instance_valid(enemy):
+        enemy.queue_free()
+    await process_frame
+
+
 func _test_enemy_ignores_dead_player() -> void:
     const STATE_WAIT := 0
     const STATE_ATTACK_SWING := 10
@@ -1848,6 +2026,7 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("Player") != null, "Prototype player should be editor-instanced.")
     _expect(world.get_node_or_null("PrototypeCamera") != null, "Prototype camera should be editor-instanced.")
     _expect(world.get_node_or_null("BoostPickup") != null, "Prototype boost pickup should be editor-instanced.")
+    _expect(world.get_node_or_null("EyeOfTruthPickup") != null, "Prototype Eye of Truth pickup should be editor-instanced.")
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
     var floor := world.get_node_or_null("PrototypeFloor") as StaticBody3D
     _expect(floor != null, "Prototype floor should be a StaticBody3D.")
@@ -1919,6 +2098,9 @@ func _test_prototype_world() -> void:
                                 ["stand", "walk", "run", "attack", "hit", "rugit"].has(current_action),
                                 "Prototype enemy model should play a valid live AI animation: %s" % model_path
                         )
+                        _expect(model.has_method("get_visibility_range_node"), "Prototype enemy should expose the Eye of Truth range helper: %s" % model_path)
+                        if model.has_method("get_visibility_range_node"):
+                            _expect(model.call("get_visibility_range_node") != null, "Prototype enemy should attach the Eye of Truth range helper: %s" % model_path)
                     else:
                         _expect(current_action == "stand", "Prototype model should autoplay stand animation: %s" % model_path)
         var boost_pickup := world.get_node_or_null("BoostPickup") as Area3D
@@ -2016,6 +2198,17 @@ func _test_prototype_world() -> void:
                     if stopped_emitter != null:
                         _expect(not stopped_emitter.emitting, "Boost pickup GPU particle emitters should stop after collection.")
                 _expect(not boost_pickup.visible, "Boost pickup should hide after collection.")
+        var eye_pickup := world.get_node_or_null("EyeOfTruthPickup") as Area3D
+        _expect(eye_pickup != null, "Prototype world should spawn the Eye of Truth pickup as an Area3D.")
+        if eye_pickup != null:
+            _expect(eye_pickup.collision_layer == PICKUP_SENSOR_LAYER, "Eye of Truth pickup should live on the pickup sensor collision layer.")
+            _expect(eye_pickup.collision_mask == CHARACTER_LAYER, "Eye of Truth pickup should monitor solid characters without blocking them.")
+            _expect(eye_pickup.has_method("collect"), "Eye of Truth pickup should expose a collection hook for tests/importers.")
+            _expect(eye_pickup.has_method("was_collected"), "Eye of Truth pickup should expose collected state.")
+            _expect(is_equal_approx(float(eye_pickup.call("get_effect_duration_seconds")), 16.0), "Prototype Eye of Truth pickup should preserve the original duration.")
+            _expect(String(eye_pickup.get("collect_sound_asset_id")) == "sfx.eye_truth", "Eye of Truth pickup should use the original EyeTruth sound.")
+            var eye_model := eye_pickup.get_node_or_null("EyeOfTruthVisual") as Node3D
+            _expect(eye_model != null, "Eye of Truth pickup should spawn the original eye model visual.")
         var wasp_pickup := world.get_node_or_null("WaspPickup") as Area3D
         _expect(wasp_pickup != null, "Prototype world should spawn the wasp pickup as an Area3D.")
         if wasp_pickup != null:
@@ -2152,7 +2345,7 @@ func _model_uses_texture(node: Node, texture: Texture2D) -> bool:
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            var material := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
+            var material := _surface_material(mesh_instance, surface_index) as StandardMaterial3D
             if material != null and material.albedo_texture == texture:
                 return true
 
@@ -2166,7 +2359,7 @@ func _model_surface_with_texture_uses_shading_mode(node: Node, texture: Texture2
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            var material := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
+            var material := _surface_material(mesh_instance, surface_index) as StandardMaterial3D
             if material != null and material.albedo_texture == texture and material.shading_mode == expected_shading_mode:
                 return true
 
@@ -2180,7 +2373,7 @@ func _model_uses_transparency_mode(node: Node, transparency_mode: int) -> bool:
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            var material := mesh_instance.get_active_material(surface_index) as BaseMaterial3D
+            var material := _surface_material(mesh_instance, surface_index) as BaseMaterial3D
             if material != null and material.transparency == transparency_mode:
                 return true
 
@@ -2194,7 +2387,7 @@ func _model_uses_texture_filter(node: Node, expected_texture_filter: int) -> boo
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            var material := mesh_instance.get_active_material(surface_index) as BaseMaterial3D
+            var material := _surface_material(mesh_instance, surface_index) as BaseMaterial3D
             if material != null and material.texture_filter == expected_texture_filter:
                 return true
 
@@ -2208,7 +2401,7 @@ func _model_uses_alpha_scissor_threshold(node: Node, expected_threshold: float) 
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            var material := mesh_instance.get_active_material(surface_index) as BaseMaterial3D
+            var material := _surface_material(mesh_instance, surface_index) as BaseMaterial3D
             if material != null and is_equal_approx(material.alpha_scissor_threshold, expected_threshold):
                 return true
 
@@ -2223,7 +2416,7 @@ func _model_materials_use_cull_mode(node: Node, expected_cull_mode: int) -> bool
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            var material := mesh_instance.get_active_material(surface_index) as BaseMaterial3D
+            var material := _surface_material(mesh_instance, surface_index) as BaseMaterial3D
             if material == null:
                 continue
             found_material = true
@@ -2257,13 +2450,24 @@ func _model_has_base_material(node: Node) -> bool:
     var mesh_instance := node as MeshInstance3D
     if mesh_instance != null and mesh_instance.mesh != null:
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            if mesh_instance.get_active_material(surface_index) is BaseMaterial3D:
+            if _surface_material(mesh_instance, surface_index) is BaseMaterial3D:
                 return true
 
     for child in node.get_children():
         if _model_has_base_material(child):
             return true
     return false
+
+
+func _surface_material(mesh_instance: MeshInstance3D, surface_index: int) -> Material:
+    if mesh_instance.material_override != null:
+        return mesh_instance.material_override
+    var material := mesh_instance.get_surface_override_material(surface_index)
+    if material != null:
+        return material
+    if mesh_instance.mesh == null:
+        return null
+    return mesh_instance.mesh.surface_get_material(surface_index)
 
 
 func _audio_service_has_stream(audio: Node, stream: AudioStream) -> bool:

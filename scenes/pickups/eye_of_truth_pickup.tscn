@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/pickups/eye_of_truth_pickup.gd" id="1_eye_truth"]
+[ext_resource type="Script" path="res://src/editor/sammy_editor_model_preview.gd" id="2_preview"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_eye_truth"]
+radius = 0.65
+
+[node name="EyeOfTruthPickup" type="Area3D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_eye_truth")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.45, 0)
+shape = SubResource("SphereShape3D_eye_truth")
+
+[node name="EditorPreview" type="Node3D" parent="."]
+script = ExtResource("2_preview")
+asset_id = "model.eye_of_truth"
+visual_ground_clearance = 0.05

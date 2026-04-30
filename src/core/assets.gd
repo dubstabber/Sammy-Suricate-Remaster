@@ -68,11 +68,59 @@ const CATALOG := {
         "animation_library": "res://assets/animations/boost_clips.tres",
         "default_animation": "stand"
     },
+    "model.enemy_visibility_range": {
+        "path": "res://assets/models/circl100/circl100_animated.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/circl100/circl100_animated.gltf",
+        "kind": "model",
+        "description": "Original Eye of Truth enemy range circle model"
+    },
+    "model.eye_of_truth": {
+        "path": "res://assets/models/Paneye/Paneye.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/Paneye/Paneye.gltf",
+        "kind": "model",
+        "description": "Original Eye of Truth pickup and panel model"
+    },
+    "texture.enemy_visibility_range.skin_1": {
+        "path": "res://assets/models/circl100/skins/circl100_skin0.png",
+        "source": "extract-sammy-assets/extracted/godot/models/circl100/skins/circl100_skin0.png",
+        "kind": "texture",
+        "description": "Original Eye of Truth range circle idle skin"
+    },
+    "texture.enemy_visibility_range.skin_2": {
+        "path": "res://assets/models/circl100/skins/circl100_skin1.png",
+        "source": "extract-sammy-assets/extracted/godot/models/circl100/skins/circl100_skin1.png",
+        "kind": "texture",
+        "description": "Original Eye of Truth range circle alert skin"
+    },
+    "texture.enemy_visibility_range.skin_3": {
+        "path": "res://assets/models/circl100/skins/circl100_skin2.png",
+        "source": "extract-sammy-assets/extracted/godot/models/circl100/skins/circl100_skin2.png",
+        "kind": "texture",
+        "description": "Original Eye of Truth range circle chase skin"
+    },
+    "texture.eye_truth.panel": {
+        "path": "res://assets/models/Paneye/skins/Paneye_skin0.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/eyetruth.png",
+        "kind": "texture",
+        "description": "Original Eye of Truth pickup and panel texture"
+    },
     "texture.particle.small_star_1a": {
         "path": "res://assets/textures/particles/tistar1a.png",
         "source": "extract-sammy-assets/extracted/godot/textures/tistar1a.png",
         "kind": "texture",
         "description": "Original SmallStar1A sprite used by particle_Boost1"
+    },
+    "texture.particle.eye_truth_1": {
+        "path": "res://assets/textures/particles/peye1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/peye1.png",
+        "kind": "texture",
+        "description": "Original particle_RangeLion1 / particle_TakeEyeTruth sprite"
+    },
+    "texture.particle.eye_truth_2": {
+        "path": "res://assets/textures/particles/peye2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/peye2.png",
+        "kind": "texture",
+        "description": "Original particle_RangeLion2 / particle_TakeEyeTruth sprite"
     },
     "music.sammy01": {
         "path": "res://assets/audio/sammy01.ogg",
@@ -91,6 +139,12 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/audio/Chimes2.wav",
         "kind": "audio",
         "description": "Original speed boost pickup chime"
+    },
+    "sfx.eye_truth": {
+        "path": "res://assets/audio/EyeTruth.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/EyeTruth.wav",
+        "kind": "audio",
+        "description": "Original EyeTruth_son pickup sound"
     },
     "sfx.quick_turn": {
         "path": "res://assets/audio/Blouit.wav",
@@ -264,6 +318,11 @@ func load_wasp_leg_skin_texture(skin_index: int) -> Texture2D:
     if not ResourceLoader.exists(texture_path) and not FileAccess.file_exists(texture_path):
         return null
     return load(texture_path) as Texture2D
+
+
+func load_enemy_visibility_range_skin_texture(skin_number: int) -> Texture2D:
+    var clamped_skin := clampi(skin_number, 1, 3)
+    return load_asset("texture.enemy_visibility_range.skin_%d" % clamped_skin) as Texture2D
 
 
 func apply_wasp_skin(model_root: Node3D, skin_index: int) -> bool:

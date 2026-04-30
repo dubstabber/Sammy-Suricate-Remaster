@@ -5,6 +5,7 @@ const ACKNEX_TO_GODOT_SCALE := 0.01
 const ACKNEX_TICKS_PER_SECOND := 16.0
 const WDL_SPEED_UNITS_TO_METERS_PER_SECOND := ACKNEX_TO_GODOT_SCALE * ACKNEX_TICKS_PER_SECOND
 const MINIMUM_ANIMATION_SPEED_SCALE := 0.001
+const ENEMY_VISIBILITY_RANGE_SCRIPT := preload("res://src/effects/enemy_visibility_range.gd")
 
 # WDL lion.wdl LionEtat parity. Numeric values match the original states so
 # parity-driven tuning can refer back to the script directly.
@@ -38,6 +39,7 @@ enum EnemyState {
 # WDL LionAttackRange = 500 acknex units; 500 * 0.01 = 5 m engage radius.
 @export var react_range: float = 5.0
 @export var attack_range: float = 1.1
+@export var visibility_range_enabled: bool = true
 @export var move_speed: float = 1.2
 @export var run_speed: float = 1.8
 @export var turn_rate_deg_per_sec: float = 220.0
@@ -122,12 +124,14 @@ var _attack_push_direction: Vector3 = Vector3.ZERO
 var _attack_started_in_range: bool = false
 var _blocked_time_accumulator: float = 0.0
 var _roar_cooldown_remaining: float = 0.0
+var _visibility_range: Node = null
 
 
 func _ready() -> void:
 	add_to_group("enemy")
 	_initialize_original_resistance()
 	_apply_asset_catalog_settings()
+	_ensure_visibility_range()
 	_animation_controller = get_node_or_null(animation_controller_path)
 	if _animation_controller != null:
 		_animation_player = _animation_controller.get("animation_player") as AnimationPlayer
@@ -202,6 +206,36 @@ func get_target() -> Node3D:
 	return _target
 
 
+func get_visibility_range_node() -> Node:
+	return _visibility_range
+
+
+func is_visibility_range_visible() -> bool:
+	return (
+			_visibility_range != null
+			and _visibility_range.has_method("is_range_visible")
+			and bool(_visibility_range.call("is_range_visible"))
+	)
+
+
+func get_visibility_range_display_radius() -> float:
+	if _visibility_range == null or not _visibility_range.has_method("get_display_radius"):
+		return 0.0
+	return float(_visibility_range.call("get_display_radius"))
+
+
+func get_visibility_range_skin_number() -> int:
+	if _visibility_range == null or not _visibility_range.has_method("get_current_skin_number"):
+		return 0
+	return int(_visibility_range.call("get_current_skin_number"))
+
+
+func get_visibility_range_original_frame() -> int:
+	if _visibility_range == null or not _visibility_range.has_method("get_current_original_frame"):
+		return -1
+	return int(_visibility_range.call("get_current_original_frame"))
+
+
 func _physics_process(delta: float) -> void:
 	_update_shared_attack_call(delta)
 	_roar_cooldown_remaining = maxf(0.0, _roar_cooldown_remaining - maxf(delta, 0.0))
@@ -215,6 +249,7 @@ func _physics_process(delta: float) -> void:
 		_fall_velocity_y = 0.0
 		velocity.y = 0.0
 	_update_blocked_roar(delta)
+	_refresh_visibility_range()
 
 
 func get_animation_speed_units_for_horizontal_speed(horizontal_speed: float) -> float:
@@ -832,6 +867,24 @@ func _resolve_action_duration(action: StringName, speed: float) -> float:
 	if anim == null:
 		return 0.0
 	return anim.length / speed
+
+
+func _ensure_visibility_range() -> void:
+	if not visibility_range_enabled:
+		return
+	if _visibility_range != null and is_instance_valid(_visibility_range):
+		return
+	_visibility_range = ENEMY_VISIBILITY_RANGE_SCRIPT.new()
+	_visibility_range.name = "VisibilityRange"
+	add_child(_visibility_range)
+	if _visibility_range.has_method("configure"):
+		_visibility_range.call("configure", self)
+
+
+func _refresh_visibility_range() -> void:
+	if _visibility_range == null or not _visibility_range.has_method("refresh_from_enemy"):
+		return
+	_visibility_range.call("refresh_from_enemy")
 
 
 func _apply_asset_catalog_settings() -> void:

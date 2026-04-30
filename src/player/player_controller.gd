@@ -24,15 +24,15 @@ const CHARACTER_COLLISION_MASK := 1 << 1
 @export var fire_sound_asset_id: String = "sfx.wasp"
 @export var no_wasp_sound_asset_id: String = "sfx.error"
 @export var wasp_muzzle_offset: Vector3 = Vector3(0.0, 0.6, -0.4)
-@export var max_health: int = 6
-@export var damage_invulnerability_seconds: float = 0.6
-# WDL InitLvl/player: PoidPlayer1 = 0.8, AmortiBouncePlayer = 10.
+@export var max_health: float = 48.0
+@export var damage_invulnerability_seconds: float = 0.0
+# WDL InitLvl/player: WindowHeartsOrg = 48, PoidPlayer1 = 0.8, AmortiBouncePlayer = 10.
 @export var enemy_push_weight_force: float = 0.8
 @export var enemy_push_damping_per_second: float = 10.0
 @export var enemy_push_max_source_speed: float = 2.7
 @export var enemy_push_immediate_seconds: float = 0.04
 
-signal damaged(amount: int, source: Node)
+signal damaged(amount: float, source: Node)
 
 @onready var visual_pivot: Node3D = $VisualPivot
 
@@ -57,7 +57,7 @@ var _wasp_spawn_delay_remaining: float = 0.0
 var _wasp_recovery_remaining: float = 0.0
 var _jump_fire_blocked: bool = false
 var _landing_movement_lock_remaining: float = 0.0
-var _health: int = 0
+var _health: float = 0.0
 var _last_damage_time_msec: int = -1_000_000
 var _enemy_push_velocity: Vector3 = Vector3.ZERO
 var _applied_enemy_push_velocity: Vector3 = Vector3.ZERO
@@ -65,28 +65,36 @@ var _applied_enemy_push_velocity: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
     add_to_group("player")
-    _health = max_health
+    _health = maxf(max_health, 0.0)
     _boost_capacity = clampf(movement_config.boost_initial_capacity, 0.0, movement_config.boost_capacity_max)
     _ensure_wasp_inventory()
     _spawn_model()
 
 
-func take_damage(amount: int, source: Node = null) -> bool:
-    if amount <= 0 or _health <= 0:
+func take_damage(amount: float, source: Node = null) -> bool:
+    if amount <= 0.0 or _health <= 0.0:
         return false
     if is_in_invulnerability_window():
         return false
-    _health = maxi(0, _health - amount)
+    _health = maxf(0.0, _health - amount)
     _last_damage_time_msec = Time.get_ticks_msec()
     damaged.emit(amount, source)
     return true
 
 
-func get_health() -> int:
+func get_health() -> float:
     return _health
 
 
-func get_max_health() -> int:
+func get_max_health() -> float:
+    return max_health
+
+
+func get_window_hearts() -> float:
+    return _health
+
+
+func get_window_hearts_max() -> float:
     return max_health
 
 

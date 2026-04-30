@@ -12,11 +12,14 @@ enum EnemyState {
 	WAIT = 0,
 	WALK = 1,
 	CHASE = 2,
+	ROAR = 3,
 	ALT_STAND = 4,
 	DYING = 6,
 	DEAD = 7,
 	ATTACK_SWING = 10,
 	HIT_RECOIL = 11,
+	FLEE = 12,
+	RANDOM_RUN = 13,
 }
 
 @export var asset_id: String = ""
@@ -27,7 +30,10 @@ enum EnemyState {
 @export var original_gravity_velocity: float = -4.0
 @export var original_gravity_acceleration: float = 3.0
 @export var terminal_fall_speed: float = -40.0
-@export var max_health: int = 3
+@export var max_health: float = 4.0
+@export var enemy_resistance: float = 0.0
+@export var enemy_weight_force: float = 0.62
+@export var enemy_family_id: float = 1.0
 
 # WDL LionAttackRange = 500 acknex units; 500 * 0.01 = 5 m engage radius.
 @export var react_range: float = 5.0
@@ -43,8 +49,10 @@ enum EnemyState {
 @export var wait_min: float = 1.5
 @export var wait_max: float = 4.0
 @export var alt_stand_chance: float = 0.35
-@export var contact_damage: int = 1
-@export var attack_strike_ratio: float = 0.45
+@export var contact_damage: float = 1.0
+@export var hargne_enemy: float = 2.0
+@export var contact_damage_multiplier: float = 0.25
+@export var attack_strike_ratio: float = 0.6
 # WDL lion/player: LionForce defaults to 2, and LionEtat 10 advances at 1.5x SpeedEnnemy.
 @export var push_bounce_force: float = 2.0
 @export var attack_push_speed_multiplier: float = 1.5
@@ -56,25 +64,45 @@ enum EnemyState {
 @export var movement_animation_units_per_meter: float = 1.0 / WDL_SPEED_UNITS_TO_METERS_PER_SECOND
 @export var attack_animation_speed: float = 1.2
 @export var hit_animation_speed: float = 1.5
+@export var roar_animation_speed: float = 1.0
 @export var death_animation_speed: float = 1.0
 @export var perception_eye_height: float = 1.0
 @export var target_eye_height: float = 0.7
 @export var line_of_sight_mask: int = 1
 @export var disengage_range_factor: float = 1.4
+@export var roar_calls_friends: bool = true
+@export var hurt_roar_health_ratio: float = 0.75
+@export var hurt_flee_health_ratio: float = 0.5
+@export var flee_speed_multiplier: float = 1.2
+@export var enemy_frightened_seconds: float = 1.5
+@export var attack_call_seconds: float = 8.0
+@export var attack_call_range: float = 100.0
+@export var attack_call_min_distance: float = 1.28
 
-signal damaged(amount: int, source: Node)
+signal damaged(amount: float, source: Node)
 signal died(source: Node)
-signal attack_landed(target: Node, amount: int)
+signal warning_attack(target: Node)
+signal roar_started()
+signal attack_call_started()
+signal attack_landed(target: Node, amount: float)
+
+static var _shared_attack_call_remaining: float = 0.0
+static var _shared_attack_call_key: float = 0.0
+static var _shared_attack_call_last_frame: int = -1
 
 var _fall_velocity_y: float = 0.0
-var _health: int = 0
+var _health: float = 0.0
+var _enemy_resistance_org: float = 0.0
 var _is_dead: bool = false
 var _state: int = EnemyState.WAIT
 var _animation_controller: Node = null
 var _animation_player: AnimationPlayer = null
 var _target: Node3D = null
 var _wait_remaining: float = 0.0
+var _roar_remaining: float = 0.0
+var _flee_remaining: float = 0.0
 var _hit_resolved_this_swing: bool = false
+var _contact_resolved_this_swing: bool = false
 var _death_timer: float = 0.0
 var _wander_target: Vector3 = Vector3.ZERO
 var _has_wander_target: bool = false
@@ -82,12 +110,11 @@ var _last_target_push_frame: int = -1
 var _attack_target: Node3D = null
 var _attack_push_direction: Vector3 = Vector3.ZERO
 var _attack_started_in_range: bool = false
-var _attack_push_resolved_this_swing: bool = false
 
 
 func _ready() -> void:
 	add_to_group("enemy")
-	_health = max_health
+	_initialize_original_resistance()
 	_apply_asset_catalog_settings()
 	_animation_controller = get_node_or_null(animation_controller_path)
 	if _animation_controller != null:
@@ -97,13 +124,13 @@ func _ready() -> void:
 	_enter_state(EnemyState.WAIT)
 
 
-func take_damage(amount: int, source: Node = null) -> void:
-	if _is_dead or amount <= 0:
+func take_damage(amount: float, source: Node = null) -> void:
+	if _is_dead or amount <= 0.0:
 		return
 	_health -= amount
 	damaged.emit(amount, source)
-	if _health <= 0:
-		_health = 0
+	if _health <= 0.0:
+		_health = 0.0
 		_is_dead = true
 		died.emit(source)
 		_enter_state(EnemyState.DYING)
@@ -111,8 +138,34 @@ func take_damage(amount: int, source: Node = null) -> void:
 		_enter_state(EnemyState.HIT_RECOIL)
 
 
-func get_health() -> int:
+func get_health() -> float:
 	return _health
+
+
+func get_enemy_resistance() -> float:
+	return _health
+
+
+func get_enemy_resistance_org() -> float:
+	return _enemy_resistance_org
+
+
+func get_contact_damage_amount() -> float:
+	if _health > 0.0:
+		return _health * maxf(contact_damage_multiplier, 0.0)
+	return maxf(contact_damage, 0.0)
+
+
+func get_attack_damage_amount() -> float:
+	return maxf(_health, 0.0) * maxf(hargne_enemy, 0.0)
+
+
+func get_friend_call_key() -> float:
+	return enemy_family_id + enemy_weight_force
+
+
+func is_attack_call_active() -> bool:
+	return _shared_attack_call_remaining > 0.0
 
 
 func is_dead() -> bool:
@@ -128,6 +181,7 @@ func get_target() -> Node3D:
 
 
 func _physics_process(delta: float) -> void:
+	_update_shared_attack_call(delta)
 	var horizontal := _update_ai(delta)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
@@ -160,10 +214,15 @@ func get_attack_push_source_velocity() -> Vector3:
 	return _attack_lunge_velocity()
 
 
+func get_contact_push_source_velocity() -> Vector3:
+	return _forward_velocity(run_speed)
+
+
 func get_attack_hit_push_source_velocity() -> Vector3:
+	var lunge := _attack_lunge_velocity()
+	if lunge.length_squared() > 0.0:
+		return lunge
 	var direction := _attack_push_direction
-	if direction.length_squared() <= 0.0:
-		direction = _forward_velocity(1.0)
 	if direction.length_squared() <= 0.0:
 		return Vector3.ZERO
 	return direction.normalized() * maxf(attack_hit_push_source_speed, 0.0)
@@ -184,6 +243,35 @@ func get_fall_velocity() -> float:
 func reset_vertical_motion() -> void:
 	_fall_velocity_y = 0.0
 	velocity.y = 0.0
+
+
+func _initialize_original_resistance() -> void:
+	if enemy_resistance > 0.0:
+		max_health = enemy_resistance
+	else:
+		enemy_resistance = max_health
+	max_health = maxf(max_health, 0.0)
+	enemy_resistance = maxf(enemy_resistance, 0.0)
+	_health = max_health
+	_enemy_resistance_org = max_health
+
+
+func _update_shared_attack_call(delta: float) -> void:
+	var current_frame := Engine.get_physics_frames()
+	if _shared_attack_call_last_frame == current_frame:
+		return
+	_shared_attack_call_last_frame = current_frame
+	_shared_attack_call_remaining = maxf(0.0, _shared_attack_call_remaining - maxf(delta, 0.0))
+	if _shared_attack_call_remaining <= 0.0:
+		_shared_attack_call_key = 0.0
+
+
+func _start_attack_call() -> void:
+	if _shared_attack_call_remaining > 0.0:
+		return
+	_shared_attack_call_remaining = maxf(attack_call_seconds, 0.0)
+	_shared_attack_call_key = get_friend_call_key()
+	attack_call_started.emit()
 
 
 func _apply_gravity(delta: float) -> void:
@@ -214,10 +302,16 @@ func _update_ai(delta: float) -> Vector3:
 			return _tick_walk(delta)
 		EnemyState.CHASE:
 			return _tick_chase(delta)
+		EnemyState.ROAR:
+			return _tick_roar(delta)
 		EnemyState.ATTACK_SWING:
 			return _tick_attack_swing(delta)
 		EnemyState.HIT_RECOIL:
 			return Vector3.ZERO
+		EnemyState.FLEE:
+			return _tick_flee(delta)
+		EnemyState.RANDOM_RUN:
+			return _tick_random_run(delta)
 		EnemyState.DYING:
 			return _tick_dying(delta)
 	return Vector3.ZERO
@@ -225,6 +319,9 @@ func _update_ai(delta: float) -> Vector3:
 
 func _tick_wait(delta: float) -> Vector3:
 	_wait_remaining = maxf(0.0, _wait_remaining - delta)
+	if _should_answer_attack_call():
+		_enter_state(EnemyState.CHASE)
+		return Vector3.ZERO
 	if _should_engage_target():
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
@@ -237,6 +334,9 @@ func _tick_wait(delta: float) -> Vector3:
 
 
 func _tick_walk(delta: float) -> Vector3:
+	if _should_answer_attack_call():
+		_enter_state(EnemyState.CHASE)
+		return Vector3.ZERO
 	if _should_engage_target():
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
@@ -265,12 +365,24 @@ func _tick_chase(delta: float) -> Vector3:
 	if dist <= attack_range and absf(yaw_delta) <= deg_to_rad(attack_yaw_threshold_deg):
 		_enter_state(EnemyState.ATTACK_SWING)
 		return _attack_lunge_velocity()
-	if dist > react_range * disengage_range_factor or not _has_line_of_sight_to(_target):
+	if dist > react_range * disengage_range_factor:
 		_enter_state(EnemyState.WAIT)
+		return Vector3.ZERO
+	if not _has_line_of_sight_to(_target):
+		_enter_state(EnemyState.ROAR)
 		return Vector3.ZERO
 	if absf(yaw_delta) > deg_to_rad(chase_yaw_threshold_deg):
 		return Vector3.ZERO
 	return _forward_velocity(run_speed)
+
+
+func _tick_roar(delta: float) -> Vector3:
+	if _target != null:
+		_turn_toward(_target_horizontal_offset(), delta)
+	_roar_remaining = maxf(0.0, _roar_remaining - delta)
+	if _roar_remaining <= 0.0:
+		_finish_roar()
+	return Vector3.ZERO
 
 
 func _tick_attack_swing(delta: float) -> Vector3:
@@ -283,6 +395,31 @@ func _tick_attack_swing(delta: float) -> Vector3:
 			if ratio >= attack_strike_ratio:
 				_resolve_attack_hit()
 	return _attack_lunge_velocity()
+
+
+func _tick_flee(delta: float) -> Vector3:
+	_flee_remaining = maxf(0.0, _flee_remaining - delta)
+	if _flee_remaining <= 0.0:
+		_enter_state(EnemyState.WALK if _target != null else EnemyState.WAIT)
+		return Vector3.ZERO
+	var away := Vector3.ZERO
+	if _target != null:
+		away = global_position - _target.global_position
+		away.y = 0.0
+	if away.length_squared() <= 0.0:
+		away = -_forward_velocity(1.0)
+	_turn_toward(away, delta)
+	return _forward_velocity(run_speed * maxf(flee_speed_multiplier, 0.0))
+
+
+func _tick_random_run(delta: float) -> Vector3:
+	_wait_remaining = maxf(0.0, _wait_remaining - delta)
+	if _wait_remaining <= 0.0:
+		_enter_state(EnemyState.WALK)
+		return Vector3.ZERO
+	if _has_wander_target:
+		_turn_toward(_wander_target - global_position, delta)
+	return _forward_velocity(run_speed)
 
 
 func _tick_dying(delta: float) -> Vector3:
@@ -299,14 +436,16 @@ func _enter_state(new_state: int) -> void:
 	# fires again and drives the next transition.
 	var allow_reenter := (
 			new_state == EnemyState.WAIT
+			or new_state == EnemyState.ROAR
 			or new_state == EnemyState.ATTACK_SWING
 			or new_state == EnemyState.HIT_RECOIL
 	)
 	if _state == new_state and not allow_reenter:
 		return
+	var old_state := _state
 	_state = new_state
 	_hit_resolved_this_swing = false
-	_attack_push_resolved_this_swing = false
+	_contact_resolved_this_swing = false
 	match new_state:
 		EnemyState.WAIT:
 			_wait_remaining = randf_range(wait_min, wait_max)
@@ -326,12 +465,20 @@ func _enter_state(new_state: int) -> void:
 			_has_wander_target = true
 			_play_action(&"walk", get_walk_animation_speed_scale())
 		EnemyState.CHASE:
+			if old_state != EnemyState.CHASE:
+				_begin_warning_attack()
 			_play_action(get_chase_animation_action(), get_chase_animation_speed_scale())
+		EnemyState.ROAR:
+			_begin_roar()
 		EnemyState.ATTACK_SWING:
 			_begin_attack_swing()
 			_play_action(&"attack", attack_animation_speed, true)
 		EnemyState.HIT_RECOIL:
 			_play_action(&"hit", hit_animation_speed, true)
+		EnemyState.FLEE:
+			_begin_flee()
+		EnemyState.RANDOM_RUN:
+			_begin_random_run()
 		EnemyState.DYING:
 			var death_duration := _resolve_action_duration(&"death", death_animation_speed)
 			_death_timer = death_duration + maxf(death_despawn_seconds, 0.0)
@@ -344,7 +491,7 @@ func _refresh_movement_animation_speed() -> void:
 	match _state:
 		EnemyState.WALK:
 			_play_action(&"walk", get_walk_animation_speed_scale())
-		EnemyState.CHASE:
+		EnemyState.CHASE, EnemyState.FLEE, EnemyState.RANDOM_RUN:
 			_play_action(get_chase_animation_action(), get_chase_animation_speed_scale())
 
 
@@ -359,11 +506,47 @@ func _begin_attack_swing() -> void:
 	if _attack_push_direction.length_squared() > 0.0:
 		_attack_push_direction = _attack_push_direction.normalized()
 	if _attack_started_in_range and _attack_target != null and is_instance_valid(_attack_target):
-		_apply_attack_push_to_target(_attack_target)
+		_resolve_attack_contact(_attack_target)
+
+
+func _begin_warning_attack() -> void:
+	if _target != null:
+		warning_attack.emit(_target)
+
+
+func _begin_roar() -> void:
+	var duration := _resolve_action_duration(&"rugit", roar_animation_speed)
+	_roar_remaining = duration if duration > 0.0 else 0.75
+	_play_action(&"rugit", roar_animation_speed, true)
+	roar_started.emit()
+	if roar_calls_friends:
+		_start_attack_call()
+
+
+func _finish_roar() -> void:
+	if _should_engage_target() or _should_answer_attack_call():
+		_enter_state(EnemyState.CHASE)
+	else:
+		_enter_state(EnemyState.WAIT)
+
+
+func _begin_flee() -> void:
+	_flee_remaining = maxf(enemy_frightened_seconds, 0.0)
+	_play_action(get_chase_animation_action(), get_chase_animation_speed_scale(), true)
+
+
+func _begin_random_run() -> void:
+	_wait_remaining = randf_range(wait_min, wait_max)
+	var angle := randf() * TAU
+	_wander_target = global_position + Vector3(cos(angle), 0.0, sin(angle)) * randf_range(1.0, 2.0)
+	_has_wander_target = true
+	_play_action(get_chase_animation_action(), get_chase_animation_speed_scale(), true)
 
 
 func _on_animation_finished(_anim_name: StringName) -> void:
 	match _state:
+		EnemyState.ROAR:
+			_finish_roar()
 		EnemyState.ATTACK_SWING:
 			if not _hit_resolved_this_swing:
 				_resolve_attack_hit()
@@ -376,12 +559,20 @@ func _on_animation_finished(_anim_name: StringName) -> void:
 			else:
 				_enter_state(EnemyState.WAIT)
 		EnemyState.HIT_RECOIL:
-			if _should_engage_target():
-				_enter_state(EnemyState.CHASE)
-			else:
-				_enter_state(EnemyState.WAIT)
+			_finish_hit_recoil()
 		EnemyState.DYING:
 			pass
+
+
+func _finish_hit_recoil() -> void:
+	if _should_roar_after_hit():
+		_enter_state(EnemyState.ROAR)
+	elif _should_flee_after_hit():
+		_enter_state(EnemyState.FLEE)
+	elif _should_engage_target():
+		_enter_state(EnemyState.CHASE)
+	else:
+		_enter_state(EnemyState.WAIT)
 
 
 func _refresh_target() -> void:
@@ -403,6 +594,27 @@ func _should_engage_target() -> bool:
 	if to_target.length() > react_range:
 		return false
 	return _has_line_of_sight_to(_target)
+
+
+func _should_answer_attack_call() -> bool:
+	if not is_attack_call_active() or _target == null:
+		return false
+	if not is_equal_approx(_shared_attack_call_key, get_friend_call_key()):
+		return false
+	var distance := _target_horizontal_offset().length()
+	return distance < attack_call_range and distance > attack_call_min_distance
+
+
+func _should_roar_after_hit() -> bool:
+	if not roar_calls_friends or _enemy_resistance_org <= 0.0:
+		return false
+	return _health <= _enemy_resistance_org * clampf(hurt_roar_health_ratio, 0.0, 1.0)
+
+
+func _should_flee_after_hit() -> bool:
+	if _enemy_resistance_org <= 0.0:
+		return false
+	return _health <= _enemy_resistance_org * clampf(hurt_flee_health_ratio, 0.0, 1.0)
 
 
 func _target_horizontal_offset() -> Vector3:
@@ -473,10 +685,24 @@ func _resolve_attack_hit() -> void:
 		return
 	if not hit_target.has_method("take_damage"):
 		return
-	hit_target.call("take_damage", contact_damage, self)
-	if not _attack_push_resolved_this_swing:
-		_apply_attack_push_to_target(hit_target)
-	attack_landed.emit(hit_target, contact_damage)
+	var damage := get_attack_damage_amount()
+	hit_target.call("take_damage", damage, self)
+	_apply_attack_push_to_target(hit_target)
+	attack_landed.emit(hit_target, damage)
+
+
+func _resolve_attack_contact(hit_target: Node3D) -> void:
+	if _contact_resolved_this_swing:
+		return
+	_contact_resolved_this_swing = true
+	if hit_target == null or not is_instance_valid(hit_target):
+		return
+	if not hit_target.has_method("take_damage"):
+		return
+	var damage := get_contact_damage_amount()
+	hit_target.call("take_damage", damage, self)
+	_apply_push_to_target(hit_target, get_contact_push_source_velocity())
+	attack_landed.emit(hit_target, damage)
 
 
 func _apply_attack_push_to_target(target: Node3D) -> void:
@@ -492,7 +718,6 @@ func _apply_push_to_target(target: Node3D, source_velocity: Vector3) -> void:
 	if _last_target_push_frame == current_frame:
 		return
 	_last_target_push_frame = current_frame
-	_attack_push_resolved_this_swing = true
 	target.call("apply_enemy_push", source_velocity, push_bounce_force, self)
 
 

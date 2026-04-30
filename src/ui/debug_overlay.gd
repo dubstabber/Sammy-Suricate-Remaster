@@ -26,10 +26,12 @@ func _physics_process(_delta: float) -> void:
         var p := _player.global_position
         lines.append("Player: %.2f, %.2f, %.2f" % [p.x, p.y, p.z])
         if _player.has_method("get_health") and _player.has_method("get_max_health"):
-            lines.append("Health: %d / %d" % [
-                    int(_player.call("get_health")),
-                    int(_player.call("get_max_health"))
-            ])
+            var health := float(_player.call("get_health"))
+            var max_health := float(_player.call("get_max_health"))
+            if is_equal_approx(health, roundf(health)):
+                lines.append("Health: %d / %d" % [int(roundf(health)), int(roundf(max_health))])
+            else:
+                lines.append("Health: %.2f / %d" % [health, int(roundf(max_health))])
         if _player.has_method("get_boost_capacity") and _player.has_method("get_boost_capacity_max"):
             lines.append("Boost: %.0f / %.0f" % [
                     float(_player.call("get_boost_capacity")),

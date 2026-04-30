@@ -787,6 +787,7 @@ func _test_wasp_projectile_damages_enemy() -> void:
     var enemy: Node = enemy_scene.instantiate()
     enemy.set("affected_by_gravity", false)
     enemy.set("max_health", 5)
+    enemy.set("enemy_resistance", 5.0)
     root.add_child(enemy)
     enemy.global_position = Vector3(0.0, 0.0, -3.0)
     await physics_frame
@@ -890,18 +891,22 @@ func _test_wasp_projectile_behaviors() -> void:
 func _test_enemy_ai_behavior() -> void:
     const STATE_WAIT := 0
     const STATE_CHASE := 2
+    const STATE_ROAR := 3
     const STATE_DYING := 6
     const STATE_ATTACK_SWING := 10
     const STATE_HIT_RECOIL := 11
+    const STATE_FLEE := 12
 
     var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
     var enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
     enemy.set("affected_by_gravity", false)
     enemy.set("max_health", 5)
+    enemy.set("enemy_resistance", 5.0)
     enemy.set("react_range", 5.0)
     enemy.set("attack_range", 1.2)
     enemy.set("attack_strike_ratio", 0.1)
-    enemy.set("contact_damage", 1)
+    enemy.set("hargne_enemy", 2.0)
+    enemy.set("roar_calls_friends", true)
     enemy.set("wait_min", 999.0)
     enemy.set("wait_max", 999.0)
     enemy.set("turn_rate_deg_per_sec", 720.0)
@@ -925,13 +930,18 @@ func _test_enemy_ai_behavior() -> void:
     _expect(enemy.has_method("get_chase_animation_action"), "Enemy should expose chase animation action selection for validation.")
     _expect(enemy.has_method("get_chase_animation_speed_scale"), "Enemy should expose chase animation speed scale for validation.")
     _expect(enemy.has_method("get_attack_push_source_velocity"), "Enemy should expose original-style attack push source velocity for validation.")
+    _expect(enemy.has_method("get_contact_damage_amount"), "Enemy should expose original LionEtat 2 contact damage for validation.")
+    _expect(enemy.has_method("get_attack_damage_amount"), "Enemy should expose original LionEtat 10 attack damage for validation.")
     _expect(enemy.has_method("get_attack_hit_push_source_velocity"), "Enemy should expose the hit-only push source velocity for parity validation.")
     if enemy.has_method("get_animation_speed_units_for_horizontal_speed") and enemy.has_method("get_chase_animation_action") and enemy.has_method("get_chase_animation_speed_scale") and enemy.has_method("get_attack_push_source_velocity") and enemy.has_method("get_attack_hit_push_source_velocity"):
         _expect(is_equal_approx(float(enemy.call("get_animation_speed_units_for_horizontal_speed", float(enemy.get("move_speed")))), 7.5), "Default enemy walk speed should convert back to original SpeedEnnemy units.")
         _expect(String(enemy.call("get_chase_animation_action")) == "run", "Chase should keep the original running cycle even for slow prototype enemies.")
         _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 11.25), "Default chase run cycle should scale by converted SpeedEnnemy units.")
         _expect(is_equal_approx((enemy.call("get_attack_push_source_velocity") as Vector3).length(), float(enemy.get("run_speed")) * float(enemy.get("attack_push_speed_multiplier"))), "Attack push source speed should mirror LionEtat 10 SpeedEnnemy * 1.5.")
-        _expect(is_equal_approx((enemy.call("get_attack_hit_push_source_velocity") as Vector3).length(), float(enemy.get("attack_hit_push_source_speed"))), "Attack hit push should be a small fixed impulse, independent of the enemy lunge speed.")
+        _expect(is_equal_approx((enemy.call("get_contact_push_source_velocity") as Vector3).length(), float(enemy.get("run_speed"))), "LionEtat 2 contact push should use the enemy run speed.")
+        _expect(is_equal_approx((enemy.call("get_attack_hit_push_source_velocity") as Vector3).length(), float(enemy.get("run_speed")) * float(enemy.get("attack_push_speed_multiplier"))), "LionEtat 10 hit push should use SpeedEnnemy * 1.5.")
+        _expect(is_equal_approx(float(enemy.call("get_contact_damage_amount")), 1.25), "LionEtat 2 contact damage should be EnnemyResistance * 0.25.")
+        _expect(is_equal_approx(float(enemy.call("get_attack_damage_amount")), 10.0), "LionEtat 10 attack damage should be EnnemyResistance * HargneEnnemy.")
         enemy.set("run_speed", 0.64)
         _expect(String(enemy.call("get_chase_animation_action")) == "run", "Slow chase tuning should still play the running cycle.")
         _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 4.0), "Slow chase tuning should slow the run cycle with movement speed.")
@@ -977,12 +987,13 @@ func _test_enemy_ai_behavior() -> void:
     _expect(int(player_stub.get("damage_calls")) >= 1, "AI enemy attack swing should land contact damage on the player at least once.")
     _expect(int(player_stub.get("damage_calls")) <= 2, "AI enemy attack swing should not multi-hit on a single swing tick.")
     _expect(int(player_stub.get("push_calls")) >= 1, "AI enemy attack swing should push the player with the original BounceForce1 path.")
-    _expect(int(player_stub.get("push_calls")) <= int(player_stub.get("damage_calls")), "AI enemy attack push should resolve with attack hits, not every blocked contact frame.")
+    _expect(int(player_stub.get("push_calls")) <= int(player_stub.get("damage_calls")), "AI enemy attack push should resolve with damage phases, not every blocked contact frame.")
     var attack_push_velocity := player_stub.get("last_push_source_velocity") as Vector3
     _expect(attack_push_velocity.length() > 0.1, "AI enemy attack push should pass a non-zero source velocity.")
-    _expect(is_equal_approx(attack_push_velocity.length(), float(enemy.get("attack_hit_push_source_speed"))), "AI enemy hit push should use the small hit impulse, not the full lunge speed.")
+    _expect(attack_push_velocity.length() <= float(enemy.get("run_speed")) * float(enemy.get("attack_push_speed_multiplier")) + 0.01, "AI enemy hit push should stay bounded by the original lunge speed.")
     _expect(attack_push_velocity.z < 0.0, "AI enemy attack push should point from enemy toward the player.")
     _expect(is_equal_approx(float(player_stub.get("last_push_bounce_force")), float(enemy.get("push_bounce_force"))), "AI enemy attack push should pass the original LionForce bounce value.")
+    _expect(is_equal_approx(float(player_stub.get("first_amount")), 1.25), "First attack contact should apply EnnemyResistance * 0.25 light damage.")
 
     # Regression: after the first swing finishes, the enemy must not be stuck in
     # ATTACK_SWING with a non-playing animation. Either it re-swings on the
@@ -1003,7 +1014,9 @@ func _test_enemy_ai_behavior() -> void:
 
     enemy.call("take_damage", 2, null)
     _expect(int(enemy.call("get_state")) == STATE_HIT_RECOIL, "Surviving damage should put the enemy in HIT_RECOIL.")
-    _expect(int(enemy.call("get_health")) == 3, "Surviving damage should reduce health by amount taken.")
+    _expect(is_equal_approx(float(enemy.call("get_health")), 3.0), "Surviving damage should reduce resistance by amount taken.")
+    enemy.call("_on_animation_finished", StringName("actions/hit"))
+    _expect(int(enemy.call("get_state")) == STATE_ROAR, "Enemies below 75% resistance with flag7 behavior should roar after hit recoil.")
 
     enemy.call("take_damage", 99, null)
     _expect(int(enemy.call("get_state")) == STATE_DYING, "Lethal damage should put the enemy in DYING state.")
@@ -1018,6 +1031,44 @@ func _test_enemy_ai_behavior() -> void:
 
     if is_instance_valid(enemy):
         enemy.queue_free()
+
+    var flee_enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    flee_enemy.set("affected_by_gravity", false)
+    flee_enemy.set("max_health", 4.0)
+    flee_enemy.set("enemy_resistance", 4.0)
+    flee_enemy.set("roar_calls_friends", false)
+    root.add_child(flee_enemy)
+    await physics_frame
+    flee_enemy.call("take_damage", 3.0, null)
+    flee_enemy.call("_on_animation_finished", StringName("actions/hit"))
+    _expect(int(flee_enemy.call("get_state")) == STATE_FLEE, "Enemies below 50% resistance should flee when roar-call behavior is disabled.")
+    flee_enemy.queue_free()
+
+    var caller: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    var friend: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    for call_enemy in [caller, friend]:
+        call_enemy.set("affected_by_gravity", false)
+        call_enemy.set("max_health", 4.0)
+        call_enemy.set("enemy_resistance", 4.0)
+        call_enemy.set("enemy_weight_force", 0.62)
+        call_enemy.set("react_range", 1.0)
+        call_enemy.set("attack_call_range", 12.0)
+        call_enemy.set("attack_call_seconds", 0.25)
+        call_enemy.set("wait_min", 999.0)
+        call_enemy.set("wait_max", 999.0)
+    root.add_child(caller)
+    root.add_child(friend)
+    caller.global_position = Vector3(5.0, 0.0, 0.0)
+    friend.global_position = Vector3(6.0, 0.0, 0.0)
+    player_stub.global_position = Vector3(0.0, 0.0, 0.0)
+    await physics_frame
+    caller.call("_enter_state", STATE_ROAR)
+    await physics_frame
+    _expect(bool(caller.call("is_attack_call_active")), "Roar should start a shared AttackCall tempo.")
+    await physics_frame
+    _expect(int(friend.call("get_state")) == STATE_CHASE, "Matching nearby enemies should answer CallFriendsToHelp and enter chase.")
+    caller.queue_free()
+    friend.queue_free()
     if is_instance_valid(player_stub):
         player_stub.queue_free()
     await process_frame
@@ -1028,18 +1079,21 @@ func _make_ai_test_player() -> Node3D:
     script.source_code = "extends CharacterBody3D\n" \
             + "var damage_calls: int = 0\n" \
             + "var push_calls: int = 0\n" \
-            + "var last_amount: int = 0\n" \
+            + "var first_amount: float = -1.0\n" \
+            + "var last_amount: float = 0.0\n" \
             + "var last_source: Node = null\n" \
             + "var last_push_source_velocity: Vector3 = Vector3.ZERO\n" \
             + "var last_push_bounce_force: float = 0.0\n" \
             + "var last_push_source: Node = null\n" \
             + "var push_velocity: Vector3 = Vector3.ZERO\n" \
-            + "var hp: int = 100\n" \
-            + "func take_damage(amount: int, source: Node = null) -> bool:\n" \
+            + "var hp: float = 100.0\n" \
+            + "func take_damage(amount: float, source: Node = null) -> bool:\n" \
             + "    damage_calls += 1\n" \
+            + "    if first_amount < 0.0:\n" \
+            + "        first_amount = amount\n" \
             + "    last_amount = amount\n" \
             + "    last_source = source\n" \
-            + "    hp = max(0, hp - amount)\n" \
+            + "    hp = maxf(0.0, hp - amount)\n" \
             + "    return true\n" \
             + "func apply_enemy_push(source_velocity: Vector3, source_bounce_force: float = 1.0, source: Node = null) -> void:\n" \
             + "    push_calls += 1\n" \
@@ -1082,6 +1136,11 @@ func _test_player_scene() -> void:
     _expect(player.get_node_or_null("CollisionShape3D") != null, "Player scene is missing collision shape.")
     _expect(int(player.get("collision_layer")) == CHARACTER_LAYER, "Player should live on the character collision layer.")
     _expect(int(player.get("collision_mask")) == WORLD_AND_CHARACTER_MASK, "Player should collide with world and other solid characters.")
+    _expect(is_equal_approx(float(player.call("get_max_health")), 48.0), "Player max health should use original WindowHeartsOrg.")
+    _expect(is_equal_approx(float(player.call("get_health")), 48.0), "Player should start with original WindowHearts.")
+    _expect(is_equal_approx(float(player.get("damage_invulnerability_seconds")), 0.0), "Enemy damage should not be blocked by a modern global invulnerability window.")
+    player.call("take_damage", 0.25, null)
+    _expect(is_equal_approx(float(player.call("get_health")), 47.75), "Player health should preserve fractional WindowHearts damage.")
     _expect(player.get_node_or_null("VisualPivot") != null, "Player scene is missing visual pivot.")
     var sammy_model := player.get_node_or_null("VisualPivot/SammyModel") as Node3D
     _expect(sammy_model != null, "Player scene did not spawn the Sammy model.")
@@ -1445,7 +1504,7 @@ func _test_prototype_world() -> void:
         if debug_overlay.get_child_count() > 0:
             debug_label = debug_overlay.get_child(0) as Label
         _expect(debug_label != null and debug_label.text.contains("Wasps: 0"), "Prototype debug overlay should show zero wasps before pickup collection.")
-        _expect(debug_label != null and debug_label.text.contains("Health: 6 / 6"), "Prototype debug overlay should show the player health readout at full hp.")
+        _expect(debug_label != null and debug_label.text.contains("Health: 48 / 48"), "Prototype debug overlay should show the original WindowHearts readout at full hp.")
     var camera := world.get_node_or_null("PrototypeCamera")
     _expect(camera != null, "Prototype world is missing its editor-instanced camera.")
     if camera != null:
@@ -1472,7 +1531,14 @@ func _test_prototype_world() -> void:
                 _expect(controller != null, "Prototype model should have generated animation controller: %s" % model_path)
                 if controller != null:
                     _expect(bool(controller.call("has_action", "stand")), "Prototype model should expose stand animation: %s" % model_path)
-                    _expect(String(controller.call("get_current_action")) == "stand", "Prototype model should autoplay stand animation: %s" % model_path)
+                    var current_action := String(controller.call("get_current_action"))
+                    if model_path.begins_with("Enemies/"):
+                        _expect(
+                                ["stand", "walk", "run", "attack", "hit", "rugit"].has(current_action),
+                                "Prototype enemy model should play a valid live AI animation: %s" % model_path
+                        )
+                    else:
+                        _expect(current_action == "stand", "Prototype model should autoplay stand animation: %s" % model_path)
         var boost_pickup := world.get_node_or_null("BoostPickup") as Area3D
         _expect(boost_pickup != null, "Prototype world should spawn the boost pickup as an Area3D.")
         if boost_pickup != null:

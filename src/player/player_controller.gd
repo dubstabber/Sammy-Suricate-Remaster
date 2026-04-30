@@ -403,6 +403,23 @@ func is_boosting() -> bool:
     return _boosting
 
 
+func consume_platform_boost(delta: float) -> bool:
+    return consume_platform_boost_from_input(delta, Input.is_action_pressed("boost"))
+
+
+func consume_platform_boost_from_input(delta: float, boost_pressed: bool) -> bool:
+    if _dead or _game_over or delta <= 0.0:
+        return false
+    if not boost_pressed or _boost_capacity <= 0.0:
+        _boosting = false
+        return false
+    _boosting = true
+    _boost_capacity = maxf(0.0, _boost_capacity - movement_config.boost_consumption_per_second * delta)
+    if is_zero_approx(_boost_capacity):
+        _boosting = false
+    return true
+
+
 func is_quick_turning() -> bool:
     return _quick_turn_active
 

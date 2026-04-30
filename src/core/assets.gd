@@ -68,6 +68,24 @@ const CATALOG := {
         "animation_library": "res://assets/animations/boost_clips.tres",
         "default_animation": "stand"
     },
+    "model.platform.default": {
+        "path": "res://assets/models/platforms/platfor2/platfor2.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/platfor2.wmb",
+        "kind": "model",
+        "description": "Original inactive moving platform WMB"
+    },
+    "model.platform.active": {
+        "path": "res://assets/models/platforms/platfor1/platfor1.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/platfor1.wmb",
+        "kind": "model",
+        "description": "Original activated moving platform WMB"
+    },
+    "model.platform.yellow": {
+        "path": "res://assets/models/platforms/platfyel/platfyel.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/platfyel.wmb",
+        "kind": "model",
+        "description": "Original yellow key moving platform WMB"
+    },
     "model.enemy_visibility_range": {
         "path": "res://assets/models/circl100/circl100_animated.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/circl100/circl100_animated.gltf",
@@ -260,6 +278,12 @@ const CATALOG := {
         "kind": "audio",
         "description": "Original DoorClose_son"
     },
+    "sfx.platform_activate": {
+        "path": "res://assets/audio/platfor2.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/platfor2.wav",
+        "kind": "audio",
+        "description": "Original Platform1_son used when moving platforms activate"
+    },
     "sfx.hit": {
         "path": "res://assets/audio/Hit1.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/Hit1.wav",
@@ -310,6 +334,12 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/levels/wmb_manifest.json",
         "kind": "metadata",
         "description": "WMB dependency manifest copied from extraction output"
+    },
+    "metadata.platform_wmb_manifest": {
+        "path": "res://assets/models/platforms/platform_wmb_manifest.json",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels",
+        "kind": "metadata",
+        "description": "Converted original moving platform WMB manifest"
     }
 }
 

@@ -1,0 +1,40 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/props/moving_platform.gd" id="1_platform"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_platform"]
+size = Vector3(2.2, 0.3, 2.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_activation"]
+size = Vector3(2.4, 0.55, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_platform"]
+size = Vector3(2.2, 0.3, 2.2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_platform"]
+albedo_color = Color(0.45, 0.42, 0.32, 1)
+roughness = 0.75
+
+[node name="MovingPlatform" type="AnimatableBody3D"]
+collision_layer = 1
+collision_mask = 2
+script = ExtResource("1_platform")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.15, 0)
+shape = SubResource("BoxShape3D_platform")
+
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="FallbackVisual" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0, 0.15, 0)
+mesh = SubResource("BoxMesh_platform")
+material_override = SubResource("StandardMaterial3D_platform")
+
+[node name="ActivationSensor" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ActivationSensor"]
+position = Vector3(0, 0.45, 0)
+shape = SubResource("BoxShape3D_activation")

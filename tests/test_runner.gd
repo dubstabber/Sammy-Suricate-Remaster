@@ -16,6 +16,8 @@ const KEY_DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/key_diamond_pickup.
 const KEY_GATE_SCENE_PATH := "res://scenes/gates/key_gate.tscn"
 const KEY_GATE_GALLERY_SCENE_PATH := "res://scenes/gates/key_gate_gallery.tscn"
 const GATE_WMB_MANIFEST_PATH := "res://assets/models/gates/gate_wmb_manifest.json"
+const MOVING_PLATFORM_SCENE_PATH := "res://scenes/props/moving_platform.tscn"
+const PLATFORM_WMB_MANIFEST_PATH := "res://assets/models/platforms/platform_wmb_manifest.json"
 const KEY_DIAMOND_PANEL_SCENE_PATH := "res://scenes/ui/key_diamond_panel.tscn"
 const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
 const KEY_DIAMOND_RULES_SCRIPT_PATH := "res://src/resources/key_diamond_rules.gd"
@@ -55,6 +57,10 @@ const KEY_GATE_MATCH_ANY := 5
 const KEY_GATE_CLOSE_STAY_OPEN := 0
 const KEY_GATE_CLOSE_AUTO := 1
 const KEY_GATE_CLOSE_PERMANENT := 2
+const KEY_DIAMOND_YELLOW := 2
+const KEY_DIAMOND_ORANGE := 3
+const PLATFORM_MATCH_COMPONENT := 0
+const PLATFORM_MATCH_EXACT := 1
 
 var _failures: Array[String] = []
 
@@ -82,6 +88,7 @@ func _run() -> void:
     _test_wasp_inventory()
     await _test_key_diamond_system(assets)
     await _test_gate_visual_models(assets)
+    await _test_moving_platform_system(assets)
     await _test_eye_of_truth_pickup(game, assets)
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
@@ -207,6 +214,9 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("model.rasta.animated") != null, "Unable to load copied rasta model resource.")
     _expect(assets.load_asset("model.punk.animated") != null, "Unable to load copied punk model resource.")
     _expect(assets.load_asset("model.boost") != null, "Unable to load copied boost model resource.")
+    _expect(assets.load_asset("model.platform.default") != null, "Unable to load converted inactive moving platform WMB.")
+    _expect(assets.load_asset("model.platform.active") != null, "Unable to load converted active moving platform WMB.")
+    _expect(assets.load_asset("model.platform.yellow") != null, "Unable to load converted yellow moving platform WMB.")
     _expect(assets.load_asset("model.cactus1") != null, "Unable to load copied cactus model resource.")
     _expect(assets.has_asset("texture.particle.small_star_1a"), "Asset catalog is missing original boost particle sprite.")
     _expect(assets.load_asset("texture.particle.small_star_1a") != null, "Unable to load original boost particle sprite.")
@@ -252,6 +262,7 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
     _expect(assets.load_asset("sfx.diamond") != null, "Unable to load original Diam_son score pickup sound.")
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")
+    _expect(assets.load_asset("sfx.platform_activate") != null, "Unable to load original moving-platform activation sound.")
     _expect(assets.load_asset("sfx.eye_truth") != null, "Unable to load original EyeTruth sound.")
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
     _expect(assets.has_asset("model.wasp1"), "Asset catalog is missing wasp projectile model.")
@@ -1852,6 +1863,135 @@ func _test_gate_visual_models(_assets: Node) -> void:
     await process_frame
 
 
+func _test_moving_platform_system(_assets: Node) -> void:
+    var platform_scene := load(MOVING_PLATFORM_SCENE_PATH) as PackedScene
+    _expect(platform_scene != null, "Moving platform scene should load.")
+    if platform_scene == null:
+        return
+    _test_platform_wmb_manifest_textures()
+
+    var platform := platform_scene.instantiate() as AnimatableBody3D
+    _expect(platform != null, "Moving platform should instantiate as AnimatableBody3D.")
+    if platform == null:
+        return
+    platform.set("source_wmb_name", "platfor2.wmb")
+    platform.set("active_wmb_name", "platfor1.wmb")
+    platform.set("wdl_speed_units", 10.0)
+    platform.set("endpoint_wait_ticks", 8.0)
+    root.add_child(platform)
+    await process_frame
+
+    _expect(platform.collision_layer == WORLD_LAYER, "Moving platform should live on the world collision layer.")
+    _expect(platform.collision_mask == CHARACTER_LAYER, "Moving platform should collide with solid characters.")
+    var sensor := platform.get_node_or_null("ActivationSensor") as Area3D
+    _expect(sensor != null, "Moving platform should expose a top activation sensor.")
+    if sensor != null:
+        _expect(sensor.collision_layer == 0, "Moving platform sensor should not be a blocking body.")
+        _expect(sensor.collision_mask == CHARACTER_LAYER, "Moving platform sensor should monitor characters.")
+    _expect(bool(platform.call("is_active")), "Unlocked moving platform should start active.")
+    _expect(is_equal_approx(float(platform.call("get_base_speed")), 1.6), "WDL platform Skill2 speed should convert through 0.01 scale and 16 ticks/sec.")
+    _expect(is_equal_approx(float(platform.call("get_endpoint_wait_seconds")), 0.5), "WDL platform wait ticks should convert through 16 ticks/sec.")
+    _expect(bool(platform.call("has_original_visual_model")), "Moving platform should load a converted original WMB model.")
+    _expect(String(platform.call("get_visual_source_path")) == "res://assets/models/platforms/platfor1/platfor1.gltf", "Unlocked active platform should use the activated original WMB visual.")
+    platform.call("_physics_process", 0.25)
+    var displacement := platform.call("get_last_platform_displacement") as Vector3
+    var velocity := platform.call("get_last_platform_velocity") as Vector3
+    _expect(displacement.length() > 0.39 and displacement.length() < 0.41, "Moving platform should advance by converted WDL speed.")
+    _expect(velocity.length() > 1.59 and velocity.length() < 1.61, "Moving platform should expose its last platform velocity.")
+    platform.queue_free()
+
+    var player_scene := load(PLAYER_SCENE_PATH) as PackedScene
+    var player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    await process_frame
+    player.call("set_current_key_id", KEY_DIAMOND_YELLOW)
+
+    var exact_platform := platform_scene.instantiate() as AnimatableBody3D
+    exact_platform.set("source_wmb_name", "platfora.wmb")
+    exact_platform.set("active_wmb_name", "platfor1.wmb")
+    exact_platform.set("required_key_id", KEY_DIAMOND_ORANGE)
+    exact_platform.set("key_match_mode", PLATFORM_MATCH_EXACT)
+    root.add_child(exact_platform)
+    await process_frame
+    _expect(not bool(exact_platform.call("is_active")), "Keyed moving platform should stay idle until activated.")
+    _expect(not bool(exact_platform.call("activate", player)), "Exact platform key mode should reject a component key.")
+    _expect(String(exact_platform.call("get_visual_source_path")) == "res://assets/models/platforms/platfora/platfora.gltf", "Inactive keyed platform should keep its source colored visual.")
+    exact_platform.queue_free()
+
+    var mixed_platform := platform_scene.instantiate() as AnimatableBody3D
+    mixed_platform.set("source_wmb_name", "platfora.wmb")
+    mixed_platform.set("active_wmb_name", "platfor1.wmb")
+    mixed_platform.set("required_key_id", KEY_DIAMOND_ORANGE)
+    mixed_platform.set("key_match_mode", PLATFORM_MATCH_COMPONENT)
+    root.add_child(mixed_platform)
+    await process_frame
+    _expect(bool(mixed_platform.call("activate", player)), "Mixed platform key mode should accept a primary component key.")
+    _expect(bool(mixed_platform.call("is_active")), "Mixed platform should become active after a valid key.")
+    _expect(String(mixed_platform.call("get_visual_source_path")) == "res://assets/models/platforms/platfor1/platfor1.gltf", "Activated keyed platform should morph to the original active WMB visual.")
+    mixed_platform.queue_free()
+    player.queue_free()
+
+    var boost_platform := platform_scene.instantiate() as AnimatableBody3D
+    boost_platform.set("wdl_speed_units", 10.0)
+    boost_platform.set("boost_speed_multiplier", 3.0)
+    var boost_rider := _make_platform_boost_rider()
+    root.add_child(boost_platform)
+    root.add_child(boost_rider)
+    await process_frame
+    boost_platform.call("_on_activation_body_entered", boost_rider)
+    boost_platform.call("_physics_process", 0.25)
+    var boosted_displacement := boost_platform.call("get_last_platform_displacement") as Vector3
+    _expect(boosted_displacement.length() > 1.19 and boosted_displacement.length() < 1.21, "Platform rider boost should apply the original x3 platform speedup.")
+    _expect(int(boost_rider.get("boost_calls")) >= 1, "Platform speedup should ask the rider to consume platform boost.")
+    boost_platform.queue_free()
+    boost_rider.queue_free()
+    await process_frame
+
+
+func _make_platform_boost_rider() -> CharacterBody3D:
+    var script := GDScript.new()
+    script.source_code = "extends CharacterBody3D\n" \
+            + "var boost_calls: int = 0\n" \
+            + "func get_current_key_id() -> int:\n" \
+            + "    return 0\n" \
+            + "func consume_platform_boost(_delta: float) -> bool:\n" \
+            + "    boost_calls += 1\n" \
+            + "    return true\n"
+    script.reload()
+    var rider := CharacterBody3D.new()
+    rider.name = "PlatformBoostRider"
+    rider.collision_layer = CHARACTER_LAYER
+    rider.collision_mask = WORLD_AND_CHARACTER_MASK
+    rider.set_script(script)
+    rider.add_to_group("player")
+    return rider
+
+
+func _test_platform_wmb_manifest_textures() -> void:
+    var text := FileAccess.get_file_as_string(PLATFORM_WMB_MANIFEST_PATH)
+    _expect(not text.is_empty(), "Platform WMB conversion manifest should exist.")
+    if text.is_empty():
+        return
+    var parsed = JSON.parse_string(text)
+    _expect(typeof(parsed) == TYPE_DICTIONARY, "Platform WMB conversion manifest should parse as JSON.")
+    if typeof(parsed) != TYPE_DICTIONARY:
+        return
+    var entries_by_source := {}
+    for raw_entry in (parsed as Dictionary).get("converted", []):
+        if typeof(raw_entry) != TYPE_DICTIONARY:
+            continue
+        var entry := raw_entry as Dictionary
+        entries_by_source[String(entry.get("source", "")).get_file().to_lower()] = entry
+
+    _expect(entries_by_source.size() == 9, "Platform WMB conversion should include all bound original platform variants.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "platfor1.wmb", ["platforme_valid", "platform_valide"]), "Active platform WMB should keep both original valid-platform textures.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "platfor2.wmb", ["platform_colonn"]), "Inactive platform WMB should keep the original column platform texture.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "platfyel.wmb", ["lockgem_yellow", "lockgem_yellow1"]), "Yellow platform WMB should keep both embedded yellow lock-gem textures.")
+    _expect(_gate_manifest_skipped_no_render(entries_by_source, "platfor2.wmb", 1), "Inactive platform conversion should skip its WMB no-render face.")
+    _expect(_gate_manifest_has_texinfo(entries_by_source, "platfor1.wmb", 4), "Active platform conversion should use original WMB texinfo records.")
+    _expect(_gate_manifest_has_texinfo(entries_by_source, "platfyel.wmb", 4), "Yellow platform conversion should use original WMB texinfo records.")
+
+
 func _test_gate_wmb_manifest_textures() -> void:
     var text := FileAccess.get_file_as_string(GATE_WMB_MANIFEST_PATH)
     _expect(not text.is_empty(), "Gate WMB conversion manifest should exist.")
@@ -2976,7 +3116,8 @@ func _test_player_scene() -> void:
         _expect(player.has_method("get_boost_capacity_max"), "Player controller should expose max boost capacity.")
         _expect(player.has_method("get_boost_capacity_ratio"), "Player controller should expose boost capacity ratio.")
         _expect(player.has_method("is_boosting"), "Player controller should expose active boost state.")
-        if player.has_method("add_boost_capacity") and player.has_method("get_boost_capacity") and player.has_method("get_boost_capacity_max") and player.has_method("get_boost_capacity_ratio") and player.has_method("is_boosting"):
+        _expect(player.has_method("consume_platform_boost_from_input"), "Player controller should expose the WDL platform boost speedup hook.")
+        if player.has_method("add_boost_capacity") and player.has_method("get_boost_capacity") and player.has_method("get_boost_capacity_max") and player.has_method("get_boost_capacity_ratio") and player.has_method("is_boosting") and player.has_method("consume_platform_boost_from_input"):
             var boost_capacity_max := float(player.call("get_boost_capacity_max"))
             _expect(is_equal_approx(float(player.call("get_boost_capacity")), 0.0), "Player should start with an empty boost meter.")
             _expect(is_equal_approx(float(player.call("get_boost_capacity_ratio")), 0.0), "Empty boost meter ratio should be zero.")
@@ -3003,6 +3144,13 @@ func _test_player_scene() -> void:
             player.call("_update_boost_state_from_input", 0.25, -1.0, false)
             _expect(not bool(player.call("is_boosting")), "Releasing Shift should stop backward boost.")
             _expect(is_equal_approx(float(player.call("get_boost_capacity")), boost_after_backward_release), "Released backward boost should stop consuming capacity.")
+            player.call("add_boost_capacity", boost_capacity_max)
+            var platform_boost_before := float(player.call("get_boost_capacity"))
+            _expect(bool(player.call("consume_platform_boost_from_input", 0.25, true)), "Platform boost should activate from Shift even without forward/backward input.")
+            _expect(float(player.call("get_boost_capacity")) < platform_boost_before, "Platform boost should consume stored capacity while speeding the platform.")
+            var platform_boost_after := float(player.call("get_boost_capacity"))
+            _expect(not bool(player.call("consume_platform_boost_from_input", 0.25, false)), "Platform boost should stop when Shift is released.")
+            _expect(is_equal_approx(float(player.call("get_boost_capacity")), platform_boost_after), "Released platform boost should stop consuming capacity.")
             player.call("add_boost_capacity", boost_capacity_max)
             movement_config.set("boost_consumption_per_second", boost_capacity_max * 120.0)
             player.call("_update_boost_state_from_input", 1.0, 1.0, true)
@@ -3044,6 +3192,8 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("OrangeKeyGate") != null, "Prototype orange key gate should be editor-instanced.")
     _expect(world.get_node_or_null("KeyDiamondPanel") != null, "Prototype key-diamond panel should be editor-instanced.")
     _expect(world.get_node_or_null("GateTestGallery") != null, "Prototype gate test gallery should be editor-instanced.")
+    _expect(world.get_node_or_null("Platforms/UnlockedMovingPlatform") != null, "Prototype unlocked moving platform should be editor-instanced.")
+    _expect(world.get_node_or_null("Platforms/YellowKeyMovingPlatform") != null, "Prototype key-gated moving platform should be editor-instanced.")
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
     var floor := world.get_node_or_null("PrototypeFloor") as StaticBody3D
     _expect(floor != null, "Prototype floor should be a StaticBody3D.")
@@ -3060,6 +3210,17 @@ func _test_prototype_world() -> void:
         _expect(cactus.collision_layer == WORLD_LAYER, "Prototype cactus should live on the world collision layer.")
         _expect(cactus.collision_mask == CHARACTER_LAYER, "Prototype cactus should collide with solid characters.")
         _expect(cactus.get_node_or_null("CollisionShape3D") != null, "Prototype cactus should expose a trunk collision shape.")
+    var unlocked_platform := world.get_node_or_null("Platforms/UnlockedMovingPlatform") as AnimatableBody3D
+    _expect(unlocked_platform != null, "Prototype unlocked platform should be an AnimatableBody3D.")
+    if unlocked_platform != null:
+        _expect(unlocked_platform.collision_layer == WORLD_LAYER, "Prototype moving platform should live on the world collision layer.")
+        _expect(unlocked_platform.collision_mask == CHARACTER_LAYER, "Prototype moving platform should collide with solid characters.")
+        _expect(String(unlocked_platform.get("source_wmb_name")) == "platfor2.wmb", "Prototype unlocked platform should use the original inactive platform WMB source.")
+    var yellow_platform := world.get_node_or_null("Platforms/YellowKeyMovingPlatform") as AnimatableBody3D
+    _expect(yellow_platform != null, "Prototype yellow key platform should be an AnimatableBody3D.")
+    if yellow_platform != null:
+        _expect(int(yellow_platform.get("required_key_id")) == KEY_DIAMOND_YELLOW, "Prototype yellow key platform should use the original yellow key requirement.")
+        _expect(int(yellow_platform.get("key_match_mode")) == PLATFORM_MATCH_EXACT, "Prototype yellow key platform should use exact WDL key matching.")
     var enemies := world.get_node_or_null("Enemies")
     _expect(enemies != null, "Prototype scene should expose a designer-editable Enemies container.")
     for enemy_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated"]:
@@ -3071,6 +3232,12 @@ func _test_prototype_world() -> void:
     root.add_child(world)
     await process_frame
     await process_frame
+    if unlocked_platform != null:
+        _expect(bool(unlocked_platform.call("is_active")), "Prototype unlocked platform should start moving.")
+        _expect(String(unlocked_platform.call("get_visual_source_path")) == "res://assets/models/platforms/platfor2/platfor2.gltf", "Prototype unlocked platform should use the original platform WMB visual.")
+    if yellow_platform != null:
+        _expect(not bool(yellow_platform.call("is_active")), "Prototype yellow key platform should wait for the matching key.")
+        _expect(String(yellow_platform.call("get_visual_source_path")) == "res://assets/models/platforms/platfyel/platfyel.gltf", "Prototype yellow key platform should expose the yellow lock WMB visual before activation.")
     for _settle_step in 10:
         await physics_frame
     _expect(world.get_node_or_null("Player") != null, "Prototype world is missing its editor-instanced player.")

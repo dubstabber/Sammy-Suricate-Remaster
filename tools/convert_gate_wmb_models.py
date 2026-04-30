@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Convert Sammy Suricate WMB4 gate models into Godot glTF assets.
+"""Convert selected Sammy Suricate WMB4 props into Godot glTF assets.
 
 This is intentionally narrow: it handles the small static door/gate WMB files
-used by the key-diamond gate work, not the full WMB level format.
+used by the key-diamond gate work and similarly small platform WMB props, not
+the full WMB level format.
 """
 
 from __future__ import annotations
@@ -659,20 +660,23 @@ def main() -> int:
     )
     parser.add_argument("--model-root", type=Path, default=Path("assets/models/gates"))
     parser.add_argument("--texture-root", type=Path, default=Path("assets/textures/gates"))
+    parser.add_argument("--manifest-name", default="gate_wmb_manifest.json")
+    parser.add_argument("--source-names", nargs="+", default=SOURCE_WMB_NAMES)
     args = parser.parse_args()
 
-    colliding_texture_names = find_colliding_texture_names(args.source_dir, SOURCE_WMB_NAMES)
+    source_names = [str(name) for name in args.source_names]
+    colliding_texture_names = find_colliding_texture_names(args.source_dir, source_names)
     converted: list[dict[str, Any]] = []
-    for name in SOURCE_WMB_NAMES:
+    for name in source_names:
         source_path = args.source_dir / name
         if not source_path.exists():
             raise FileNotFoundError(source_path)
         converted.append(convert_wmb(source_path, args.model_root, args.texture_root, colliding_texture_names))
 
-    manifest_path = args.model_root / "gate_wmb_manifest.json"
+    manifest_path = args.model_root / args.manifest_name
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps({"converted": converted}, indent=2) + "\n", encoding="utf-8")
-    print(f"converted {len(converted)} gate WMB models")
+    print(f"converted {len(converted)} WMB models")
     print(f"manifest: {manifest_path}")
     return 0
 

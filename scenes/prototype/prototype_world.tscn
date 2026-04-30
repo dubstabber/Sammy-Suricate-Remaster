@@ -24,6 +24,7 @@
 [ext_resource type="PackedScene" path="res://scenes/gates/key_gate.tscn" id="22_key_gate"]
 [ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="23_key_panel"]
 [ext_resource type="PackedScene" path="res://scenes/gates/key_gate_gallery.tscn" id="24_gate_gallery"]
+[ext_resource type="PackedScene" path="res://scenes/props/moving_platform.tscn" id="25_platform"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.22, 0.32, 0.26, 1)
@@ -121,6 +122,23 @@ wasp_type = ExtResource("15_wasp_type_6")
 [node name="WaspPickupType7" parent="." unique_id=268720299 instance=ExtResource("10_wasp_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 4.5)
 wasp_type = ExtResource("16_wasp_type_7")
+
+[node name="Platforms" type="Node3D" parent="." unique_id=1048123299]
+
+[node name="UnlockedMovingPlatform" parent="Platforms" unique_id=1428749913 instance=ExtResource("25_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.15, 22.009186)
+active_wmb_name = "platfor2.wmb"
+wdl_speed_units = 12.0
+endpoint_wait_ticks = 12.0
+
+[node name="YellowKeyMovingPlatform" parent="Platforms" unique_id=1886532132 instance=ExtResource("25_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.15, 12)
+source_wmb_name = "platfyel.wmb"
+end_offset = Vector3(0, 0, -4)
+wdl_speed_units = 12.0
+endpoint_wait_ticks = 12.0
+required_key_id = 2
+key_match_mode = 1
 
 [node name="Props" type="Node3D" parent="." unique_id=1448738197]
 

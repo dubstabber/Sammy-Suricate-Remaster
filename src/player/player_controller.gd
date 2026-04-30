@@ -261,6 +261,15 @@ func can_open_key_gate(required_key_id: int, strict_match: bool = false) -> bool
     return KEY_DIAMOND_RULES_SCRIPT.can_open_gate(_current_key_id, required_key_id, strict_match)
 
 
+func consume_key_for_gate(required_key_id: int, strict_match: bool = false) -> int:
+    if not can_open_key_gate(required_key_id, strict_match):
+        return KEY_DIAMOND_RULES_SCRIPT.KEY_NONE
+    var consumed_key_id := _current_key_id
+    if consumed_key_id != KEY_DIAMOND_RULES_SCRIPT.KEY_ALL:
+        _set_current_key_id(KEY_DIAMOND_RULES_SCRIPT.KEY_NONE)
+    return consumed_key_id
+
+
 func _physics_process(delta: float) -> void:
     if _dead or _game_over:
         _update_death_state(delta)

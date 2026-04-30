@@ -14,6 +14,8 @@ const EYE_OF_TRUTH_PICKUP_SCENE_PATH := "res://scenes/pickups/eye_of_truth_picku
 const DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/diamond_pickup.tscn"
 const KEY_DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/key_diamond_pickup.tscn"
 const KEY_GATE_SCENE_PATH := "res://scenes/gates/key_gate.tscn"
+const KEY_GATE_GALLERY_SCENE_PATH := "res://scenes/gates/key_gate_gallery.tscn"
+const GATE_WMB_MANIFEST_PATH := "res://assets/models/gates/gate_wmb_manifest.json"
 const KEY_DIAMOND_PANEL_SCENE_PATH := "res://scenes/ui/key_diamond_panel.tscn"
 const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
 const KEY_DIAMOND_RULES_SCRIPT_PATH := "res://src/resources/key_diamond_rules.gd"
@@ -45,6 +47,12 @@ const CHARACTER_LAYER := 2
 const PICKUP_SENSOR_LAYER := 4
 const PROJECTILE_LAYER := 8
 const WORLD_AND_CHARACTER_MASK := 3
+const KEY_GATE_MATCH_COMPONENT := 1
+const KEY_GATE_MATCH_EXACT := 2
+const KEY_GATE_MATCH_UNLOCKED := 3
+const KEY_GATE_CLOSE_STAY_OPEN := 0
+const KEY_GATE_CLOSE_AUTO := 1
+const KEY_GATE_CLOSE_PERMANENT := 2
 
 var _failures: Array[String] = []
 
@@ -71,6 +79,7 @@ func _run() -> void:
     _test_wasp_resources(assets)
     _test_wasp_inventory()
     await _test_key_diamond_system(assets)
+    await _test_gate_visual_models(assets)
     await _test_eye_of_truth_pickup(game, assets)
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
@@ -1092,6 +1101,8 @@ func _test_key_diamond_system(assets: Node) -> void:
     _expect(bool(rules.call("can_open_gate", 1, 3, false)), "Normal orange gates should allow a red primary component like the WDL bit check.")
     _expect(not bool(rules.call("can_open_gate", 3, 1, false)), "Mixed orange should not open a normal red gate unless it is an exact match.")
     _expect(bool(rules.call("can_open_gate", 255, 6, true)), "All-key state should open strict keyed gates.")
+    _expect(bool(rules.call("can_open_gate", 4, 5, false)), "Normal magenta gates should allow the blue primary component.")
+    _expect(bool(rules.call("can_open_gate", 2, 6, false)), "Normal green gates should allow the yellow primary component.")
 
     for key_id in range(1, KEY_DIAMOND_TYPE_PATHS.size()):
         var key_type: Resource = load(KEY_DIAMOND_TYPE_PATHS[key_id])
@@ -1114,6 +1125,7 @@ func _test_key_diamond_system(assets: Node) -> void:
     await process_frame
     _expect(player.has_method("collect_key_diamond"), "Player should expose key-diamond collection.")
     _expect(player.has_method("can_open_key_gate"), "Player should expose key-gate matching.")
+    _expect(player.has_method("consume_key_for_gate"), "Player should expose key consumption for permanent gates.")
     _expect(int(player.call("get_current_key_id")) == 0, "Player should start without a key diamond.")
 
     var panel_scene := load(KEY_DIAMOND_PANEL_SCENE_PATH) as PackedScene
@@ -1204,6 +1216,119 @@ func _test_key_diamond_system(assets: Node) -> void:
     _expect(bool(gate.call("is_open")), "Key gate should report open after accepting the key.")
     _expect(gate.collision_layer == 0, "Open key gate should stop blocking the world layer.")
 
+    var component_gate := gate_scene.instantiate() as StaticBody3D
+    component_gate.set("required_key_id", 3)
+    component_gate.set("match_mode", KEY_GATE_MATCH_COMPONENT)
+    component_gate.set("open_sound_asset_id", "")
+    root.add_child(component_gate)
+    await process_frame
+    _expect(int(component_gate.call("get_effective_match_mode")) == KEY_GATE_MATCH_COMPONENT, "Component gate should expose the WDL component-or-exact match mode.")
+    _expect(bool(player.call("set_current_key_id", 1)), "Test should set red before checking component gate matching.")
+    _expect(bool(component_gate.call("can_player_open", player)), "Component orange gate should accept red alone.")
+    _expect(bool(component_gate.call("try_open", player)), "Component orange gate should open from a primary color.")
+
+    var unlocked_gate := gate_scene.instantiate() as StaticBody3D
+    unlocked_gate.set("required_key_id", 0)
+    unlocked_gate.set("match_mode", KEY_GATE_MATCH_UNLOCKED)
+    unlocked_gate.set("open_sound_asset_id", "")
+    root.add_child(unlocked_gate)
+    await process_frame
+    _expect(bool(player.call("set_current_key_id", 0)), "Test should clear key before checking unlocked gate.")
+    _expect(bool(unlocked_gate.call("can_player_open", player)), "Unlocked scanner gate should accept the player without a key.")
+    _expect(bool(unlocked_gate.call("try_open", player)), "Unlocked scanner gate should open without a key.")
+
+    var auto_gate := gate_scene.instantiate() as StaticBody3D
+    auto_gate.set("required_key_id", 1)
+    auto_gate.set("match_mode", KEY_GATE_MATCH_EXACT)
+    auto_gate.set("close_mode", KEY_GATE_CLOSE_AUTO)
+    auto_gate.set("auto_close_delay_seconds", 10.0)
+    auto_gate.set("open_speed", 100.0)
+    auto_gate.set("close_speed", 100.0)
+    auto_gate.set("open_sound_asset_id", "")
+    auto_gate.set("close_sound_asset_id", "")
+    auto_gate.position = Vector3(8.0, 0.0, 0.0)
+    auto_gate.set_process(false)
+    root.add_child(auto_gate)
+    await process_frame
+    _expect(int(auto_gate.call("get_close_mode")) == KEY_GATE_CLOSE_AUTO, "Auto gate should expose auto-close mode.")
+    _expect(bool(player.call("set_current_key_id", 1)), "Test should set red before checking auto close.")
+    _expect(bool(auto_gate.call("try_open", player)), "Auto gate should open with the exact key.")
+    auto_gate.call("_process", 1.0)
+    _expect(bool(auto_gate.call("is_open")), "Auto gate should be open before its close tick completes.")
+    var blocker := CharacterBody3D.new()
+    blocker.name = "GateCloseBlocker"
+    blocker.collision_layer = CHARACTER_LAYER
+    blocker.collision_mask = WORLD_LAYER
+    var blocker_shape := CollisionShape3D.new()
+    var blocker_box := BoxShape3D.new()
+    blocker_box.size = Vector3(0.5, 1.0, 0.5)
+    blocker_shape.shape = blocker_box
+    blocker.add_child(blocker_shape)
+    root.add_child(blocker)
+    blocker.global_position = auto_gate.global_position + Vector3(0.0, 0.9, 0.0)
+    await physics_frame
+    await physics_frame
+    _expect(bool(auto_gate.call("is_close_blocked")), "Auto gate should detect a solid body in its closing space.")
+    auto_gate.set("auto_close_delay_seconds", 0.0)
+    _expect(bool(auto_gate.call("try_open", player)), "Retouching an open auto gate should refresh its close timer.")
+    auto_gate.call("_process", 1.0)
+    _expect(bool(auto_gate.call("is_open")), "Auto gate should stay open while a body blocks the closing space.")
+    blocker.queue_free()
+    await physics_frame
+    await physics_frame
+    _expect(bool(auto_gate.call("try_open", player)), "Retouching the clear auto gate should allow the close timer to expire again.")
+    auto_gate.call("_process", 1.0)
+    auto_gate.call("_process", 1.0)
+    await process_frame
+    _expect(not bool(auto_gate.call("is_open")), "Auto gate should close once the closing space is clear.")
+    _expect(auto_gate.collision_layer == WORLD_LAYER, "Closed auto gate should restore world collision.")
+
+    var permanent_gate := gate_scene.instantiate() as StaticBody3D
+    permanent_gate.set("required_key_id", 2)
+    permanent_gate.set("match_mode", KEY_GATE_MATCH_EXACT)
+    permanent_gate.set("close_mode", KEY_GATE_CLOSE_PERMANENT)
+    permanent_gate.set("open_speed", 100.0)
+    permanent_gate.set("key_flight_speed", 100.0)
+    permanent_gate.set("open_sound_asset_id", "")
+    root.add_child(permanent_gate)
+    await process_frame
+    _expect(String(permanent_gate.call("get_effective_source_wmb_name")) == "dooryell.wmb", "Permanent yellow gate should infer the original yellow door model when no source override is set.")
+    _expect(String(permanent_gate.call("get_visual_source_path")) == "res://assets/models/gates/dooryell/dooryell.gltf", "Permanent yellow gate should load the converted original yellow door model before opening.")
+    _expect(bool(player.call("set_current_key_id", 2)), "Test should set yellow before checking permanent gate.")
+    _expect(int(player.call("consume_key_for_gate", 2, true)) == 2, "Player should consume an exact yellow key for a permanent gate.")
+    _expect(int(player.call("get_current_key_id")) == 0, "Consuming a normal key should clear the held key.")
+    _expect(bool(player.call("set_current_key_id", 2)), "Test should restore yellow before opening permanent gate.")
+    _expect(bool(permanent_gate.call("try_open", player)), "Permanent gate should open with the exact consumed key.")
+    _expect(int(player.call("get_current_key_id")) == 0, "Permanent gate should consume the normal held key.")
+    var flight_effect := root.get_node_or_null("GateKeyFlightEffect")
+    _expect(flight_effect != null, "Permanent gate should spawn a key-flight effect.")
+    if flight_effect != null:
+        _expect(int(flight_effect.call("get_key_id")) == 2, "Key-flight effect should use the consumed yellow key.")
+        _expect(flight_effect.call("get_visual_sprite") != null, "Key-flight effect should use the original key sprite sheet.")
+        flight_effect.call("_process", 1.0)
+    permanent_gate.call("_process", 1.0)
+    await process_frame
+    _expect(bool(permanent_gate.call("is_permanently_open")), "Permanent gate should lock open after the key reaches it.")
+    _expect(int(permanent_gate.call("get_consumed_key_id")) == 2, "Permanent gate should remember the consumed key id.")
+    _expect(String(permanent_gate.call("get_effective_source_wmb_name")) == "doordark.wmb", "Permanent gate should morph to the original locked-open dark door model.")
+    _expect(String(permanent_gate.call("get_visual_source_path")) == "res://assets/models/gates/doordark/doordark.gltf", "Permanent gate should load the converted locked-open dark door model.")
+
+    var all_key_gate := gate_scene.instantiate() as StaticBody3D
+    all_key_gate.set("required_key_id", 6)
+    all_key_gate.set("match_mode", KEY_GATE_MATCH_EXACT)
+    all_key_gate.set("close_mode", KEY_GATE_CLOSE_PERMANENT)
+    all_key_gate.set("open_sound_asset_id", "")
+    root.add_child(all_key_gate)
+    await process_frame
+    _expect(bool(player.call("set_current_key_id", 255)), "Test should set all-key before checking strict gate bypass.")
+    _expect(bool(all_key_gate.call("try_open", player)), "All-key state should open strict permanent gates.")
+    _expect(int(player.call("get_current_key_id")) == 255, "All-key state should not be consumed by permanent gates.")
+
+    all_key_gate.queue_free()
+    permanent_gate.queue_free()
+    auto_gate.queue_free()
+    unlocked_gate.queue_free()
+    component_gate.queue_free()
     gate.queue_free()
     blue_pickup.queue_free()
     yellow_pickup.queue_free()
@@ -1216,6 +1341,179 @@ func _test_key_diamond_system(assets: Node) -> void:
     if mix_effect != null:
         mix_effect.queue_free()
     await process_frame
+
+
+func _test_gate_visual_models(_assets: Node) -> void:
+    var gate_scene := load(KEY_GATE_SCENE_PATH) as PackedScene
+    _expect(gate_scene != null, "Key gate scene should load for door visual tests.")
+    if gate_scene == null:
+        return
+
+    var source_specs := [
+        {"source": "doorRed.wmb", "key": 1, "path": "res://assets/models/gates/doorred/doorred.gltf"},
+        {"source": "dooryell.wmb", "key": 2, "path": "res://assets/models/gates/dooryell/dooryell.gltf"},
+        {"source": "doororan.wmb", "key": 3, "path": "res://assets/models/gates/doororan/doororan.gltf"},
+        {"source": "doorBlue.wmb", "key": 4, "path": "res://assets/models/gates/doorblue/doorblue.gltf"},
+        {"source": "doormage.wmb", "key": 5, "path": "res://assets/models/gates/doormage/doormage.gltf"},
+        {"source": "doormag.wmb", "key": 5, "path": "res://assets/models/gates/doormag/doormag.gltf"},
+        {"source": "doorgree.wmb", "key": 6, "path": "res://assets/models/gates/doorgree/doorgree.gltf"},
+        {"source": "doorexit.wmb", "key": 255, "path": "res://assets/models/gates/doorexit/doorexit.gltf"},
+        {"source": "doordark.wmb", "key": 0, "path": "res://assets/models/gates/doordark/doordark.gltf"},
+        {"source": "doorwk1.wmb", "key": 0, "path": "res://assets/models/gates/doorwk1/doorwk1.gltf"},
+        {"source": "doorwk2.wmb", "key": 0, "path": "res://assets/models/gates/doorwk2/doorwk2.gltf"},
+        {"source": "doorwk3.wmb", "key": 0, "path": "res://assets/models/gates/doorwk3/doorwk3.gltf"},
+        {"source": "doorwk4.wmb", "key": 0, "path": "res://assets/models/gates/doorwk4/doorwk4.gltf"},
+        {"source": "dfixRed.wmb", "key": 1, "path": "res://assets/models/gates/dfixred/dfixred.gltf"},
+        {"source": "dfixyell.wmb", "key": 2, "path": "res://assets/models/gates/dfixyell/dfixyell.gltf"},
+        {"source": "dfixOran.wmb", "key": 3, "path": "res://assets/models/gates/dfixoran/dfixoran.gltf"},
+        {"source": "dfixblue.wmb", "key": 4, "path": "res://assets/models/gates/dfixblue/dfixblue.gltf"},
+        {"source": "dfixmag.wmb", "key": 5, "path": "res://assets/models/gates/dfixmag/dfixmag.gltf"},
+        {"source": "dfixgree.wmb", "key": 6, "path": "res://assets/models/gates/dfixgree/dfixgree.gltf"},
+        {"source": "dfixall.wmb", "key": 255, "path": "res://assets/models/gates/dfixall/dfixall.gltf"},
+        {"source": "doneRed.wmb", "key": 1, "path": "res://assets/models/gates/donered/donered.gltf"},
+        {"source": "doneyell.wmb", "key": 2, "path": "res://assets/models/gates/doneyell/doneyell.gltf"},
+        {"source": "doneOran.wmb", "key": 3, "path": "res://assets/models/gates/doneoran/doneoran.gltf"},
+        {"source": "doneBlue.wmb", "key": 4, "path": "res://assets/models/gates/doneblue/doneblue.gltf"},
+        {"source": "doneMage.wmb", "key": 5, "path": "res://assets/models/gates/donemage/donemage.gltf"},
+        {"source": "donegree.wmb", "key": 6, "path": "res://assets/models/gates/donegree/donegree.gltf"}
+    ]
+    var signatures := {}
+    for spec in source_specs:
+        var gate := gate_scene.instantiate() as StaticBody3D
+        _expect(gate != null, "Key gate should instantiate for visual source: %s" % spec["source"])
+        if gate == null:
+            continue
+        gate.set("source_wmb_name", spec["source"])
+        gate.set("required_key_id", int(spec["key"]))
+        gate.set("match_mode", KEY_GATE_MATCH_UNLOCKED if int(spec["key"]) == 0 else KEY_GATE_MATCH_EXACT)
+        gate.set("open_sound_asset_id", "")
+        root.add_child(gate)
+        await process_frame
+
+        var signature := String(gate.call("get_visual_signature"))
+        signatures[spec["source"]] = signature
+        _expect(signature.begins_with(String(spec["source"]).to_lower()), "Door visual signature should preserve the original WMB source: %s" % spec["source"])
+        _expect(bool(gate.call("has_original_visual_model")), "Door visual should load the converted original WMB model for source: %s" % spec["source"])
+        _expect(String(gate.call("get_visual_source_path")) == String(spec["path"]), "Door visual should load the expected converted glTF: %s" % spec["source"])
+        _expect(int(gate.call("get_visual_part_count")) >= 1, "Door visual should expose imported mesh parts for source: %s" % spec["source"])
+        var bounds_size: Vector3 = gate.call("get_visual_model_bounds_size")
+        _expect(bounds_size.x > 0.5 and bounds_size.y > 0.5 and bounds_size.z > 0.05, "Door visual should have non-degenerate converted WMB bounds: %s" % spec["source"])
+        var visual_root := gate.call("get_visual_model_root") as Node3D
+        _expect(visual_root != null, "Door visual should expose a model root for source: %s" % spec["source"])
+        gate.queue_free()
+
+    _expect(signatures.get("doorRed.wmb", "") != signatures.get("doororan.wmb", ""), "Red and orange doors should be distinguishable by source visual signature.")
+    _expect(signatures.get("doorexit.wmb", "") != signatures.get("doordark.wmb", ""), "Exit and dark door models should be distinguishable.")
+    _expect(signatures.get("doorwk1.wmb", "") != signatures.get("doorwk4.wmb", ""), "Weak-door WMB levels should keep distinct visual signatures.")
+    _test_gate_wmb_manifest_textures()
+
+    var gallery_scene := load(KEY_GATE_GALLERY_SCENE_PATH) as PackedScene
+    _expect(gallery_scene != null, "Key gate gallery scene should load for visual source checks.")
+    if gallery_scene != null:
+        var gallery := gallery_scene.instantiate()
+        root.add_child(gallery)
+        await process_frame
+        var gallery_sources := {
+            "RedExactGate": "doorRed.wmb",
+            "OrangeComponentGate": "doororan.wmb",
+            "MagentaComponentGate": "doormage.wmb",
+            "DoorMagAliasGate": "doormag.wmb",
+            "ExitModelGate": "doorexit.wmb",
+            "DarkModelGate": "doordark.wmb",
+            "WeakDoor1ModelGate": "doorwk1.wmb",
+            "WeakDoor2ModelGate": "doorwk2.wmb",
+            "WeakDoor3ModelGate": "doorwk3.wmb",
+            "WeakDoor4ModelGate": "doorwk4.wmb",
+            "FixedRedGate": "dfixRed.wmb",
+            "FixedYellowGate": "dfixyell.wmb",
+            "FixedOrangeGate": "dfixOran.wmb",
+            "FixedBlueGate": "dfixblue.wmb",
+            "FixedMagentaGate": "dfixmag.wmb",
+            "FixedGreenGate": "dfixgree.wmb",
+            "FixedAllGate": "dfixall.wmb",
+            "DoneRedGate": "doneRed.wmb",
+            "DoneYellowGate": "doneyell.wmb",
+            "DoneOrangeGate": "doneOran.wmb",
+            "DoneBlueGate": "doneBlue.wmb",
+            "DoneMagentaGate": "doneMage.wmb",
+            "DoneGreenGate": "donegree.wmb"
+        }
+        for gate_name in gallery_sources.keys():
+            var gallery_gate := gallery.get_node_or_null(gate_name) as StaticBody3D
+            _expect(gallery_gate != null, "Gate gallery should expose door visual source gate: %s" % gate_name)
+            if gallery_gate != null:
+                _expect(String(gallery_gate.call("get_source_wmb_name")) == gallery_sources[gate_name], "Gallery gate should preserve its source WMB: %s" % gate_name)
+                _expect(String(gallery_gate.call("get_visual_signature")).begins_with(String(gallery_sources[gate_name]).to_lower()), "Gallery gate should build the matching source visual: %s" % gate_name)
+                _expect(bool(gallery_gate.call("has_original_visual_model")), "Gallery gate should load a converted original model: %s" % gate_name)
+                _expect(int(gallery_gate.call("get_visual_part_count")) >= 1, "Gallery gate should have a visible imported model: %s" % gate_name)
+        gallery.queue_free()
+
+    await process_frame
+
+
+func _test_gate_wmb_manifest_textures() -> void:
+    var text := FileAccess.get_file_as_string(GATE_WMB_MANIFEST_PATH)
+    _expect(not text.is_empty(), "Gate WMB conversion manifest should exist.")
+    if text.is_empty():
+        return
+    var parsed = JSON.parse_string(text)
+    _expect(typeof(parsed) == TYPE_DICTIONARY, "Gate WMB conversion manifest should parse as JSON.")
+    if typeof(parsed) != TYPE_DICTIONARY:
+        return
+    var entries_by_source := {}
+    for raw_entry in (parsed as Dictionary).get("converted", []):
+        if typeof(raw_entry) != TYPE_DICTIONARY:
+            continue
+        var entry := raw_entry as Dictionary
+        entries_by_source[String(entry.get("source", "")).get_file().to_lower()] = entry
+
+    _expect(_gate_manifest_uses_textures(entries_by_source, "doorRed.wmb", ["plank_red_128x3", "lockgem_red"]), "Red gate WMB should keep red planks and the red lock-gem texture.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "doorexit.wmb", ["plank_whiteB_12", "Txt_DoorExit"]), "Exit gate WMB should keep the plank and exit-text textures.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "doorwk4.wmb", ["wood_001_128b"]), "Weak gate WMB should keep the wood plank texture.")
+    _expect(_gate_manifest_skipped_no_render(entries_by_source, "doorRed.wmb", 12), "Red gate conversion should skip WMB no-render black shell faces.")
+    _expect(_gate_manifest_skipped_no_render(entries_by_source, "doorexit.wmb", 12), "Exit gate conversion should skip WMB no-render dummy shell faces.")
+    _expect(_gate_manifest_skipped_no_render(entries_by_source, "doorwk4.wmb", 6), "Weak gate conversion should skip WMB no-render black shell faces.")
+    _expect(not _gate_manifest_uses_textures(entries_by_source, "doorRed.wmb", ["black"]), "Red gate visible texture list should not include hidden black shell faces.")
+    _expect(not _gate_manifest_uses_textures(entries_by_source, "doorexit.wmb", ["01dummy1"]), "Exit gate visible texture list should not include hidden dummy shell faces.")
+    _expect(not _gate_manifest_uses_textures(entries_by_source, "doorwk4.wmb", ["black"]), "Weak gate visible texture list should not include hidden black shell faces.")
+    _expect(_gate_manifest_has_texinfo(entries_by_source, "doorRed.wmb", 21), "Red gate conversion should use original WMB texinfo records.")
+    _expect(_gate_manifest_has_texinfo(entries_by_source, "doorexit.wmb", 16), "Exit gate conversion should use original WMB texinfo records.")
+    _expect(_gate_manifest_has_texinfo(entries_by_source, "doorwk4.wmb", 20), "Weak gate conversion should use original WMB texinfo records.")
+    _expect(_gate_manifest_has_texture_file(entries_by_source, "dooryell.wmb", "dooryell_lockgem_yellow.png"), "Yellow gate should not share the different done-yellow lock-gem image.")
+    _expect(_gate_manifest_has_texture_file(entries_by_source, "doneyell.wmb", "doneyell_lockgem_yellow.png"), "Done-yellow gate should keep its distinct embedded lock-gem image.")
+
+
+func _gate_manifest_uses_textures(entries_by_source: Dictionary, source_name: String, expected_textures: Array[String]) -> bool:
+    var entry = entries_by_source.get(source_name.to_lower())
+    if typeof(entry) != TYPE_DICTIONARY:
+        return false
+    var used_textures: Array = (entry as Dictionary).get("used_textures", [])
+    for texture_name in expected_textures:
+        if not used_textures.has(texture_name):
+            return false
+    return true
+
+
+func _gate_manifest_has_texinfo(entries_by_source: Dictionary, source_name: String, expected_count: int) -> bool:
+    var entry = entries_by_source.get(source_name.to_lower())
+    if typeof(entry) != TYPE_DICTIONARY:
+        return false
+    return String((entry as Dictionary).get("mapping_source", "")) == "wmb_texinfo" and int((entry as Dictionary).get("texture_mapping_count", 0)) == expected_count
+
+
+func _gate_manifest_skipped_no_render(entries_by_source: Dictionary, source_name: String, expected_count: int) -> bool:
+    var entry = entries_by_source.get(source_name.to_lower())
+    if typeof(entry) != TYPE_DICTIONARY:
+        return false
+    return int((entry as Dictionary).get("skipped_no_render_polygon_count", 0)) == expected_count
+
+
+func _gate_manifest_has_texture_file(entries_by_source: Dictionary, source_name: String, expected_file: String) -> bool:
+    var entry = entries_by_source.get(source_name.to_lower())
+    if typeof(entry) != TYPE_DICTIONARY:
+        return false
+    var texture_files: Array = (entry as Dictionary).get("texture_files", [])
+    return texture_files.has(expected_file)
 
 
 func _test_wasp_projectile_damages_enemy() -> void:
@@ -2344,6 +2642,7 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("KeyDiamondYellow") != null, "Prototype yellow key diamond should be editor-instanced.")
     _expect(world.get_node_or_null("OrangeKeyGate") != null, "Prototype orange key gate should be editor-instanced.")
     _expect(world.get_node_or_null("KeyDiamondPanel") != null, "Prototype key-diamond panel should be editor-instanced.")
+    _expect(world.get_node_or_null("GateTestGallery") != null, "Prototype gate test gallery should be editor-instanced.")
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
     var floor := world.get_node_or_null("PrototypeFloor") as StaticBody3D
     _expect(floor != null, "Prototype floor should be a StaticBody3D.")
@@ -2568,9 +2867,69 @@ func _test_prototype_world() -> void:
         var red_key_pickup := world.get_node_or_null("KeyDiamondRed") as Area3D
         var yellow_key_pickup := world.get_node_or_null("KeyDiamondYellow") as Area3D
         var orange_gate := world.get_node_or_null("OrangeKeyGate") as StaticBody3D
+        var gate_gallery := world.get_node_or_null("GateTestGallery")
         _expect(red_key_pickup != null, "Prototype world should expose a red key diamond.")
         _expect(yellow_key_pickup != null, "Prototype world should expose a yellow key diamond.")
         _expect(orange_gate != null, "Prototype world should expose a strict orange key gate.")
+        _expect(gate_gallery != null, "Prototype world should expose the key gate test gallery.")
+        if gate_gallery != null:
+            for gallery_node_name in [
+                "GalleryKeyRed",
+                "GalleryKeyYellow",
+                "GalleryKeyBlue",
+                "GalleryKeyOrange",
+                "GalleryKeyMagenta",
+                "GalleryKeyGreen",
+                "GalleryKeyAll",
+                "RedExactGate",
+                "YellowExactGate",
+                "BlueExactGate",
+                "OrangeComponentGate",
+                "MagentaComponentGate",
+                "GreenComponentGate",
+                "OrangeStrictGate",
+                "MagentaStrictGate",
+                "GreenStrictGate",
+                "AllKeyStrictGate",
+                "UnlockedScannerGate",
+                "AutoCloseGate",
+                "PermanentConsumeGate",
+                "ExitModelGate",
+                "DarkModelGate",
+                "DoorMagAliasGate",
+                "WeakDoor1ModelGate",
+                "WeakDoor2ModelGate",
+                "WeakDoor3ModelGate",
+                "WeakDoor4ModelGate",
+                "FixedRedGate",
+                "FixedYellowGate",
+                "FixedOrangeGate",
+                "FixedBlueGate",
+                "FixedMagentaGate",
+                "FixedGreenGate",
+                "FixedAllGate",
+                "DoneRedGate",
+                "DoneYellowGate",
+                "DoneOrangeGate",
+                "DoneBlueGate",
+                "DoneMagentaGate",
+                "DoneGreenGate"
+            ]:
+                _expect(gate_gallery.get_node_or_null(gallery_node_name) != null, "Gate gallery should expose variant: %s" % gallery_node_name)
+            var gallery_all_key := gate_gallery.get_node_or_null("GalleryKeyAll") as Area3D
+            _expect(gallery_all_key != null and int(gallery_all_key.call("get_key_id")) == 255, "Gate gallery should include the all-key diamond.")
+            var gallery_component_gate := gate_gallery.get_node_or_null("OrangeComponentGate") as StaticBody3D
+            _expect(gallery_component_gate != null and int(gallery_component_gate.call("get_effective_match_mode")) == KEY_GATE_MATCH_COMPONENT, "Gate gallery should include a WDL component-match orange gate.")
+            var gallery_auto_gate := gate_gallery.get_node_or_null("AutoCloseGate") as StaticBody3D
+            _expect(gallery_auto_gate != null and int(gallery_auto_gate.call("get_close_mode")) == KEY_GATE_CLOSE_AUTO, "Gate gallery should include an auto-close gate.")
+            var gallery_permanent_gate := gate_gallery.get_node_or_null("PermanentConsumeGate") as StaticBody3D
+            _expect(gallery_permanent_gate != null and int(gallery_permanent_gate.call("get_close_mode")) == KEY_GATE_CLOSE_PERMANENT, "Gate gallery should include a permanent consume-and-lock gate.")
+            var gallery_exit_gate := gate_gallery.get_node_or_null("ExitModelGate") as StaticBody3D
+            _expect(gallery_exit_gate != null and String(gallery_exit_gate.call("get_visual_signature")).begins_with("doorexit.wmb"), "Gate gallery should include the exit-door model visual.")
+            var gallery_dark_gate := gate_gallery.get_node_or_null("DarkModelGate") as StaticBody3D
+            _expect(gallery_dark_gate != null and String(gallery_dark_gate.call("get_visual_signature")).begins_with("doordark.wmb"), "Gate gallery should include the dark-door model visual.")
+            var gallery_weak_gate := gate_gallery.get_node_or_null("WeakDoor4ModelGate") as StaticBody3D
+            _expect(gallery_weak_gate != null and String(gallery_weak_gate.call("get_visual_signature")).begins_with("doorwk4.wmb"), "Gate gallery should include the largest weak-door model visual.")
         if red_key_pickup != null and yellow_key_pickup != null and orange_gate != null:
             _expect(red_key_pickup.collision_layer == PICKUP_SENSOR_LAYER, "Prototype red key diamond should live on the pickup sensor layer.")
             _expect(red_key_pickup.collision_mask == CHARACTER_LAYER, "Prototype red key diamond should monitor characters.")

@@ -1,0 +1,232 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "convert_gate_wmb_models.py"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "doneoran"
+    }
+  ],
+  "meshes": [
+    {
+      "name": "doneoran",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        },
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 4,
+          "material": 1
+        },
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 5,
+          "material": 2
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "plank_orangeb_1",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "name": "plank_orange_12",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 1.0
+      }
+    },
+    {
+      "name": "lockgem_orange",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 2
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 1.0
+      }
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "textures": [
+    {
+      "source": 0,
+      "sampler": 0
+    },
+    {
+      "source": 1,
+      "sampler": 0
+    },
+    {
+      "source": 2,
+      "sampler": 0
+    }
+  ],
+  "images": [
+    {
+      "uri": "../../../textures/gates/plank_orangeb_1.png"
+    },
+    {
+      "uri": "../../../textures/gates/plank_orange_12.png"
+    },
+    {
+      "uri": "../../../textures/gates/lockgem_orange.png"
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "doneoran.bin",
+      "byteLength": 13148
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 4044,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 4044,
+      "byteLength": 4044,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 8088,
+      "byteLength": 2696,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 10784,
+      "byteLength": 1488,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 12272,
+      "byteLength": 780,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 13052,
+      "byteLength": 96,
+      "target": 34963
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 337,
+      "type": "VEC3",
+      "min": [
+        -1.28,
+        0.0,
+        -0.16
+      ],
+      "max": [
+        1.28,
+        2.88,
+        0.16
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 337,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 337,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5125,
+      "count": 372,
+      "type": "SCALAR",
+      "min": [
+        0
+      ],
+      "max": [
+        336
+      ]
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5125,
+      "count": 195,
+      "type": "SCALAR",
+      "min": [
+        81
+      ],
+      "max": [
+        332
+      ]
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5125,
+      "count": 24,
+      "type": "SCALAR",
+      "min": [
+        170
+      ],
+      "max": [
+        186
+      ]
+    }
+  ]
+}

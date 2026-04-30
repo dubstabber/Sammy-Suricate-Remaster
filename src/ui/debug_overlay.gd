@@ -32,6 +32,12 @@ func _physics_process(_delta: float) -> void:
                 lines.append("Health: %d / %d" % [int(roundf(health)), int(roundf(max_health))])
             else:
                 lines.append("Health: %.2f / %d" % [health, int(roundf(max_health))])
+        if _player.has_method("get_lives") and _player.has_method("get_max_lives"):
+            lines.append("Lives: %d / %d" % [int(_player.call("get_lives")), int(_player.call("get_max_lives"))])
+        if _player.has_method("is_game_over") and bool(_player.call("is_game_over")):
+            lines.append("State: Game Over")
+        elif _player.has_method("is_dead") and bool(_player.call("is_dead")):
+            lines.append("State: Dead")
         if _player.has_method("get_boost_capacity") and _player.has_method("get_boost_capacity_max"):
             lines.append("Boost: %.0f / %.0f" % [
                     float(_player.call("get_boost_capacity")),

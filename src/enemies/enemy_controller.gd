@@ -412,6 +412,9 @@ func _tick_roar(delta: float) -> Vector3:
 
 
 func _tick_attack_swing(delta: float) -> Vector3:
+	if not _is_attackable_target(_attack_target) and not _is_attackable_target(_target):
+		_enter_state(EnemyState.WAIT)
+		return Vector3.ZERO
 	if _target != null:
 		_turn_toward(_target_horizontal_offset(), delta)
 	if not _hit_resolved_this_swing and _animation_player != null and _animation_player.is_playing():
@@ -647,19 +650,20 @@ func _finish_hit_recoil() -> void:
 
 
 func _refresh_target() -> void:
-	if _target != null and is_instance_valid(_target):
+	if _is_attackable_target(_target):
 		return
 	_target = null
 	var tree := get_tree()
 	if tree == null:
 		return
-	var candidate := tree.get_first_node_in_group("player")
-	if candidate is Node3D:
-		_target = candidate
+	for candidate in tree.get_nodes_in_group("player"):
+		if _is_attackable_target(candidate):
+			_target = candidate as Node3D
+			return
 
 
 func _should_engage_target() -> bool:
-	if _target == null:
+	if not _is_attackable_target(_target):
 		return false
 	var to_target := _target_horizontal_offset()
 	if to_target.length() > react_range:
@@ -668,7 +672,7 @@ func _should_engage_target() -> bool:
 
 
 func _should_answer_attack_call() -> bool:
-	if not is_attack_call_active() or _target == null:
+	if not is_attack_call_active() or not _is_attackable_target(_target):
 		return false
 	if not _matches_attack_call():
 		return false
@@ -750,7 +754,7 @@ func _has_line_of_sight_to(target: Node3D) -> bool:
 func _resolve_attack_hit() -> void:
 	_hit_resolved_this_swing = true
 	var hit_target := _attack_target if _attack_target != null and is_instance_valid(_attack_target) else _target
-	if hit_target == null or not is_instance_valid(hit_target):
+	if not _is_attackable_target(hit_target):
 		return
 	if not _attack_started_in_range and _horizontal_offset_to(hit_target).length() > attack_range * 1.2:
 		return
@@ -765,9 +769,9 @@ func _resolve_attack_hit() -> void:
 func _resolve_attack_contact(hit_target: Node3D) -> void:
 	if _contact_resolved_this_swing:
 		return
-	_contact_resolved_this_swing = true
-	if hit_target == null or not is_instance_valid(hit_target):
+	if not _is_attackable_target(hit_target):
 		return
+	_contact_resolved_this_swing = true
 	if not hit_target.has_method("take_damage"):
 		return
 	var damage := get_contact_damage_amount()
@@ -781,7 +785,7 @@ func _apply_attack_push_to_target(target: Node3D) -> void:
 
 
 func _apply_push_to_target(target: Node3D, source_velocity: Vector3) -> void:
-	if target == null or not is_instance_valid(target):
+	if not _is_attackable_target(target):
 		return
 	if not target.has_method("apply_enemy_push"):
 		return
@@ -790,6 +794,18 @@ func _apply_push_to_target(target: Node3D, source_velocity: Vector3) -> void:
 		return
 	_last_target_push_frame = current_frame
 	target.call("apply_enemy_push", source_velocity, push_bounce_force, self)
+
+
+func _is_attackable_target(candidate: Node) -> bool:
+	if candidate == null or not is_instance_valid(candidate):
+		return false
+	if not (candidate is Node3D):
+		return false
+	if candidate.has_method("is_game_over") and bool(candidate.call("is_game_over")):
+		return false
+	if candidate.has_method("is_dead") and bool(candidate.call("is_dead")):
+		return false
+	return true
 
 
 func _play_action(action: StringName, custom_speed: float = 1.0, restart: bool = false) -> bool:

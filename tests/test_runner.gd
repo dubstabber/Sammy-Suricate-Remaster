@@ -54,11 +54,13 @@ func _run() -> void:
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
     await _test_enemy_ai_behavior()
+    await _test_enemy_ignores_dead_player()
     await _test_enemy_blocked_roar()
     await _test_enemy_random_run_trigger()
     await _test_enemy_friend_call_key_distinguishes_families()
     await _test_player_real_push_integration()
     await _test_player_enemy_hit_push_integration()
+    await _test_player_death_lives_core()
     await _test_player_scene()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
@@ -1079,6 +1081,54 @@ func _test_enemy_ai_behavior() -> void:
     await process_frame
 
 
+func _test_enemy_ignores_dead_player() -> void:
+    const STATE_WAIT := 0
+    const STATE_ATTACK_SWING := 10
+
+    var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    enemy.set("affected_by_gravity", false)
+    enemy.set("max_health", 5.0)
+    enemy.set("enemy_resistance", 5.0)
+    enemy.set("react_range", 5.0)
+    enemy.set("attack_range", 1.2)
+    enemy.set("attack_strike_ratio", 0.1)
+    enemy.set("wait_min", 999.0)
+    enemy.set("wait_max", 999.0)
+    enemy.set("turn_rate_deg_per_sec", 720.0)
+    root.add_child(enemy)
+    enemy.global_position = Vector3.ZERO
+
+    var player_stub := _make_ai_test_player()
+    player_stub.set("dead", true)
+    root.add_child(player_stub)
+    player_stub.global_position = Vector3(0.0, 0.0, -0.7)
+    await physics_frame
+    await physics_frame
+
+    _expect(enemy.call("get_target") == null, "AI enemy should not acquire a player that is already in death state.")
+    _expect(int(enemy.call("get_state")) == STATE_WAIT, "AI enemy should stay idle instead of chasing a dead player.")
+    _expect(int(player_stub.get("damage_calls")) == 0, "AI enemy should not damage a player that is already dead.")
+    _expect(int(player_stub.get("push_calls")) == 0, "AI enemy should not push a player that is already dead.")
+
+    player_stub.set("dead", false)
+    enemy.call("_refresh_target")
+    _expect(enemy.call("get_target") == player_stub, "AI enemy should reacquire the player after death state clears.")
+    enemy.call("_enter_state", STATE_ATTACK_SWING)
+    _expect(int(enemy.call("get_state")) == STATE_ATTACK_SWING, "Regression setup should put the enemy into an active swing.")
+    var calls_after_live_contact := int(player_stub.get("damage_calls"))
+    player_stub.set("dead", true)
+    enemy.call("_resolve_attack_hit")
+    _expect(int(player_stub.get("damage_calls")) == calls_after_live_contact, "Pending enemy swing should not land after the player enters death state.")
+    _expect(int(player_stub.get("push_calls")) <= calls_after_live_contact, "Pending enemy swing should not push after the player enters death state.")
+    enemy.call("_on_animation_finished", StringName("actions/attack"))
+    _expect(int(enemy.call("get_state")) == STATE_WAIT, "AI enemy should stop re-attacking once its target is dead.")
+
+    enemy.queue_free()
+    player_stub.queue_free()
+    await process_frame
+
+
 func _test_enemy_blocked_roar() -> void:
     const STATE_CHASE := 2
     const STATE_ROAR := 3
@@ -1297,6 +1347,8 @@ func _make_ai_test_player() -> Node3D:
             + "var last_push_source: Node = null\n" \
             + "var push_velocity: Vector3 = Vector3.ZERO\n" \
             + "var hp: float = 100.0\n" \
+            + "var dead: bool = false\n" \
+            + "var game_over: bool = false\n" \
             + "func take_damage(amount: float, source: Node = null) -> bool:\n" \
             + "    damage_calls += 1\n" \
             + "    if first_amount < 0.0:\n" \
@@ -1305,6 +1357,10 @@ func _make_ai_test_player() -> Node3D:
             + "    last_source = source\n" \
             + "    hp = maxf(0.0, hp - amount)\n" \
             + "    return true\n" \
+            + "func is_dead() -> bool:\n" \
+            + "    return dead\n" \
+            + "func is_game_over() -> bool:\n" \
+            + "    return game_over\n" \
             + "func apply_enemy_push(source_velocity: Vector3, source_bounce_force: float = 1.0, source: Node = null) -> void:\n" \
             + "    push_calls += 1\n" \
             + "    last_push_source_velocity = source_velocity\n" \
@@ -1333,6 +1389,101 @@ func _make_ai_test_player() -> Node3D:
     collision_shape.shape = capsule
     node.add_child(collision_shape)
     return node
+
+
+func _test_player_death_lives_core() -> void:
+    var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
+    var player: CharacterBody3D = player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    await process_frame
+
+    _expect(player.has_method("get_lives"), "Player controller should expose the original BallesJoueur1 life count.")
+    _expect(player.has_method("get_max_lives"), "Player controller should expose the MaxBalles life cap.")
+    _expect(player.has_method("set_lives"), "Player controller should expose a life setter for level setup.")
+    _expect(player.has_method("add_lives"), "Player controller should expose original-style life pickups.")
+    _expect(player.has_method("is_dead"), "Player controller should expose death state.")
+    _expect(player.has_method("is_game_over"), "Player controller should expose final-life game-over state.")
+    _expect(player.has_method("set_respawn_transform"), "Player controller should expose restart/checkpoint respawn placement.")
+    _expect(int(player.call("get_lives")) == 3, "Prototype player should start with three original-style lives.")
+    _expect(int(player.call("get_max_lives")) == 19, "Max lives should preserve original MaxBalles.")
+    player.call("set_lives", 18)
+    _expect(int(player.call("add_lives", 5)) == 1, "Adding lives should clamp to MaxBalles and report only the accepted amount.")
+    _expect(int(player.call("get_lives")) == 19, "Life pickups should clamp at MaxBalles.")
+    player.call("set_lives", 3)
+
+    var animation_controller := player.call("get_animation_controller") as Node
+    _expect(animation_controller != null, "Death lifecycle needs Sammy's generated animation controller.")
+    if animation_controller != null:
+        _expect(bool(animation_controller.call("has_action", "kaputt")), "Player animation controller should expose original kaputt death animation.")
+        _expect(bool(animation_controller.call("has_action", "finkaputt")), "Player animation controller should expose original finkaputt game-over loop.")
+
+    var signals := {
+        "death_started": 0,
+        "life_lost": 0,
+        "respawned": 0,
+        "game_over": 0,
+        "last_lives_remaining": -1
+    }
+    player.connect("death_started", func(_source: Node) -> void:
+        signals["death_started"] = int(signals["death_started"]) + 1)
+    player.connect("life_lost", func(lives_remaining: int) -> void:
+        signals["life_lost"] = int(signals["life_lost"]) + 1
+        signals["last_lives_remaining"] = lives_remaining)
+    player.connect("respawned", func() -> void:
+        signals["respawned"] = int(signals["respawned"]) + 1)
+    player.connect("game_over", func() -> void:
+        signals["game_over"] = int(signals["game_over"]) + 1)
+
+    var respawn_transform := Transform3D(Basis(), Vector3(4.0, 0.25, 3.0))
+    player.call("set_respawn_transform", respawn_transform)
+    player.global_position = Vector3(12.0, 0.25, -6.0)
+    _expect(bool(player.call("take_damage", 47.0, null)), "Non-lethal damage should be accepted before death.")
+    _expect(is_equal_approx(float(player.call("get_health")), 1.0), "Non-lethal damage should leave Sammy alive with remaining WindowHearts.")
+    _expect(not bool(player.call("is_dead")), "Non-lethal damage should not start the death state.")
+
+    var inventory: Node = player.call("get_wasp_inventory")
+    if inventory != null:
+        inventory.call("add_ammo", load(WASP_TYPE_2_PATH), 1)
+    _expect(bool(player.call("take_damage", 2.0, null)), "Lethal damage should be accepted and start death.")
+    _expect(bool(player.call("is_dead")), "Lethal damage should mark Sammy dead immediately.")
+    _expect(not bool(player.call("is_game_over")), "Sammy should not be game-over while lives remain.")
+    _expect(is_equal_approx(float(player.call("get_health")), 0.0), "Lethal damage should clamp WindowHearts to zero.")
+    _expect(int(player.call("get_lives")) == 3, "Lives should not decrement until the kaputt animation window completes.")
+    _expect(int(signals["death_started"]) == 1, "Death start should emit once for the lethal hit.")
+    _expect(not bool(player.call("take_damage", 1.0, null)), "Damage should be ignored while Sammy is already dead.")
+    player.call("apply_quick_turn")
+    _expect(not bool(player.call("is_quick_turning")), "Dead Sammy should not start quick-turn movement.")
+    _expect(not bool(player.call("fire_wasp")), "Dead Sammy should not fire wasps even when ammo exists.")
+    if animation_controller != null:
+        _expect(String(animation_controller.call("get_current_action")) == "kaputt", "Lethal damage should switch Sammy to the original kaputt animation.")
+
+    var death_duration := float(player.call("_get_death_duration_seconds"))
+    _expect(death_duration > 0.0, "Death flow should derive a positive kaputt animation duration.")
+    player.call("_update_death_state", death_duration + 0.1)
+    _expect(not bool(player.call("is_dead")), "Sammy should leave death state after losing a life.")
+    _expect(not bool(player.call("is_game_over")), "Sammy should not enter game over while at least one life remains.")
+    _expect(int(player.call("get_lives")) == 2, "Death completion should consume one BallesJoueur1 life.")
+    _expect(is_equal_approx(float(player.call("get_health")), float(player.call("get_max_health"))), "Respawn should restore WindowHearts to WindowHeartsOrg.")
+    _expect(player.global_position.is_equal_approx(respawn_transform.origin), "Respawn should move Sammy back to the stored restart point.")
+    _expect(int(signals["life_lost"]) == 1 and int(signals["last_lives_remaining"]) == 2, "Life-loss signal should report the remaining count.")
+    _expect(int(signals["respawned"]) == 1, "Respawn should emit after a non-final death.")
+    if animation_controller != null:
+        _expect(String(animation_controller.call("get_current_action")) == "stand", "Respawn should return Sammy to the stand animation.")
+
+    player.call("set_lives", 1)
+    _expect(bool(player.call("take_damage", 99.0, null)), "Final lethal damage should be accepted.")
+    player.call("_update_death_state", death_duration + 0.1)
+    _expect(bool(player.call("is_dead")), "Final death should keep Sammy in the dead state.")
+    _expect(bool(player.call("is_game_over")), "Final death should enter game over after the kaputt animation window.")
+    _expect(int(player.call("get_lives")) == 0, "Final death should consume the last life.")
+    _expect(is_equal_approx(float(player.call("get_health")), 0.0), "Game over should leave WindowHearts at zero.")
+    _expect(int(signals["game_over"]) == 1, "Game over should emit once after the final life is lost.")
+    _expect(int(signals["respawned"]) == 1, "Final death should not emit an additional respawn.")
+    if animation_controller != null:
+        _expect(String(animation_controller.call("get_current_action")) == "finkaputt", "Game over should switch to the original finkaputt loop.")
+
+    player.queue_free()
+    await process_frame
 
 
 func _test_player_scene() -> void:
@@ -1727,6 +1878,7 @@ func _test_prototype_world() -> void:
             debug_label = debug_overlay.get_child(0) as Label
         _expect(debug_label != null and debug_label.text.contains("Wasps: 0"), "Prototype debug overlay should show zero wasps before pickup collection.")
         _expect(debug_label != null and debug_label.text.contains("Health: 48 / 48"), "Prototype debug overlay should show the original WindowHearts readout at full hp.")
+        _expect(debug_label != null and debug_label.text.contains("Lives: 3 / 19"), "Prototype debug overlay should show the original-style BallesJoueur1 lives readout.")
     var camera := world.get_node_or_null("PrototypeCamera")
     _expect(camera != null, "Prototype world is missing its editor-instanced camera.")
     if camera != null:

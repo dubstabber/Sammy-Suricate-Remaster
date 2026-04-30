@@ -122,6 +122,24 @@ const CATALOG := {
         "kind": "texture",
         "description": "Original particle_RangeLion2 / particle_TakeEyeTruth sprite"
     },
+    "texture.diamond.default": {
+        "path": "res://assets/textures/score/gemgr+17.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/gemgr+17.png",
+        "kind": "texture",
+        "description": "Original green score diamond sprite sheet used by InitBonus3"
+    },
+    "texture.score.plus50": {
+        "path": "res://assets/textures/score/plus50+6.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/plus50+6.png",
+        "kind": "texture",
+        "description": "Original +50 flying score sprite sheet"
+    },
+    "texture.score.plus100": {
+        "path": "res://assets/textures/score/plu100+2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/plu100+2.png",
+        "kind": "texture",
+        "description": "Original +100 flying score sprite sheet"
+    },
     "music.sammy01": {
         "path": "res://assets/audio/sammy01.ogg",
         "source": "extract-sammy-assets/extracted/godot/audio/sammy01.ogg",
@@ -133,6 +151,12 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/audio/gemding2.wav",
         "kind": "audio",
         "description": "Gem pickup sound"
+    },
+    "sfx.diamond": {
+        "path": "res://assets/audio/diam.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/diam.wav",
+        "kind": "audio",
+        "description": "Original Diam_son used by score diamond pickups"
     },
     "sfx.boost_pickup": {
         "path": "res://assets/audio/Chimes2.wav",

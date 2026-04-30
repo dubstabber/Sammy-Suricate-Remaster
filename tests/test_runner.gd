@@ -11,6 +11,7 @@ const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
 const WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/wasp_pickup.tscn"
 const BOOST_PICKUP_SCENE_PATH := "res://scenes/pickups/boost_pickup.tscn"
 const EYE_OF_TRUTH_PICKUP_SCENE_PATH := "res://scenes/pickups/eye_of_truth_pickup.tscn"
+const DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/diamond_pickup.tscn"
 const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
 const WASP_TYPE_PATHS := [
     "",
@@ -49,6 +50,7 @@ func _run() -> void:
     _test_collision_layer_names()
     _test_asset_catalog(assets)
     _test_eye_of_truth_state(game)
+    _test_score_state(game)
     await _test_editor_model_previews(assets)
     _test_animation_libraries()
     _test_model_skin_alpha()
@@ -68,6 +70,7 @@ func _run() -> void:
     await _test_player_enemy_hit_push_integration()
     await _test_player_death_lives_core()
     await _test_player_scene()
+    await _test_diamond_pickup(game, assets)
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
     await _test_prototype_world()
@@ -178,6 +181,9 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(_png_has_transparent_pixels("res://assets/models/Paneye/skins/Paneye_skin0.png"), "Eye of Truth panel texture should preserve original transparent cutout pixels.")
     _expect(assets.load_asset("texture.particle.eye_truth_1") != null, "Unable to load original Eye of Truth particle sprite 1.")
     _expect(assets.load_asset("texture.particle.eye_truth_2") != null, "Unable to load original Eye of Truth particle sprite 2.")
+    _expect(assets.load_asset("texture.diamond.default") != null, "Unable to load original score diamond sprite sheet.")
+    _expect(assets.load_asset("texture.score.plus50") != null, "Unable to load original +50 score sprite sheet.")
+    _expect(assets.load_asset("texture.score.plus100") != null, "Unable to load original +100 score sprite sheet.")
     _expect(assets.get_model_scale("model.sammy.animated").is_equal_approx(Vector3(0.08, 0.08, 0.08)), "Sammy model scale should include original WDL scale 8.")
     _expect(assets.get_model_scale("model.rasta.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Rasta model should use default Acknex entity scale.")
     _expect(assets.get_model_rotation_degrees("model.sammy.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Sammy model should rotate Acknex +X forward to Godot -Z forward.")
@@ -192,6 +198,7 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.get_model_default_animation("model.rasta.animated") == "stand", "Rasta should expose a default stand animation.")
     _expect(assets.has_asset("music.sammy01"), "Asset catalog is missing copied music resource.")
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
+    _expect(assets.load_asset("sfx.diamond") != null, "Unable to load original Diam_son score pickup sound.")
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")
     _expect(assets.load_asset("sfx.eye_truth") != null, "Unable to load original EyeTruth sound.")
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
@@ -228,6 +235,117 @@ func _test_eye_of_truth_state(game: Node) -> void:
     game.call("_process", 9.0)
     _expect(not bool(game.call("is_eye_of_truth_active")), "Eye of Truth should expire after its duration elapses.")
     game.call("clear_eye_of_truth")
+
+
+func _test_score_state(game: Node) -> void:
+    _expect(game != null, "Game service should be available for score state.")
+    if game == null:
+        return
+    _expect(game.has_method("add_points"), "Game should expose original-style point accumulation.")
+    _expect(game.has_method("get_score_points"), "Game should expose current score points.")
+    _expect(game.has_method("get_last_score_delta"), "Game should expose the last pickup score delta.")
+    _expect(game.has_method("clear_score"), "Game should expose score reset for restarts/tests.")
+    if not game.has_method("add_points") or not game.has_method("get_score_points"):
+        return
+
+    game.call("clear_score")
+    _expect(int(game.call("get_score_points")) == 0, "Score should reset to zero.")
+    _expect(int(game.call("get_last_score_delta")) == 0, "Score reset should clear the last pickup delta.")
+    _expect(int(game.call("add_points", 50)) == 50, "Adding 50 points should report a +50 delta.")
+    _expect(int(game.call("get_score_points")) == 50, "Score should include the added diamond points.")
+    _expect(int(game.call("get_last_score_delta")) == 50, "Last pickup delta should track the added diamond points.")
+    _expect(int(game.call("add_points", -80)) == -50, "Negative score changes should clamp at zero and report the actual delta.")
+    _expect(int(game.call("get_score_points")) == 0, "Score should not go below zero.")
+    _expect(int(game.call("get_last_score_delta")) == -50, "Last score delta should report the clamped negative change.")
+    game.call("clear_score")
+
+
+func _test_diamond_pickup(game: Node, assets: Node) -> void:
+    _expect(game != null and assets != null, "Diamond pickup test needs Game and Assets services.")
+    if game == null or assets == null:
+        return
+    game.call("clear_score")
+
+    var scene := load(DIAMOND_PICKUP_SCENE_PATH) as PackedScene
+    _expect(scene != null, "Diamond pickup scene should load.")
+    if scene == null:
+        return
+
+    var pickup := scene.instantiate() as Area3D
+    _expect(pickup != null, "Diamond pickup should instantiate as an Area3D.")
+    if pickup == null:
+        return
+    root.add_child(pickup)
+    await process_frame
+
+    _expect(pickup.collision_layer == PICKUP_SENSOR_LAYER, "Diamond pickup should live on the pickup sensor collision layer.")
+    _expect(pickup.collision_mask == CHARACTER_LAYER, "Diamond pickup should monitor solid characters without blocking them.")
+    _expect(pickup.has_method("collect"), "Diamond pickup should expose a collection hook for tests/importers.")
+    _expect(pickup.has_method("was_collected"), "Diamond pickup should expose collected state.")
+    _expect(pickup.has_method("get_points"), "Diamond pickup should expose its configured score value.")
+    _expect(int(pickup.call("get_points")) == 50, "Diamond pickup should default to the original +50 score value.")
+    _expect(String(pickup.get("texture_asset_id")) == "texture.diamond.default", "Diamond pickup should use the original score diamond sprite sheet.")
+    _expect(String(pickup.get("collect_sound_asset_id")) == "sfx.diamond", "Diamond pickup should use the original Diam_son sound.")
+    _expect(is_equal_approx(float(pickup.get("visual_frames_per_second")), 48.0), "Diamond pickup should advance frames like InitBonus3's 3 frames per 16 Hz tick.")
+    var visual := pickup.call("get_visual_sprite") as Sprite3D
+    _expect(visual != null, "Diamond pickup should spawn a billboarded sprite visual.")
+    if visual != null:
+        _expect(visual.texture == assets.load_asset("texture.diamond.default"), "Diamond visual should use the original score diamond texture.")
+        _expect(visual.hframes == 17, "Diamond visual should expose the original 17-frame sprite sheet.")
+        _expect(visual.billboard == BaseMaterial3D.BILLBOARD_ENABLED, "Diamond visual should billboard toward the camera.")
+        var visual_frame := visual.frame
+        pickup.call("_process", 1.0 / 16.0)
+        _expect(visual.frame != visual_frame, "Diamond visual should cycle frames while active.")
+
+    var non_player_stub := Node3D.new()
+    non_player_stub.name = "NonPlayerDiamondContact"
+    root.add_child(non_player_stub)
+    _expect(not bool(pickup.call("collect", non_player_stub)), "Diamond pickup should ignore non-player bodies.")
+    _expect(int(game.call("get_score_points")) == 0, "Non-player diamond contact should not add score.")
+    non_player_stub.queue_free()
+
+    var player_stub := Node3D.new()
+    player_stub.name = "DiamondCollector"
+    player_stub.add_to_group("player")
+    root.add_child(player_stub)
+    pickup.set("collect_sound_asset_id", "")
+    _expect(bool(pickup.call("collect", player_stub)), "Diamond pickup should collect when given the player.")
+    _expect(int(game.call("get_score_points")) == 50, "Collecting a diamond should add its points to the game score.")
+    _expect(int(game.call("get_last_score_delta")) == 50, "Collecting a diamond should update the last score delta.")
+    _expect(bool(pickup.call("was_collected")), "Diamond pickup should mark itself collected.")
+    _expect(not bool(pickup.call("collect", player_stub)), "Diamond pickup should not collect twice.")
+    var popup := pickup.call("get_point_popup") as Sprite3D
+    _expect(popup != null, "Collecting a +50 diamond should spawn the original +50 popup.")
+    if popup != null:
+        _expect(popup.texture == assets.load_asset("texture.score.plus50"), "Diamond +50 popup should use the original plus50 sprite sheet.")
+        _expect(popup.hframes == 6, "Diamond +50 popup should preserve its original frame count.")
+    if visual != null:
+        var visual_scale_before := visual.scale.x
+        pickup.call("_process", 1.0 / 16.0)
+        _expect(visual.scale.x < visual_scale_before, "Diamond visual should shrink after collection.")
+    await process_frame
+    _expect(not pickup.monitoring, "Diamond pickup should stop monitoring after collection.")
+    _expect(not pickup.monitorable, "Diamond pickup should stop being monitorable after collection.")
+
+    var hundred_pickup := scene.instantiate() as Area3D
+    root.add_child(hundred_pickup)
+    hundred_pickup.set("points", 100)
+    hundred_pickup.set("collect_sound_asset_id", "")
+    await process_frame
+    _expect(bool(hundred_pickup.call("collect", player_stub)), "A configured +100 diamond should collect.")
+    _expect(int(game.call("get_score_points")) == 150, "Configured diamond points should add to the score.")
+    _expect(int(game.call("get_last_score_delta")) == 100, "Configured +100 diamonds should update the last score delta.")
+    var hundred_popup := hundred_pickup.call("get_point_popup") as Sprite3D
+    _expect(hundred_popup != null, "Collecting a +100 diamond should spawn the original +100 popup.")
+    if hundred_popup != null:
+        _expect(hundred_popup.texture == assets.load_asset("texture.score.plus100"), "Diamond +100 popup should use the original plu100 sprite sheet.")
+        _expect(hundred_popup.hframes == 2, "Diamond +100 popup should preserve its original frame count.")
+
+    hundred_pickup.queue_free()
+    player_stub.queue_free()
+    pickup.queue_free()
+    game.call("clear_score")
+    await process_frame
 
 
 func _test_eye_of_truth_pickup(game: Node, assets: Node) -> void:
@@ -2019,6 +2137,9 @@ func _test_player_scene() -> void:
 
 
 func _test_prototype_world() -> void:
+    var game := root.get_node_or_null("Game")
+    if game != null and game.has_method("clear_score"):
+        game.call("clear_score")
     var prototype_scene: PackedScene = load(PROTOTYPE_SCENE_PATH)
     var world: Node = prototype_scene.instantiate()
     _expect(world.get_node_or_null("PrototypeFloor") != null, "Prototype floor should be serialized in the scene.")
@@ -2027,6 +2148,8 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("PrototypeCamera") != null, "Prototype camera should be editor-instanced.")
     _expect(world.get_node_or_null("BoostPickup") != null, "Prototype boost pickup should be editor-instanced.")
     _expect(world.get_node_or_null("EyeOfTruthPickup") != null, "Prototype Eye of Truth pickup should be editor-instanced.")
+    _expect(world.get_node_or_null("DiamondPickup50") != null, "Prototype score diamond should be editor-instanced.")
+    _expect(world.get_node_or_null("DiamondPickup100") != null, "Prototype +100 score diamond should be editor-instanced.")
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
     var floor := world.get_node_or_null("PrototypeFloor") as StaticBody3D
     _expect(floor != null, "Prototype floor should be a StaticBody3D.")
@@ -2064,6 +2187,8 @@ func _test_prototype_world() -> void:
         if debug_overlay.get_child_count() > 0:
             debug_label = debug_overlay.get_child(0) as Label
         _expect(debug_label != null and debug_label.text.contains("Wasps: 0"), "Prototype debug overlay should show zero wasps before pickup collection.")
+        _expect(debug_label != null and debug_label.text.contains("Score: 0"), "Prototype debug overlay should show zero score before diamond collection.")
+        _expect(debug_label != null and debug_label.text.contains("Last pickup: +0"), "Prototype debug overlay should show no pickup score delta before diamond collection.")
         _expect(debug_label != null and debug_label.text.contains("Health: 48 / 48"), "Prototype debug overlay should show the original WindowHearts readout at full hp.")
         _expect(debug_label != null and debug_label.text.contains("Lives: 3 / 19"), "Prototype debug overlay should show the original-style BallesJoueur1 lives readout.")
     var camera := world.get_node_or_null("PrototypeCamera")
@@ -2209,6 +2334,38 @@ func _test_prototype_world() -> void:
             _expect(String(eye_pickup.get("collect_sound_asset_id")) == "sfx.eye_truth", "Eye of Truth pickup should use the original EyeTruth sound.")
             var eye_model := eye_pickup.get_node_or_null("EyeOfTruthVisual") as Node3D
             _expect(eye_model != null, "Eye of Truth pickup should spawn the original eye model visual.")
+        var diamond_pickup := world.get_node_or_null("DiamondPickup50") as Area3D
+        _expect(diamond_pickup != null, "Prototype world should spawn a score diamond as an Area3D.")
+        if diamond_pickup != null:
+            _expect(diamond_pickup.collision_layer == PICKUP_SENSOR_LAYER, "Diamond pickup should live on the pickup sensor collision layer.")
+            _expect(diamond_pickup.collision_mask == CHARACTER_LAYER, "Diamond pickup should monitor solid characters without blocking them.")
+            _expect(diamond_pickup.has_method("collect"), "Diamond pickup should expose a collection hook for tests/importers.")
+            _expect(diamond_pickup.has_method("was_collected"), "Diamond pickup should expose collected state.")
+            _expect(int(diamond_pickup.call("get_points")) == 50, "Prototype score diamond should grant 50 points.")
+            _expect(String(diamond_pickup.get("collect_sound_asset_id")) == "sfx.diamond", "Diamond pickup should use the original Diam_son sound.")
+            var diamond_visual := diamond_pickup.call("get_visual_sprite") as Sprite3D
+            _expect(diamond_visual != null, "Diamond pickup should spawn the original score diamond sprite.")
+            if diamond_visual != null:
+                _expect(diamond_visual.texture == assets.load_asset("texture.diamond.default"), "Diamond pickup visual should use the original score diamond texture.")
+                _expect(diamond_visual.hframes == 17, "Diamond pickup visual should keep the original 17-frame sprite sheet.")
+            var player_for_diamond := world.get_node_or_null("Player")
+            if player_for_diamond != null and game != null and game.has_method("get_score_points"):
+                diamond_pickup.set("collect_sound_asset_id", "")
+                _expect(bool(diamond_pickup.call("collect", player_for_diamond)), "Prototype diamond should collect when given the player.")
+                _expect(int(game.call("get_score_points")) == 50, "Prototype diamond collection should add to the debug score source.")
+                _expect(int(game.call("get_last_score_delta")) == 50, "Prototype diamond collection should update the last pickup delta.")
+                if debug_overlay != null and debug_label != null:
+                    debug_overlay.call("_physics_process", 0.0)
+                    _expect(debug_label.text.contains("Score: 50"), "Prototype debug overlay should show the earned diamond points.")
+                    _expect(debug_label.text.contains("Last pickup: +50"), "Prototype debug overlay should show the points earned by the last diamond pickup.")
+                _expect(bool(diamond_pickup.call("was_collected")), "Prototype diamond should mark itself collected.")
+                await process_frame
+                _expect(not diamond_pickup.monitoring, "Prototype diamond should stop monitoring after collection.")
+                _expect(not diamond_pickup.monitorable, "Prototype diamond should stop being monitorable after collection.")
+        var hundred_diamond := world.get_node_or_null("DiamondPickup100") as Area3D
+        _expect(hundred_diamond != null, "Prototype world should expose a +100 score diamond for playtesting.")
+        if hundred_diamond != null:
+            _expect(int(hundred_diamond.call("get_points")) == 100, "Prototype +100 diamond should preserve its configured point value.")
         var wasp_pickup := world.get_node_or_null("WaspPickup") as Area3D
         _expect(wasp_pickup != null, "Prototype world should spawn the wasp pickup as an Area3D.")
         if wasp_pickup != null:

@@ -22,6 +22,7 @@ func _physics_process(_delta: float) -> void:
         "Sammy Suricate Remaster",
         "FPS: %d" % Engine.get_frames_per_second()
     ]
+    _append_score_lines(lines)
     if _player != null:
         var p := _player.global_position
         lines.append("Player: %.2f, %.2f, %.2f" % [p.x, p.y, p.z])
@@ -66,3 +67,13 @@ func _get_player_wasp_count() -> int:
     if inventory == null or not inventory.has_method("get_ammo_count"):
         return 0
     return int(inventory.call("get_ammo_count"))
+
+
+func _append_score_lines(lines: Array[String]) -> void:
+    var game := get_node_or_null("/root/Game")
+    if game == null or not game.has_method("get_score_points") or not game.has_method("get_last_score_delta"):
+        return
+    lines.append("Score: %d" % int(game.call("get_score_points")))
+    var last_delta := int(game.call("get_last_score_delta"))
+    var sign := "+" if last_delta >= 0 else ""
+    lines.append("Last pickup: %s%d" % [sign, last_delta])

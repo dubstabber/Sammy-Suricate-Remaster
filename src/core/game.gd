@@ -4,9 +4,12 @@ const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
 const DEFAULT_EYE_OF_TRUTH_SECONDS := 256.0 / 16.0
 
 signal eye_of_truth_changed(active: bool, remaining_seconds: float)
+signal score_changed(total_points: int, delta_points: int)
 
 var current_scene: Node
 var _eye_of_truth_remaining_seconds := 0.0
+var _score_points := 0
+var _last_score_delta := 0
 
 
 func _process(delta: float) -> void:
@@ -28,6 +31,28 @@ func change_to_scene(scene_path: String) -> Error:
 
 func reload_prototype() -> Error:
     return change_to_scene(PROTOTYPE_SCENE_PATH)
+
+
+func add_points(delta_points: int) -> int:
+    var previous_points := _score_points
+    _score_points = maxi(0, _score_points + delta_points)
+    _last_score_delta = _score_points - previous_points
+    score_changed.emit(_score_points, _last_score_delta)
+    return _last_score_delta
+
+
+func clear_score() -> void:
+    _score_points = 0
+    _last_score_delta = 0
+    score_changed.emit(_score_points, _last_score_delta)
+
+
+func get_score_points() -> int:
+    return _score_points
+
+
+func get_last_score_delta() -> int:
+    return _last_score_delta
 
 
 func activate_eye_of_truth(duration_seconds: float = DEFAULT_EYE_OF_TRUTH_SECONDS) -> void:

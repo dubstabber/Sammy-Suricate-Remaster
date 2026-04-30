@@ -102,9 +102,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 
 [node name="model_rasta_animated" parent="Enemies" unique_id=1440628449 instance=ExtResource("7_rasta")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.3265041, -4.5)
+react_range = 20.0
+run_speed = 6.0
 
 [node name="model_punk_animated" parent="Enemies" unique_id=1739606368 instance=ExtResource("8_punk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.44621444, -4.5)
+run_speed = 6.0
 
 [node name="DebugOverlay" parent="." unique_id=428286293 instance=ExtResource("4_debug")]
 player_path = NodePath("../Player")

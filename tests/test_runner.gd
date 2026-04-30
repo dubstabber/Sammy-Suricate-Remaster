@@ -924,10 +924,14 @@ func _test_enemy_ai_behavior() -> void:
     _expect(enemy.has_method("get_animation_speed_units_for_horizontal_speed"), "Enemy should expose WDL animation speed conversion for validation.")
     _expect(enemy.has_method("get_chase_animation_action"), "Enemy should expose chase animation action selection for validation.")
     _expect(enemy.has_method("get_chase_animation_speed_scale"), "Enemy should expose chase animation speed scale for validation.")
-    if enemy.has_method("get_animation_speed_units_for_horizontal_speed") and enemy.has_method("get_chase_animation_action") and enemy.has_method("get_chase_animation_speed_scale"):
+    _expect(enemy.has_method("get_attack_push_source_velocity"), "Enemy should expose original-style attack push source velocity for validation.")
+    _expect(enemy.has_method("get_attack_hit_push_source_velocity"), "Enemy should expose the hit-only push source velocity for parity validation.")
+    if enemy.has_method("get_animation_speed_units_for_horizontal_speed") and enemy.has_method("get_chase_animation_action") and enemy.has_method("get_chase_animation_speed_scale") and enemy.has_method("get_attack_push_source_velocity") and enemy.has_method("get_attack_hit_push_source_velocity"):
         _expect(is_equal_approx(float(enemy.call("get_animation_speed_units_for_horizontal_speed", float(enemy.get("move_speed")))), 7.5), "Default enemy walk speed should convert back to original SpeedEnnemy units.")
         _expect(String(enemy.call("get_chase_animation_action")) == "run", "Chase should keep the original running cycle even for slow prototype enemies.")
         _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 11.25), "Default chase run cycle should scale by converted SpeedEnnemy units.")
+        _expect(is_equal_approx((enemy.call("get_attack_push_source_velocity") as Vector3).length(), float(enemy.get("run_speed")) * float(enemy.get("attack_push_speed_multiplier"))), "Attack push source speed should mirror LionEtat 10 SpeedEnnemy * 1.5.")
+        _expect(is_equal_approx((enemy.call("get_attack_hit_push_source_velocity") as Vector3).length(), float(enemy.get("attack_hit_push_source_speed"))), "Attack hit push should be a small fixed impulse, independent of the enemy lunge speed.")
         enemy.set("run_speed", 0.64)
         _expect(String(enemy.call("get_chase_animation_action")) == "run", "Slow chase tuning should still play the running cycle.")
         _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 4.0), "Slow chase tuning should slow the run cycle with movement speed.")
@@ -954,6 +958,17 @@ func _test_enemy_ai_behavior() -> void:
     await physics_frame
     var post_close_state := int(enemy.call("get_state"))
     _expect(post_close_state == STATE_ATTACK_SWING or int(player_stub.get("damage_calls")) > 0, "AI enemy should swing or land an attack when player is inside attack_range.")
+    if post_close_state == STATE_ATTACK_SWING:
+        var attack_lunge_start := enemy.global_position
+        var player_push_start := player_stub.global_position
+        var attack_lunge_frames := 0
+        while attack_lunge_frames < 6 and int(enemy.call("get_state")) == STATE_ATTACK_SWING:
+            await physics_frame
+            attack_lunge_frames += 1
+        var attack_lunge_delta := enemy.global_position - attack_lunge_start
+        _expect(attack_lunge_delta.length() > 0.18, "AI enemy should keep advancing during ATTACK_SWING like original LionEtat 10, not stall on the player body.")
+        _expect(attack_lunge_delta.z < 0.0, "AI enemy attack lunge should advance toward the player along -Z.")
+        _expect(player_stub.global_position.distance_to(player_push_start) < 1.5, "Enemy attack push should not fling the player far enough to read as a stop-and-shove.")
 
     var attack_settle_frames := 0
     while attack_settle_frames < 90 and int(player_stub.get("damage_calls")) == 0:
@@ -961,6 +976,13 @@ func _test_enemy_ai_behavior() -> void:
         attack_settle_frames += 1
     _expect(int(player_stub.get("damage_calls")) >= 1, "AI enemy attack swing should land contact damage on the player at least once.")
     _expect(int(player_stub.get("damage_calls")) <= 2, "AI enemy attack swing should not multi-hit on a single swing tick.")
+    _expect(int(player_stub.get("push_calls")) >= 1, "AI enemy attack swing should push the player with the original BounceForce1 path.")
+    _expect(int(player_stub.get("push_calls")) <= int(player_stub.get("damage_calls")), "AI enemy attack push should resolve with attack hits, not every blocked contact frame.")
+    var attack_push_velocity := player_stub.get("last_push_source_velocity") as Vector3
+    _expect(attack_push_velocity.length() > 0.1, "AI enemy attack push should pass a non-zero source velocity.")
+    _expect(is_equal_approx(attack_push_velocity.length(), float(enemy.get("attack_hit_push_source_speed"))), "AI enemy hit push should use the small hit impulse, not the full lunge speed.")
+    _expect(attack_push_velocity.z < 0.0, "AI enemy attack push should point from enemy toward the player.")
+    _expect(is_equal_approx(float(player_stub.get("last_push_bounce_force")), float(enemy.get("push_bounce_force"))), "AI enemy attack push should pass the original LionForce bounce value.")
 
     # Regression: after the first swing finishes, the enemy must not be stuck in
     # ATTACK_SWING with a non-playing animation. Either it re-swings on the
@@ -1003,22 +1025,49 @@ func _test_enemy_ai_behavior() -> void:
 
 func _make_ai_test_player() -> Node3D:
     var script := GDScript.new()
-    script.source_code = "extends Node3D\n" \
+    script.source_code = "extends CharacterBody3D\n" \
             + "var damage_calls: int = 0\n" \
+            + "var push_calls: int = 0\n" \
             + "var last_amount: int = 0\n" \
             + "var last_source: Node = null\n" \
+            + "var last_push_source_velocity: Vector3 = Vector3.ZERO\n" \
+            + "var last_push_bounce_force: float = 0.0\n" \
+            + "var last_push_source: Node = null\n" \
+            + "var push_velocity: Vector3 = Vector3.ZERO\n" \
             + "var hp: int = 100\n" \
             + "func take_damage(amount: int, source: Node = null) -> bool:\n" \
             + "    damage_calls += 1\n" \
             + "    last_amount = amount\n" \
             + "    last_source = source\n" \
             + "    hp = max(0, hp - amount)\n" \
-            + "    return true\n"
+            + "    return true\n" \
+            + "func apply_enemy_push(source_velocity: Vector3, source_bounce_force: float = 1.0, source: Node = null) -> void:\n" \
+            + "    push_calls += 1\n" \
+            + "    last_push_source_velocity = source_velocity\n" \
+            + "    last_push_bounce_force = source_bounce_force\n" \
+            + "    last_push_source = source\n" \
+            + "    push_velocity = source_velocity * maxf(source_bounce_force, 0.0)\n" \
+            + "    global_position += push_velocity * 0.04\n" \
+            + "func _physics_process(delta: float) -> void:\n" \
+            + "    velocity.x = push_velocity.x\n" \
+            + "    velocity.z = push_velocity.z\n" \
+            + "    move_and_slide()\n" \
+            + "    push_velocity = push_velocity.move_toward(Vector3.ZERO, 10.0 * delta)\n"
     script.reload()
-    var node := Node3D.new()
+    var node := CharacterBody3D.new()
     node.name = "AITestPlayerStub"
+    node.collision_layer = CHARACTER_LAYER
+    node.collision_mask = WORLD_AND_CHARACTER_MASK
     node.set_script(script)
     node.add_to_group("player")
+    var collision_shape := CollisionShape3D.new()
+    collision_shape.name = "CollisionShape3D"
+    var capsule := CapsuleShape3D.new()
+    capsule.radius = 0.35
+    capsule.height = 1.4
+    collision_shape.position = Vector3(0.0, 0.7, 0.0)
+    collision_shape.shape = capsule
+    node.add_child(collision_shape)
     return node
 
 
@@ -1058,6 +1107,47 @@ func _test_player_scene() -> void:
                 _expect(is_equal_approx(animation_player.speed_scale, 2.0), "Changing active walk speed should update AnimationPlayer speed scale.")
     if player.has_method("get_facing_direction"):
         _expect((player.call("get_facing_direction") as Vector3).is_equal_approx(Vector3(0.0, 0.0, -1.0)), "Player should move along its facing direction by default.")
+        _expect(player.has_method("apply_enemy_push"), "Player controller should expose the WDL BounceForce1 enemy-push hook.")
+        _expect(player.has_method("get_enemy_push_velocity"), "Player controller should expose enemy push velocity for parity validation.")
+        if player.has_method("apply_enemy_push") and player.has_method("get_enemy_push_velocity"):
+            _expect(is_equal_approx(float(player.get("enemy_push_weight_force")), 0.8), "Player enemy push should use original PoidPlayer1.")
+            _expect(is_equal_approx(float(player.get("enemy_push_damping_per_second")), 10.0), "Player enemy push damping should use original AmortiBouncePlayer.")
+            var position_before_push := (player as Node3D).global_position
+            player.call("apply_enemy_push", Vector3(2.0, 0.0, 0.0), 2.0, null)
+            var initial_push_velocity := player.call("get_enemy_push_velocity") as Vector3
+            _expect(is_equal_approx(initial_push_velocity.x, 3.2), "Player should convert enemy speed through PoidPlayer1 * LionForce.")
+            _expect((player as Node3D).global_position.x > position_before_push.x + 0.1, "Enemy hit push should apply a small immediate displacement instead of waiting for collision drift.")
+            player.call("apply_enemy_push", Vector3(20.0, 0.0, 0.0), 2.0, null)
+            var capped_push_velocity := player.call("get_enemy_push_velocity") as Vector3
+            _expect(is_equal_approx(capped_push_velocity.x, 4.32), "Player enemy push should cap high prototype enemy speeds to the original-style default attack impulse.")
+            var blocking_enemy := CharacterBody3D.new()
+            blocking_enemy.name = "EnemyPushBlocker"
+            blocking_enemy.collision_layer = CHARACTER_LAYER
+            blocking_enemy.collision_mask = WORLD_AND_CHARACTER_MASK
+            var blocker_shape := CollisionShape3D.new()
+            var blocker_capsule := CapsuleShape3D.new()
+            blocker_capsule.radius = 0.35
+            blocker_capsule.height = 1.4
+            blocker_shape.position = Vector3(0.0, 0.7, 0.0)
+            blocker_shape.shape = blocker_capsule
+            blocking_enemy.add_child(blocker_shape)
+            root.add_child(blocking_enemy)
+            player.call("apply_enemy_push", Vector3.ZERO, 1.0, null)
+            await physics_frame
+            var position_before_blocked_push := (player as Node3D).global_position
+            blocking_enemy.global_position = position_before_blocked_push + Vector3(0.75, 0.0, 0.0)
+            player.call("apply_enemy_push", Vector3(20.0, 0.0, 0.0), 2.0, null)
+            capped_push_velocity = player.call("get_enemy_push_velocity") as Vector3
+            _expect((player as Node3D).global_position.x > position_before_blocked_push.x + 0.1, "Enemy hit push should visibly displace the player even when the enemy body is still in front.")
+            player.call("_physics_process", 0.1)
+            var position_after_push := (player as Node3D).global_position
+            var damped_push_velocity := player.call("get_enemy_push_velocity") as Vector3
+            _expect(
+                    position_after_push.x > position_before_blocked_push.x + 0.05,
+                    "Enemy push should temporarily ignore character blocking like the original BounceForce1 move."
+            )
+            _expect(damped_push_velocity.x > 0.0 and damped_push_velocity.x < capped_push_velocity.x, "Enemy push should damp after moving the player.")
+            blocking_enemy.queue_free()
         var camera_script: GDScript = load(CAMERA_SCRIPT_PATH)
         var parity_camera := Camera3D.new()
         parity_camera.name = "QuickTurnParityCamera"

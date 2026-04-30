@@ -45,6 +45,10 @@ enum EnemyState {
 @export var alt_stand_chance: float = 0.35
 @export var contact_damage: int = 1
 @export var attack_strike_ratio: float = 0.45
+# WDL lion/player: LionForce defaults to 2, and LionEtat 10 advances at 1.5x SpeedEnnemy.
+@export var push_bounce_force: float = 2.0
+@export var attack_push_speed_multiplier: float = 1.5
+@export var attack_hit_push_source_speed: float = 2.7
 @export var death_despawn_seconds: float = 0.4
 # WDL mm1/anims/lion: generated walk/run clips encode LionAnimSpeedWalk/Run.
 # Runtime playback scale supplies SpeedEnnemy or SpeedEnnemy * LionAccelattack,
@@ -74,6 +78,11 @@ var _hit_resolved_this_swing: bool = false
 var _death_timer: float = 0.0
 var _wander_target: Vector3 = Vector3.ZERO
 var _has_wander_target: bool = false
+var _last_target_push_frame: int = -1
+var _attack_target: Node3D = null
+var _attack_push_direction: Vector3 = Vector3.ZERO
+var _attack_started_in_range: bool = false
+var _attack_push_resolved_this_swing: bool = false
 
 
 func _ready() -> void:
@@ -145,6 +154,19 @@ func get_chase_animation_action() -> StringName:
 
 func get_chase_animation_speed_scale() -> float:
 	return get_animation_speed_units_for_horizontal_speed(run_speed)
+
+
+func get_attack_push_source_velocity() -> Vector3:
+	return _attack_lunge_velocity()
+
+
+func get_attack_hit_push_source_velocity() -> Vector3:
+	var direction := _attack_push_direction
+	if direction.length_squared() <= 0.0:
+		direction = _forward_velocity(1.0)
+	if direction.length_squared() <= 0.0:
+		return Vector3.ZERO
+	return direction.normalized() * maxf(attack_hit_push_source_speed, 0.0)
 
 
 func get_initial_fall_velocity() -> float:
@@ -242,7 +264,7 @@ func _tick_chase(delta: float) -> Vector3:
 	var yaw_delta := _yaw_delta_to(to_target)
 	if dist <= attack_range and absf(yaw_delta) <= deg_to_rad(attack_yaw_threshold_deg):
 		_enter_state(EnemyState.ATTACK_SWING)
-		return Vector3.ZERO
+		return _attack_lunge_velocity()
 	if dist > react_range * disengage_range_factor or not _has_line_of_sight_to(_target):
 		_enter_state(EnemyState.WAIT)
 		return Vector3.ZERO
@@ -260,7 +282,7 @@ func _tick_attack_swing(delta: float) -> Vector3:
 			var ratio := _animation_player.current_animation_position / length
 			if ratio >= attack_strike_ratio:
 				_resolve_attack_hit()
-	return Vector3.ZERO
+	return _attack_lunge_velocity()
 
 
 func _tick_dying(delta: float) -> Vector3:
@@ -284,6 +306,7 @@ func _enter_state(new_state: int) -> void:
 		return
 	_state = new_state
 	_hit_resolved_this_swing = false
+	_attack_push_resolved_this_swing = false
 	match new_state:
 		EnemyState.WAIT:
 			_wait_remaining = randf_range(wait_min, wait_max)
@@ -305,6 +328,7 @@ func _enter_state(new_state: int) -> void:
 		EnemyState.CHASE:
 			_play_action(get_chase_animation_action(), get_chase_animation_speed_scale())
 		EnemyState.ATTACK_SWING:
+			_begin_attack_swing()
 			_play_action(&"attack", attack_animation_speed, true)
 		EnemyState.HIT_RECOIL:
 			_play_action(&"hit", hit_animation_speed, true)
@@ -322,6 +346,20 @@ func _refresh_movement_animation_speed() -> void:
 			_play_action(&"walk", get_walk_animation_speed_scale())
 		EnemyState.CHASE:
 			_play_action(get_chase_animation_action(), get_chase_animation_speed_scale())
+
+
+func _begin_attack_swing() -> void:
+	_attack_target = _target
+	_attack_started_in_range = _target != null and _target_horizontal_offset().length() <= attack_range * 1.2
+	_attack_push_direction = Vector3.ZERO
+	if _target != null:
+		_attack_push_direction = _target_horizontal_offset()
+	if _attack_push_direction.length_squared() <= 0.0:
+		_attack_push_direction = _forward_velocity(1.0)
+	if _attack_push_direction.length_squared() > 0.0:
+		_attack_push_direction = _attack_push_direction.normalized()
+	if _attack_started_in_range and _attack_target != null and is_instance_valid(_attack_target):
+		_apply_attack_push_to_target(_attack_target)
 
 
 func _on_animation_finished(_anim_name: StringName) -> void:
@@ -370,7 +408,13 @@ func _should_engage_target() -> bool:
 func _target_horizontal_offset() -> Vector3:
 	if _target == null:
 		return Vector3.ZERO
-	var offset := _target.global_position - global_position
+	return _horizontal_offset_to(_target)
+
+
+func _horizontal_offset_to(target: Node3D) -> Vector3:
+	if target == null:
+		return Vector3.ZERO
+	var offset := target.global_position - global_position
 	offset.y = 0.0
 	return offset
 
@@ -402,6 +446,10 @@ func _forward_velocity(speed: float) -> Vector3:
 	return forward.normalized() * speed
 
 
+func _attack_lunge_velocity() -> Vector3:
+	return _forward_velocity(maxf(run_speed, 0.0) * maxf(attack_push_speed_multiplier, 0.0))
+
+
 func _has_line_of_sight_to(target: Node3D) -> bool:
 	if target == null:
 		return true
@@ -418,14 +466,34 @@ func _has_line_of_sight_to(target: Node3D) -> bool:
 
 func _resolve_attack_hit() -> void:
 	_hit_resolved_this_swing = true
-	if _target == null or not is_instance_valid(_target):
+	var hit_target := _attack_target if _attack_target != null and is_instance_valid(_attack_target) else _target
+	if hit_target == null or not is_instance_valid(hit_target):
 		return
-	if _target_horizontal_offset().length() > attack_range * 1.2:
+	if not _attack_started_in_range and _horizontal_offset_to(hit_target).length() > attack_range * 1.2:
 		return
-	if not _target.has_method("take_damage"):
+	if not hit_target.has_method("take_damage"):
 		return
-	_target.call("take_damage", contact_damage, self)
-	attack_landed.emit(_target, contact_damage)
+	hit_target.call("take_damage", contact_damage, self)
+	if not _attack_push_resolved_this_swing:
+		_apply_attack_push_to_target(hit_target)
+	attack_landed.emit(hit_target, contact_damage)
+
+
+func _apply_attack_push_to_target(target: Node3D) -> void:
+	_apply_push_to_target(target, get_attack_hit_push_source_velocity())
+
+
+func _apply_push_to_target(target: Node3D, source_velocity: Vector3) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	if not target.has_method("apply_enemy_push"):
+		return
+	var current_frame := Engine.get_physics_frames()
+	if _last_target_push_frame == current_frame:
+		return
+	_last_target_push_frame = current_frame
+	_attack_push_resolved_this_swing = true
+	target.call("apply_enemy_push", source_velocity, push_bounce_force, self)
 
 
 func _play_action(action: StringName, custom_speed: float = 1.0, restart: bool = false) -> bool:

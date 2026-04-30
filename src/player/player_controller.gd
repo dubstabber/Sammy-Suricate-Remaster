@@ -16,6 +16,7 @@ const PLAYER_LANDING_END_STEP_RANGE := 90.0
 const PLAYER_LANDING_END_STEP_SPEED := 14.0
 const PLAYER_LANDING_TURN_STEP_SPEED := 18.0
 const PLAYER_LANDING_INPUT_STEP_SPEED := 36.0
+const CHARACTER_COLLISION_MASK := 1 << 1
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
@@ -25,6 +26,11 @@ const PLAYER_LANDING_INPUT_STEP_SPEED := 36.0
 @export var wasp_muzzle_offset: Vector3 = Vector3(0.0, 0.6, -0.4)
 @export var max_health: int = 6
 @export var damage_invulnerability_seconds: float = 0.6
+# WDL InitLvl/player: PoidPlayer1 = 0.8, AmortiBouncePlayer = 10.
+@export var enemy_push_weight_force: float = 0.8
+@export var enemy_push_damping_per_second: float = 10.0
+@export var enemy_push_max_source_speed: float = 2.7
+@export var enemy_push_immediate_seconds: float = 0.04
 
 signal damaged(amount: int, source: Node)
 
@@ -53,6 +59,8 @@ var _jump_fire_blocked: bool = false
 var _landing_movement_lock_remaining: float = 0.0
 var _health: int = 0
 var _last_damage_time_msec: int = -1_000_000
+var _enemy_push_velocity: Vector3 = Vector3.ZERO
+var _applied_enemy_push_velocity: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
@@ -87,6 +95,20 @@ func is_in_invulnerability_window() -> bool:
         return false
     var elapsed_msec := Time.get_ticks_msec() - _last_damage_time_msec
     return elapsed_msec < int(damage_invulnerability_seconds * 1000.0)
+
+
+func apply_enemy_push(source_velocity: Vector3, source_bounce_force: float = 1.0, _source: Node = null) -> void:
+    var horizontal_source := source_velocity
+    horizontal_source.y = 0.0
+    var max_source_speed := maxf(enemy_push_max_source_speed, 0.0)
+    if max_source_speed > 0.0 and horizontal_source.length() > max_source_speed:
+        horizontal_source = horizontal_source.normalized() * max_source_speed
+    _enemy_push_velocity = horizontal_source * maxf(enemy_push_weight_force, 0.0) * maxf(source_bounce_force, 0.0)
+    _apply_enemy_push_immediate_displacement(_enemy_push_velocity * maxf(enemy_push_immediate_seconds, 0.0))
+
+
+func get_enemy_push_velocity() -> Vector3:
+    return _enemy_push_velocity
 
 
 func _ensure_wasp_inventory() -> void:
@@ -130,12 +152,12 @@ func _physics_process(delta: float) -> void:
         _apply_turn(delta, forward_input, turn_input)
 
     var target_velocity: Vector3 = get_facing_direction() * forward_input * _current_walk_speed(_boosting)
-    var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
+    var horizontal_velocity := _get_control_horizontal_velocity()
     var rate: float = movement_config.acceleration if absf(forward_input) > 0.0 else movement_config.deceleration
     horizontal_velocity = horizontal_velocity.move_toward(target_velocity, rate * delta)
 
-    velocity.x = horizontal_velocity.x
-    velocity.z = horizontal_velocity.z
+    _set_horizontal_velocity(horizontal_velocity + _enemy_push_velocity)
+    var applied_push_velocity := _enemy_push_velocity
 
     var jumped := false
     if is_on_floor():
@@ -146,7 +168,8 @@ func _physics_process(delta: float) -> void:
     else:
         velocity.y -= movement_config.gravity * delta
 
-    move_and_slide()
+    _move_and_slide_with_enemy_push_mask(applied_push_velocity)
+    _finish_enemy_push_step(applied_push_velocity, delta)
     var on_floor := is_on_floor()
     if not was_on_floor and on_floor:
         _begin_landing_movement_lock(forward_input, turn_input, Input.is_action_pressed("jump"))
@@ -500,15 +523,56 @@ func _process_quick_turn(delta: float, was_on_floor: bool) -> void:
     _boosting = false
     _advance_quick_turn(delta)
 
-    var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
+    var horizontal_velocity := _get_control_horizontal_velocity()
     horizontal_velocity = horizontal_velocity.move_toward(Vector3.ZERO, movement_config.deceleration * delta)
-    velocity.x = horizontal_velocity.x
-    velocity.z = horizontal_velocity.z
+    _set_horizontal_velocity(horizontal_velocity + _enemy_push_velocity)
+    var applied_push_velocity := _enemy_push_velocity
     if not is_on_floor():
         velocity.y -= movement_config.gravity * delta
 
-    move_and_slide()
+    _move_and_slide_with_enemy_push_mask(applied_push_velocity)
+    _finish_enemy_push_step(applied_push_velocity, delta)
     _update_model_animation(0.0, 0.0, false, was_on_floor, is_on_floor(), horizontal_velocity.length())
+
+
+func _get_control_horizontal_velocity() -> Vector3:
+    return Vector3(velocity.x, 0.0, velocity.z) - _applied_enemy_push_velocity
+
+
+func _set_horizontal_velocity(horizontal_velocity: Vector3) -> void:
+    velocity.x = horizontal_velocity.x
+    velocity.z = horizontal_velocity.z
+
+
+func _move_and_slide_with_enemy_push_mask(applied_push_velocity: Vector3) -> void:
+    if applied_push_velocity.length_squared() <= 0.0:
+        move_and_slide()
+        return
+    var saved_collision_mask := collision_mask
+    collision_mask = saved_collision_mask & ~CHARACTER_COLLISION_MASK
+    move_and_slide()
+    collision_mask = saved_collision_mask
+
+
+func _apply_enemy_push_immediate_displacement(displacement: Vector3) -> void:
+    if displacement.length_squared() <= 0.0:
+        return
+    var saved_collision_mask := collision_mask
+    collision_mask = saved_collision_mask & ~CHARACTER_COLLISION_MASK
+    if not test_move(global_transform, displacement):
+        global_position += displacement
+    collision_mask = saved_collision_mask
+
+
+func _finish_enemy_push_step(applied_push_velocity: Vector3, delta: float) -> void:
+    if applied_push_velocity.length_squared() <= 0.0 and _enemy_push_velocity.length_squared() <= 0.0:
+        _applied_enemy_push_velocity = Vector3.ZERO
+        return
+
+    var control_velocity := Vector3(velocity.x, 0.0, velocity.z) - applied_push_velocity
+    _enemy_push_velocity = _enemy_push_velocity.move_toward(Vector3.ZERO, maxf(enemy_push_damping_per_second, 0.0) * maxf(delta, 0.0))
+    _set_horizontal_velocity(control_velocity + _enemy_push_velocity)
+    _applied_enemy_push_velocity = _enemy_push_velocity
 
 
 func _advance_quick_turn(delta: float) -> void:

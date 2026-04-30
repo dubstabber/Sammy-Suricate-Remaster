@@ -53,8 +53,9 @@ enum EnemyState {
 @export var hargne_enemy: float = 2.0
 @export var contact_damage_multiplier: float = 0.25
 @export var attack_strike_ratio: float = 0.6
-# WDL lion/player: LionForce defaults to 2, and LionEtat 10 advances at 1.5x SpeedEnnemy.
-@export var push_bounce_force: float = 2.0
+# WDL lion.wdl:135-136: My.BounceForce = Frc(SpeedEnnemy)*100, fallback LionForce = 1.5.
+# LionEtat 10 advances at 1.5x SpeedEnnemy.
+@export var push_bounce_force: float = 1.5
 @export var attack_push_speed_multiplier: float = 1.5
 @export var attack_hit_push_source_speed: float = 2.7
 @export var death_despawn_seconds: float = 0.4
@@ -78,6 +79,14 @@ enum EnemyState {
 @export var attack_call_seconds: float = 8.0
 @export var attack_call_range: float = 100.0
 @export var attack_call_min_distance: float = 1.28
+# WDL lion.wdl:319-372 Lion_Hit: when GuardStuckBalle accumulates past 10 while
+# chasing/fleeing, the lion stops to roar (LionEtat=3) before resuming.
+@export var blocked_roar_seconds: float = 0.6
+# WDL lion.wdl:362 LionRandomTime = TimeForNothing*2 after a stuck-roar so the
+# enemy cannot re-roar back-to-back.
+@export var roar_cooldown_seconds: float = 4.0
+# WDL lion.wdl: idle wait can pick LionEtat=13 (random run) instead of walking.
+@export var random_run_chance: float = 0.1
 
 signal damaged(amount: float, source: Node)
 signal died(source: Node)
@@ -87,7 +96,8 @@ signal attack_call_started()
 signal attack_landed(target: Node, amount: float)
 
 static var _shared_attack_call_remaining: float = 0.0
-static var _shared_attack_call_key: float = 0.0
+static var _shared_attack_call_family_id: float = 0.0
+static var _shared_attack_call_weight_force: float = 0.0
 static var _shared_attack_call_last_frame: int = -1
 
 var _fall_velocity_y: float = 0.0
@@ -110,6 +120,8 @@ var _last_target_push_frame: int = -1
 var _attack_target: Node3D = null
 var _attack_push_direction: Vector3 = Vector3.ZERO
 var _attack_started_in_range: bool = false
+var _blocked_time_accumulator: float = 0.0
+var _roar_cooldown_remaining: float = 0.0
 
 
 func _ready() -> void:
@@ -161,7 +173,17 @@ func get_attack_damage_amount() -> float:
 
 
 func get_friend_call_key() -> float:
+	# Kept for backward compatibility / parity tracing. WDL lion.wdl:1004 packs
+	# IdEnnemySpec + weightForce into a single FriendCall scalar; matching now
+	# uses the structural family-id + weight-force compare in _matches_attack_call.
 	return enemy_family_id + enemy_weight_force
+
+
+func _matches_attack_call() -> bool:
+	return (
+			is_equal_approx(_shared_attack_call_family_id, enemy_family_id)
+			and is_equal_approx(_shared_attack_call_weight_force, enemy_weight_force)
+	)
 
 
 func is_attack_call_active() -> bool:
@@ -182,6 +204,7 @@ func get_target() -> Node3D:
 
 func _physics_process(delta: float) -> void:
 	_update_shared_attack_call(delta)
+	_roar_cooldown_remaining = maxf(0.0, _roar_cooldown_remaining - maxf(delta, 0.0))
 	var horizontal := _update_ai(delta)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
@@ -191,6 +214,7 @@ func _physics_process(delta: float) -> void:
 	if affected_by_gravity and is_on_floor() and velocity.y <= 0.0:
 		_fall_velocity_y = 0.0
 		velocity.y = 0.0
+	_update_blocked_roar(delta)
 
 
 func get_animation_speed_units_for_horizontal_speed(horizontal_speed: float) -> float:
@@ -263,14 +287,16 @@ func _update_shared_attack_call(delta: float) -> void:
 	_shared_attack_call_last_frame = current_frame
 	_shared_attack_call_remaining = maxf(0.0, _shared_attack_call_remaining - maxf(delta, 0.0))
 	if _shared_attack_call_remaining <= 0.0:
-		_shared_attack_call_key = 0.0
+		_shared_attack_call_family_id = 0.0
+		_shared_attack_call_weight_force = 0.0
 
 
 func _start_attack_call() -> void:
 	if _shared_attack_call_remaining > 0.0:
 		return
 	_shared_attack_call_remaining = maxf(attack_call_seconds, 0.0)
-	_shared_attack_call_key = get_friend_call_key()
+	_shared_attack_call_family_id = enemy_family_id
+	_shared_attack_call_weight_force = enemy_weight_force
 	attack_call_started.emit()
 
 
@@ -327,7 +353,10 @@ func _tick_wait(delta: float) -> Vector3:
 		return Vector3.ZERO
 	if _wait_remaining <= 0.0:
 		if _state == EnemyState.ALT_STAND or randf() > alt_stand_chance:
-			_enter_state(EnemyState.WALK)
+			if randf() < clampf(random_run_chance, 0.0, 1.0):
+				_enter_state(EnemyState.RANDOM_RUN)
+			else:
+				_enter_state(EnemyState.WALK)
 		else:
 			_enter_state(EnemyState.ALT_STAND)
 	return Vector3.ZERO
@@ -367,9 +396,6 @@ func _tick_chase(delta: float) -> Vector3:
 		return _attack_lunge_velocity()
 	if dist > react_range * disengage_range_factor:
 		_enter_state(EnemyState.WAIT)
-		return Vector3.ZERO
-	if not _has_line_of_sight_to(_target):
-		_enter_state(EnemyState.ROAR)
 		return Vector3.ZERO
 	if absf(yaw_delta) > deg_to_rad(chase_yaw_threshold_deg):
 		return Vector3.ZERO
@@ -446,6 +472,7 @@ func _enter_state(new_state: int) -> void:
 	_state = new_state
 	_hit_resolved_this_swing = false
 	_contact_resolved_this_swing = false
+	_blocked_time_accumulator = 0.0
 	match new_state:
 		EnemyState.WAIT:
 			_wait_remaining = randf_range(wait_min, wait_max)
@@ -517,10 +544,54 @@ func _begin_warning_attack() -> void:
 func _begin_roar() -> void:
 	var duration := _resolve_action_duration(&"rugit", roar_animation_speed)
 	_roar_remaining = duration if duration > 0.0 else 0.75
+	_roar_cooldown_remaining = maxf(roar_cooldown_seconds, 0.0)
 	_play_action(&"rugit", roar_animation_speed, true)
 	roar_started.emit()
 	if roar_calls_friends:
 		_start_attack_call()
+
+
+func _update_blocked_roar(delta: float) -> void:
+	if _roar_cooldown_remaining > 0.0:
+		_blocked_time_accumulator = 0.0
+		return
+	if not _state_eligible_for_blocked_roar():
+		_blocked_time_accumulator = 0.0
+		return
+	if not _is_blocked_against_world():
+		_blocked_time_accumulator = 0.0
+		return
+	_blocked_time_accumulator += maxf(delta, 0.0)
+	if _blocked_time_accumulator < maxf(blocked_roar_seconds, 0.0):
+		return
+	if _target != null and not _has_line_of_sight_to(_target):
+		return
+	_blocked_time_accumulator = 0.0
+	_enter_state(EnemyState.ROAR)
+
+
+func _state_eligible_for_blocked_roar() -> bool:
+	return (
+			_state == EnemyState.CHASE
+			or _state == EnemyState.FLEE
+			or _state == EnemyState.RANDOM_RUN
+	)
+
+
+func _is_blocked_against_world() -> bool:
+	for index in get_slide_collision_count():
+		var collision := get_slide_collision(index)
+		if collision == null:
+			continue
+		var collider := collision.get_collider()
+		if collider == null:
+			continue
+		if collider == _target:
+			continue
+		if collider is Node and (collider as Node).is_in_group("player"):
+			continue
+		return true
+	return false
 
 
 func _finish_roar() -> void:
@@ -599,7 +670,7 @@ func _should_engage_target() -> bool:
 func _should_answer_attack_call() -> bool:
 	if not is_attack_call_active() or _target == null:
 		return false
-	if not is_equal_approx(_shared_attack_call_key, get_friend_call_key()):
+	if not _matches_attack_call():
 		return false
 	var distance := _target_horizontal_offset().length()
 	return distance < attack_call_range and distance > attack_call_min_distance

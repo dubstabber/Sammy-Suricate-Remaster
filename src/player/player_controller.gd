@@ -60,7 +60,7 @@ var _landing_movement_lock_remaining: float = 0.0
 var _health: float = 0.0
 var _last_damage_time_msec: int = -1_000_000
 var _enemy_push_velocity: Vector3 = Vector3.ZERO
-var _applied_enemy_push_velocity: Vector3 = Vector3.ZERO
+var _input_horizontal_velocity: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
@@ -160,12 +160,12 @@ func _physics_process(delta: float) -> void:
         _apply_turn(delta, forward_input, turn_input)
 
     var target_velocity: Vector3 = get_facing_direction() * forward_input * _current_walk_speed(_boosting)
-    var horizontal_velocity := _get_control_horizontal_velocity()
     var rate: float = movement_config.acceleration if absf(forward_input) > 0.0 else movement_config.deceleration
-    horizontal_velocity = horizontal_velocity.move_toward(target_velocity, rate * delta)
+    _input_horizontal_velocity = _input_horizontal_velocity.move_toward(target_velocity, rate * delta)
 
-    _set_horizontal_velocity(horizontal_velocity + _enemy_push_velocity)
+    _set_horizontal_velocity(_input_horizontal_velocity + _enemy_push_velocity)
     var applied_push_velocity := _enemy_push_velocity
+    var horizontal_velocity := _input_horizontal_velocity
 
     var jumped := false
     if is_on_floor():
@@ -177,7 +177,7 @@ func _physics_process(delta: float) -> void:
         velocity.y -= movement_config.gravity * delta
 
     _move_and_slide_with_enemy_push_mask(applied_push_velocity)
-    _finish_enemy_push_step(applied_push_velocity, delta)
+    _decay_enemy_push(delta)
     var on_floor := is_on_floor()
     if not was_on_floor and on_floor:
         _begin_landing_movement_lock(forward_input, turn_input, Input.is_action_pressed("jump"))
@@ -531,20 +531,15 @@ func _process_quick_turn(delta: float, was_on_floor: bool) -> void:
     _boosting = false
     _advance_quick_turn(delta)
 
-    var horizontal_velocity := _get_control_horizontal_velocity()
-    horizontal_velocity = horizontal_velocity.move_toward(Vector3.ZERO, movement_config.deceleration * delta)
-    _set_horizontal_velocity(horizontal_velocity + _enemy_push_velocity)
+    _input_horizontal_velocity = _input_horizontal_velocity.move_toward(Vector3.ZERO, movement_config.deceleration * delta)
+    _set_horizontal_velocity(_input_horizontal_velocity + _enemy_push_velocity)
     var applied_push_velocity := _enemy_push_velocity
     if not is_on_floor():
         velocity.y -= movement_config.gravity * delta
 
     _move_and_slide_with_enemy_push_mask(applied_push_velocity)
-    _finish_enemy_push_step(applied_push_velocity, delta)
-    _update_model_animation(0.0, 0.0, false, was_on_floor, is_on_floor(), horizontal_velocity.length())
-
-
-func _get_control_horizontal_velocity() -> Vector3:
-    return Vector3(velocity.x, 0.0, velocity.z) - _applied_enemy_push_velocity
+    _decay_enemy_push(delta)
+    _update_model_animation(0.0, 0.0, false, was_on_floor, is_on_floor(), _input_horizontal_velocity.length())
 
 
 func _set_horizontal_velocity(horizontal_velocity: Vector3) -> void:
@@ -567,20 +562,14 @@ func _apply_enemy_push_immediate_displacement(displacement: Vector3) -> void:
         return
     var saved_collision_mask := collision_mask
     collision_mask = saved_collision_mask & ~CHARACTER_COLLISION_MASK
-    if not test_move(global_transform, displacement):
-        global_position += displacement
+    move_and_collide(displacement)
     collision_mask = saved_collision_mask
 
 
-func _finish_enemy_push_step(applied_push_velocity: Vector3, delta: float) -> void:
-    if applied_push_velocity.length_squared() <= 0.0 and _enemy_push_velocity.length_squared() <= 0.0:
-        _applied_enemy_push_velocity = Vector3.ZERO
+func _decay_enemy_push(delta: float) -> void:
+    if _enemy_push_velocity.length_squared() <= 0.0:
         return
-
-    var control_velocity := Vector3(velocity.x, 0.0, velocity.z) - applied_push_velocity
     _enemy_push_velocity = _enemy_push_velocity.move_toward(Vector3.ZERO, maxf(enemy_push_damping_per_second, 0.0) * maxf(delta, 0.0))
-    _set_horizontal_velocity(control_velocity + _enemy_push_velocity)
-    _applied_enemy_push_velocity = _enemy_push_velocity
 
 
 func _advance_quick_turn(delta: float) -> void:

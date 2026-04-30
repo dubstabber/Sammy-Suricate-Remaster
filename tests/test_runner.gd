@@ -54,6 +54,10 @@ func _run() -> void:
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
     await _test_enemy_ai_behavior()
+    await _test_enemy_blocked_roar()
+    await _test_enemy_random_run_trigger()
+    await _test_enemy_friend_call_key_distinguishes_families()
+    await _test_player_real_push_integration()
     await _test_player_scene()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
@@ -1071,6 +1075,159 @@ func _test_enemy_ai_behavior() -> void:
     friend.queue_free()
     if is_instance_valid(player_stub):
         player_stub.queue_free()
+    await process_frame
+
+
+func _test_enemy_blocked_roar() -> void:
+    const STATE_CHASE := 2
+    const STATE_ROAR := 3
+
+    var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    enemy.set("affected_by_gravity", false)
+    enemy.set("max_health", 5.0)
+    enemy.set("enemy_resistance", 5.0)
+    enemy.set("react_range", 6.0)
+    enemy.set("attack_range", 0.5)
+    enemy.set("blocked_roar_seconds", 0.2)
+    enemy.set("roar_cooldown_seconds", 1.0)
+    enemy.set("turn_rate_deg_per_sec", 720.0)
+    root.add_child(enemy)
+    enemy.global_position = Vector3(0.0, 0.0, 0.0)
+
+    # Wall short enough to clear the enemy<->player line-of-sight (eye heights
+    # ~1.0 and ~0.7, ray ~0.93m at z=-0.7) but tall enough to block the enemy's
+    # CharacterBody3D capsule (extends y=0..1.4).
+    var wall := StaticBody3D.new()
+    wall.collision_layer = WORLD_LAYER
+    wall.collision_mask = 0
+    var wall_shape := CollisionShape3D.new()
+    var wall_box := BoxShape3D.new()
+    wall_box.size = Vector3(4.0, 0.5, 0.5)
+    wall_shape.shape = wall_box
+    wall.add_child(wall_shape)
+    root.add_child(wall)
+    wall.global_position = Vector3(0.0, 0.25, -0.7)
+
+    var player_stub := _make_ai_test_player()
+    root.add_child(player_stub)
+    player_stub.global_position = Vector3(0.0, 0.0, -3.0)
+    await physics_frame
+    await physics_frame
+    _expect(int(enemy.call("get_state")) == STATE_CHASE, "Stuck-roar setup: enemy should engage CHASE before being walled.")
+
+    var roar_seen := false
+    for _i in 60:
+        await physics_frame
+        if int(enemy.call("get_state")) == STATE_ROAR:
+            roar_seen = true
+            break
+    _expect(roar_seen, "Wall-blocked enemy in CHASE should temporarily roar (lion.wdl GuardStuckBalle path).")
+
+    # Cooldown should reject an immediate second stuck-roar.
+    var cooldown_remaining := float(enemy.get("_roar_cooldown_remaining"))
+    _expect(cooldown_remaining > 0.0, "Stuck-roar should arm the roar cooldown timer.")
+    enemy.call("_enter_state", STATE_CHASE)
+    await physics_frame
+    var second_roar := false
+    for _i in 30:
+        await physics_frame
+        if int(enemy.call("get_state")) == STATE_ROAR:
+            second_roar = true
+            break
+    _expect(not second_roar, "Roar cooldown should reject a back-to-back stuck-roar within roar_cooldown_seconds.")
+
+    enemy.queue_free()
+    wall.queue_free()
+    if is_instance_valid(player_stub):
+        player_stub.queue_free()
+    await process_frame
+
+
+func _test_enemy_random_run_trigger() -> void:
+    const STATE_RANDOM_RUN := 13
+
+    var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    enemy.set("affected_by_gravity", false)
+    enemy.set("max_health", 5.0)
+    enemy.set("enemy_resistance", 5.0)
+    enemy.set("react_range", 0.1)
+    enemy.set("alt_stand_chance", 0.0)
+    enemy.set("random_run_chance", 1.0)
+    enemy.set("wait_min", 0.0)
+    enemy.set("wait_max", 0.0)
+    root.add_child(enemy)
+    await physics_frame
+    await physics_frame
+    _expect(int(enemy.call("get_state")) == STATE_RANDOM_RUN, "wait timer expiry with random_run_chance=1.0 should pick RANDOM_RUN over WALK.")
+    enemy.queue_free()
+    await process_frame
+
+
+func _test_enemy_friend_call_key_distinguishes_families() -> void:
+    const STATE_ROAR := 3
+    const STATE_CHASE := 2
+
+    var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var caller: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    var stranger: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    for e in [caller, stranger]:
+        e.set("affected_by_gravity", false)
+        e.set("max_health", 4.0)
+        e.set("enemy_resistance", 4.0)
+        e.set("react_range", 1.0)
+        e.set("attack_call_range", 50.0)
+        e.set("attack_call_seconds", 1.0)
+        e.set("wait_min", 999.0)
+        e.set("wait_max", 999.0)
+    # Same scalar sum (1.62) but different structural identity.
+    caller.set("enemy_family_id", 1.0)
+    caller.set("enemy_weight_force", 0.62)
+    stranger.set("enemy_family_id", 1.62)
+    stranger.set("enemy_weight_force", 0.0)
+    root.add_child(caller)
+    root.add_child(stranger)
+
+    var player_stub := _make_ai_test_player()
+    root.add_child(player_stub)
+
+    caller.global_position = Vector3(20.0, 0.0, 0.0)
+    stranger.global_position = Vector3(21.0, 0.0, 0.0)
+    player_stub.global_position = Vector3(15.0, 0.0, 0.0)
+    await physics_frame
+    caller.call("_enter_state", STATE_ROAR)
+    await physics_frame
+    await physics_frame
+    _expect(int(stranger.call("get_state")) != STATE_CHASE, "Friend-call key should not match enemies whose family_id+weight_force sum collides but individual values differ.")
+
+    caller.queue_free()
+    stranger.queue_free()
+    if is_instance_valid(player_stub):
+        player_stub.queue_free()
+    await process_frame
+
+
+func _test_player_real_push_integration() -> void:
+    var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
+    var player: CharacterBody3D = player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    player.global_position = Vector3(0.0, 0.0, 0.0)
+    await physics_frame
+
+    var start_position := player.global_position
+    player.call("apply_enemy_push", Vector3(2.7, 0.0, 0.0), 1.5, null)
+    for _i in 8:
+        await physics_frame
+    var displacement := player.global_position - start_position
+    _expect(displacement.x > 0.05, "Real player should physically drift along the push direction over a handful of frames.")
+    _expect(absf(displacement.z) < 0.05, "Real player push should not bleed into the perpendicular axis.")
+
+    var residual_velocity := player.call("get_enemy_push_velocity") as Vector3
+    var pre_decay_magnitude := 2.7 * 0.8 * 1.5
+    _expect(residual_velocity.length() < pre_decay_magnitude, "Real player push should damp toward zero across the integration window.")
+
+    player.queue_free()
     await process_frame
 
 

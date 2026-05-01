@@ -722,6 +722,36 @@ const CATALOG := {
         "kind": "audio",
         "description": "Original DoorClose_son"
     },
+    "sfx.plank1": {
+        "path": "res://assets/audio/plank1.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/plank1.wav",
+        "kind": "audio",
+        "description": "Original Plank1_son used by weak-door hits and debris"
+    },
+    "sfx.plank2": {
+        "path": "res://assets/audio/plank2.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/plank2.wav",
+        "kind": "audio",
+        "description": "Original Plank2_son used by weak-door debris bounces"
+    },
+    "model.weak_gate.plank1": {
+        "path": "res://assets/models/weak_gate_planks/plank1/plank1.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/plank1/plank1.gltf",
+        "kind": "model",
+        "description": "Original plank1 debris model launched by weak-door destruction"
+    },
+    "model.weak_gate.plank2": {
+        "path": "res://assets/models/weak_gate_planks/plank2/plank2.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/plank2/plank2.gltf",
+        "kind": "model",
+        "description": "Original plank2 debris model launched by weak-door destruction"
+    },
+    "model.weak_gate.plank3": {
+        "path": "res://assets/models/weak_gate_planks/plank3/plank3.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/plank3/plank3.gltf",
+        "kind": "model",
+        "description": "Original plank3 debris model launched by weak-door destruction"
+    },
     "sfx.platform_activate": {
         "path": "res://assets/audio/platfor2.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/platfor2.wav",

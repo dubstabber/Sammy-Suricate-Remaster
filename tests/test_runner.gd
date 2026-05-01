@@ -114,6 +114,7 @@ func _run() -> void:
     await _test_gem_spawner_system(assets)
     await _test_wasp_spawner_system(assets)
     await _test_gate_visual_models(assets)
+    await _test_weak_gate_wasp_destruction(assets)
     await _test_moving_platform_system(assets)
     await _test_teleporter_system(assets)
     await _test_death_pad_system(assets)
@@ -405,6 +406,14 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.key_mix_end") != null, "Unable to load original EndGemMixing_son.")
     _expect(assets.load_asset("sfx.door_open") != null, "Unable to load original DoorOpen_son.")
     _expect(assets.load_asset("sfx.door_close") != null, "Unable to load original DoorClose_son.")
+    _expect(assets.load_asset("sfx.plank1") != null, "Unable to load original Plank1_son.")
+    _expect(assets.load_asset("sfx.plank2") != null, "Unable to load original Plank2_son.")
+    for plank_asset_id in [
+        "model.weak_gate.plank1",
+        "model.weak_gate.plank2",
+        "model.weak_gate.plank3"
+    ]:
+        _expect(assets.load_asset(plank_asset_id) != null, "Unable to load original weak-door plank debris model: %s" % plank_asset_id)
 
 
 func _test_eye_of_truth_state(game: Node) -> void:
@@ -2599,6 +2608,76 @@ func _test_gate_visual_models(_assets: Node) -> void:
     await process_frame
 
 
+func _test_weak_gate_wasp_destruction(_assets: Node) -> void:
+    var gate_scene := load(KEY_GATE_SCENE_PATH) as PackedScene
+    _expect(gate_scene != null, "Key gate scene should load for weak-door wasp tests.")
+    if gate_scene == null:
+        return
+
+    var weak_gate := gate_scene.instantiate() as StaticBody3D
+    weak_gate.set("source_wmb_name", "doorwk1.wmb")
+    weak_gate.set("required_key_id", 0)
+    weak_gate.set("match_mode", KEY_GATE_MATCH_NEVER)
+    weak_gate.set("open_sound_asset_id", "")
+    weak_gate.set("close_sound_asset_id", "")
+    weak_gate.set("weak_hit_sound_asset_id", "")
+    root.add_child(weak_gate)
+    await process_frame
+
+    _expect(bool(weak_gate.call("is_destructible_by_wasps")), "Weak door WMB gates should be destructible by wasps.")
+    _expect(int(weak_gate.call("get_weak_door_strength")) == 4, "doorwk1 should begin with original weak-door resistance 4.")
+    _expect(String(weak_gate.call("get_visual_signature")).begins_with("doorwk1.wmb"), "Weak gate should start on the intact doorwk1 visual.")
+
+    var non_wasp := Node3D.new()
+    root.add_child(non_wasp)
+    _expect(not bool(weak_gate.call("hit_by_wasp", non_wasp)), "Weak gates should ignore impactors without original wasp IdPlayer 9999.")
+    _expect(int(weak_gate.call("get_weak_door_strength")) == 4, "Rejected weak-gate hits should not reduce resistance.")
+
+    var type_2_projectile := _make_test_wasp_projectile(WASP_TYPE_2_PATH, Vector3(0.0, 0.7, -1.0))
+    _expect(bool(weak_gate.call("hit_by_wasp", type_2_projectile)), "Weak gates should accept type-2 wasp projectile hits.")
+    await process_frame
+    _expect(int(weak_gate.call("get_weak_door_strength")) == 2, "Type-2 wasp poison should subtract two resistance points.")
+    _expect(String(weak_gate.call("get_source_wmb_name")) == "doorwk3.wmb", "Remaining weak-door resistance 2 should morph to doorwk3.")
+    _expect(String(weak_gate.call("get_visual_signature")).begins_with("doorwk3.wmb"), "Partial weak-gate damage should rebuild the matching original WMB visual.")
+    _expect(not bool(weak_gate.call("is_destroyed")), "Partially damaged weak gates should remain solid.")
+
+    var type_5_projectile := _make_test_wasp_projectile(WASP_TYPE_5_PATH, Vector3(0.0, 0.7, -1.0))
+    _expect(bool(weak_gate.call("hit_by_wasp", type_5_projectile)), "Higher-poison wasps should finish damaged weak gates.")
+    await process_frame
+    await process_frame
+    _expect(bool(weak_gate.call("is_destroyed")), "Weak gate should report destroyed after resistance reaches zero.")
+    _expect(int(weak_gate.call("get_weak_door_strength")) == 0, "Destroyed weak gates should clamp resistance to zero.")
+    _expect(int(weak_gate.get("collision_layer")) == 0, "Destroyed weak gates should leave the world collision layer.")
+    _expect(int(weak_gate.get("collision_mask")) == 0, "Destroyed weak gates should no longer collide with characters.")
+    var visual := weak_gate.get_node_or_null("GateVisual") as MeshInstance3D
+    _expect(visual != null and not visual.visible, "Destroyed weak gates should hide the intact door visual.")
+    _expect(int(weak_gate.call("get_weak_debris_spawned_count")) >= 3, "Destroyed weak gates should launch original plank debris models.")
+
+    var regular_gate := gate_scene.instantiate() as StaticBody3D
+    regular_gate.set("source_wmb_name", "doorRed.wmb")
+    regular_gate.set("required_key_id", KEY_DIAMOND_RED)
+    regular_gate.set("match_mode", KEY_GATE_MATCH_EXACT)
+    regular_gate.set("open_sound_asset_id", "")
+    regular_gate.set("close_sound_asset_id", "")
+    root.add_child(regular_gate)
+    await process_frame
+    var regular_projectile := _make_test_wasp_projectile(WASP_TYPE_2_PATH, Vector3(0.0, 0.7, -1.0))
+    _expect(not bool(regular_gate.call("is_destructible_by_wasps")), "Regular source doors should not become wasp-destructible by default.")
+    _expect(not bool(regular_gate.call("hit_by_wasp", regular_projectile)), "Regular keyed gates should ignore wasp damage by default.")
+    _expect(not bool(regular_gate.call("is_destroyed")), "Ignored wasp hits should not destroy regular keyed gates.")
+
+    non_wasp.queue_free()
+    if type_2_projectile != null and is_instance_valid(type_2_projectile):
+        type_2_projectile.queue_free()
+    if type_5_projectile != null and is_instance_valid(type_5_projectile):
+        type_5_projectile.queue_free()
+    if regular_projectile != null and is_instance_valid(regular_projectile):
+        regular_projectile.queue_free()
+    weak_gate.queue_free()
+    regular_gate.queue_free()
+    await process_frame
+
+
 func _test_moving_platform_system(_assets: Node) -> void:
     var platform_scene := load(MOVING_PLATFORM_SCENE_PATH) as PackedScene
     _expect(platform_scene != null, "Moving platform scene should load.")
@@ -3306,6 +3385,22 @@ func _gate_manifest_has_texture_file(entries_by_source: Dictionary, source_name:
         return false
     var texture_files: Array = (entry as Dictionary).get("texture_files", [])
     return texture_files.has(expected_file)
+
+
+func _make_test_wasp_projectile(wasp_type_path: String, position: Vector3) -> Node:
+    var projectile_scene: PackedScene = load(WASP_PROJECTILE_SCENE_PATH)
+    _expect(projectile_scene != null, "Wasp projectile scene should load for hit tests.")
+    if projectile_scene == null:
+        return null
+    var projectile: Node = projectile_scene.instantiate()
+    var wasp_type: Resource = load(wasp_type_path)
+    _expect(wasp_type != null, "Wasp type should load for projectile hit tests: %s" % wasp_type_path)
+    if wasp_type == null:
+        projectile.queue_free()
+        return null
+    root.add_child(projectile)
+    projectile.call("configure", wasp_type, null, Transform3D(Basis(), position))
+    return projectile
 
 
 func _test_wasp_projectile_damages_enemy() -> void:

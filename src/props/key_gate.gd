@@ -37,6 +37,42 @@ const SOURCE_MODEL_CLOSE_SPEED := 80.0
 # InitLvl.wdl sets SpeedGemKey = 12. Converted to Godot meters/sec
 # through the existing 0.01 Acknex-to-Godot scale and 16 ticks/sec.
 const DEFAULT_KEY_FLIGHT_SPEED := 12.0 * 0.01 * 16.0
+const WASP_PROJECTILE_IDPLAYER := 9999
+const ACKNEX_TO_GODOT_SCALE := 0.01
+const WEAK_DEBRIS_LIFETIME_SECONDS := 1.0
+const WEAK_DEBRIS_LAUNCH_SECONDS := 0.55
+const WEAK_DEBRIS_MODEL_ASSET_IDS := [
+	"model.weak_gate.plank1",
+	"model.weak_gate.plank2",
+	"model.weak_gate.plank3",
+	"model.weak_gate.plank1",
+	"model.weak_gate.plank2",
+	"model.weak_gate.plank3"
+]
+const WEAK_DEBRIS_OFFSETS := [
+	Vector3(-0.42, 0.15, -0.08),
+	Vector3(0.18, 0.4, 0.1),
+	Vector3(0.38, 0.72, -0.12),
+	Vector3(-0.15, 0.95, 0.14),
+	Vector3(0.44, 1.18, 0.0),
+	Vector3(-0.36, 1.45, 0.12)
+]
+const WEAK_DEBRIS_LAUNCHES := [
+	Vector3(-0.65, 0.85, -0.18),
+	Vector3(0.2, 1.05, 0.28),
+	Vector3(0.72, 1.2, -0.24),
+	Vector3(-0.3, 1.1, 0.18),
+	Vector3(0.58, 0.95, 0.1),
+	Vector3(-0.55, 1.25, 0.24)
+]
+const WEAK_DEBRIS_ROTATIONS := [
+	Vector3(72.0, 30.0, -42.0),
+	Vector3(-50.0, 115.0, 38.0),
+	Vector3(66.0, -76.0, 55.0),
+	Vector3(-82.0, 44.0, -20.0),
+	Vector3(45.0, -130.0, 72.0),
+	Vector3(-35.0, 90.0, -65.0)
+]
 
 @export var required_key_id: int = 3
 @export var strict_match: bool = true
@@ -61,6 +97,10 @@ const DEFAULT_KEY_FLIGHT_SPEED := 12.0 * 0.01 * 16.0
 # Empty means infer the original door WMB from required_key_id. Set this when a
 # level uses a special source model such as doorexit.wmb, doordark.wmb, or doorwk4.wmb.
 @export var source_wmb_name: String = ""
+@export var destructible_by_wasps: bool = false
+@export_range(0, 16, 1) var weak_door_resistance: int = 0
+@export var weak_hit_sound_asset_id: String = "sfx.plank1"
+@export var spawn_weak_debris: bool = true
 
 var _open := false
 var _state := STATE_CLOSED
@@ -72,6 +112,9 @@ var _closed_collision_mask := 0
 var _closed_visual_position := Vector3.ZERO
 var _visual_signature := ""
 var _visual_source_path := ""
+var _weak_door_strength := 0
+var _destroyed := false
+var _weak_debris_spawned_count := 0
 
 @onready var _collision_shape: CollisionShape3D = $CollisionShape3D
 @onready var _visual: MeshInstance3D = $GateVisual
@@ -86,11 +129,14 @@ func _ready() -> void:
 	_closed_visual_position = _visual.position if _visual != null else Vector3.ZERO
 	if _trigger != null:
 		_trigger.body_entered.connect(_on_trigger_body_entered)
+	_initialize_weak_door_state()
 	_apply_key_color()
 	_rebuild_door_visual_model()
 
 
 func _process(delta: float) -> void:
+	if _destroyed:
+		return
 	var safe_delta := maxf(delta, 0.0)
 	_update_open_hold(safe_delta)
 	if _visual == null:
@@ -103,6 +149,8 @@ func _process(delta: float) -> void:
 
 
 func try_open(player: Node) -> bool:
+	if _destroyed:
+		return true
 	if _state == STATE_LOCKED_OPEN:
 		return true
 	if _open:
@@ -128,6 +176,8 @@ func try_open(player: Node) -> bool:
 
 
 func can_player_open(player: Node) -> bool:
+	if _destroyed:
+		return true
 	if player == null:
 		return false
 	if player.has_method("get_current_key_id"):
@@ -169,6 +219,22 @@ func get_close_mode() -> int:
 
 func is_permanently_open() -> bool:
 	return _state == STATE_LOCKED_OPEN
+
+
+func is_destroyed() -> bool:
+	return _destroyed
+
+
+func is_destructible_by_wasps() -> bool:
+	return _is_wasp_destructible()
+
+
+func get_weak_door_strength() -> int:
+	return _weak_door_strength
+
+
+func get_weak_debris_spawned_count() -> int:
+	return _weak_debris_spawned_count
 
 
 func is_permanent_key_flight_active() -> bool:
@@ -222,6 +288,28 @@ func get_visual_model_root() -> Node3D:
 	return _visual.get_node_or_null(DOOR_MODEL_ROOT_NAME) as Node3D
 
 
+func hit_by_wasp(projectile: Node) -> bool:
+	if _destroyed or not _is_wasp_destructible():
+		return false
+	if not _is_original_wasp_projectile(projectile):
+		return false
+
+	var damage := _get_wasp_damage(projectile)
+	if damage <= 0:
+		return false
+	if _weak_door_strength <= 0:
+		_weak_door_strength = maxi(_initial_weak_door_strength(), 1)
+	_weak_door_strength = maxi(_weak_door_strength - damage, 0)
+	_play_sfx(weak_hit_sound_asset_id)
+
+	if _weak_door_strength <= 0:
+		_destroy_weak_door(projectile)
+	else:
+		source_wmb_name = _source_wmb_name_for_weak_strength(_weak_door_strength)
+		_rebuild_door_visual_model()
+	return true
+
+
 func is_close_blocked() -> bool:
 	if _trigger_shape != null and _trigger_shape.shape != null and is_inside_tree():
 		var query := PhysicsShapeQueryParameters3D.new()
@@ -260,6 +348,7 @@ func _apply_key_color() -> void:
 func _rebuild_door_visual_model() -> void:
 	if _visual == null:
 		return
+	_visual.visible = true
 	var existing_root := get_visual_model_root()
 	if existing_root != null:
 		_visual.remove_child(existing_root)
@@ -417,6 +506,131 @@ func _lock_open_permanently() -> void:
 	if _collision_shape != null:
 		_collision_shape.set_deferred("disabled", true)
 	set_deferred("collision_layer", 0)
+
+
+func _initialize_weak_door_state() -> void:
+	_weak_door_strength = _initial_weak_door_strength()
+
+
+func _initial_weak_door_strength() -> int:
+	if weak_door_resistance > 0:
+		return weak_door_resistance
+	var inferred_strength := _infer_weak_door_strength(_normalized_source_wmb_name())
+	if inferred_strength > 0:
+		return inferred_strength
+	return 1 if destructible_by_wasps else 0
+
+
+func _is_wasp_destructible() -> bool:
+	return destructible_by_wasps or _is_weak_door_source(_normalized_source_wmb_name())
+
+
+func _is_weak_door_source(source: String) -> bool:
+	return source.get_file().to_lower().begins_with("doorwk")
+
+
+func _infer_weak_door_strength(source: String) -> int:
+	if not _is_weak_door_source(source):
+		return 0
+	var weak_level := _weak_level_from_source_wmb(source)
+	return maxi(5 - weak_level, 1)
+
+
+func _source_wmb_name_for_weak_strength(strength: int) -> String:
+	if strength >= 4:
+		return "doorwk1.wmb"
+	if strength == 3:
+		return "doorwk2.wmb"
+	if strength == 2:
+		return "doorwk3.wmb"
+	return "doorwk4.wmb"
+
+
+func _is_original_wasp_projectile(projectile: Node) -> bool:
+	if projectile == null or not projectile.has_method("get_idplayer"):
+		return false
+	return int(projectile.call("get_idplayer")) == WASP_PROJECTILE_IDPLAYER
+
+
+func _get_wasp_damage(projectile: Node) -> int:
+	if projectile == null or not projectile.has_method("get_wasp_type"):
+		return 1
+	var wasp_type := projectile.call("get_wasp_type") as Resource
+	if wasp_type == null:
+		return 1
+	var raw_damage = wasp_type.get("damage")
+	if raw_damage == null:
+		return 1
+	return maxi(int(raw_damage), 0)
+
+
+func _destroy_weak_door(projectile: Node) -> void:
+	_destroyed = true
+	_weak_door_strength = 0
+	_open = true
+	_state = STATE_LOCKED_OPEN
+	_open_hold_remaining = 0.0
+	_permanent_key_flight_active = false
+	_visual_signature = "%s:destroyed" % _normalized_source_wmb_name()
+	_visual_source_path = ""
+	if _visual != null:
+		_visual.visible = false
+	if _collision_shape != null:
+		_collision_shape.set_deferred("disabled", true)
+	if _trigger_shape != null:
+		_trigger_shape.set_deferred("disabled", true)
+	if _trigger != null:
+		_trigger.set_deferred("monitoring", false)
+		_trigger.set_deferred("monitorable", false)
+	set_deferred("collision_layer", 0)
+	set_deferred("collision_mask", 0)
+	if spawn_weak_debris:
+		_spawn_weak_gate_debris(projectile)
+
+
+func _spawn_weak_gate_debris(projectile: Node) -> void:
+	var assets := get_node_or_null("/root/Assets")
+	if assets == null:
+		return
+	var parent := get_parent()
+	if parent == null:
+		parent = self
+	var impact_offset := Vector3.ZERO
+	var projectile_node := projectile as Node3D
+	if projectile_node != null:
+		var horizontal := Vector3(global_position.x - projectile_node.global_position.x, 0.0, global_position.z - projectile_node.global_position.z)
+		if horizontal.length_squared() > 0.0001:
+			impact_offset = horizontal.normalized() * 0.15
+	for index in WEAK_DEBRIS_MODEL_ASSET_IDS.size():
+		var asset_id := String(WEAK_DEBRIS_MODEL_ASSET_IDS[index])
+		if not assets.has_method("load_asset"):
+			continue
+		var packed_scene := assets.call("load_asset", asset_id) as PackedScene
+		if packed_scene == null:
+			continue
+		var piece := packed_scene.instantiate() as Node3D
+		if piece == null:
+			continue
+		piece.name = "WeakGateDebris%d" % index
+		parent.add_child(piece)
+		var debris_offset: Vector3 = WEAK_DEBRIS_OFFSETS[index]
+		var debris_launch: Vector3 = WEAK_DEBRIS_LAUNCHES[index]
+		var debris_rotation: Vector3 = WEAK_DEBRIS_ROTATIONS[index]
+		var model_scale := Vector3.ONE * ACKNEX_TO_GODOT_SCALE
+		if assets.has_method("get_model_scale"):
+			model_scale = assets.call("get_model_scale", asset_id)
+		piece.scale = model_scale
+		piece.global_position = global_position + Vector3.UP * 0.55 + debris_offset + impact_offset
+		piece.rotation_degrees = debris_rotation * 0.2
+		_weak_debris_spawned_count += 1
+		var target_position: Vector3 = piece.global_position + debris_launch + impact_offset
+		var motion_tween := piece.create_tween()
+		motion_tween.set_parallel(true)
+		motion_tween.tween_property(piece, "global_position", target_position, WEAK_DEBRIS_LAUNCH_SECONDS)
+		motion_tween.tween_property(piece, "rotation_degrees", debris_rotation, WEAK_DEBRIS_LAUNCH_SECONDS)
+		var cleanup_tween := piece.create_tween()
+		cleanup_tween.tween_interval(WEAK_DEBRIS_LIFETIME_SECONDS)
+		cleanup_tween.tween_callback(Callable(piece, "queue_free"))
 
 
 func _update_open_hold(delta: float) -> void:

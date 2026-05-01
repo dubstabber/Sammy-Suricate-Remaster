@@ -8,6 +8,7 @@ const WASP_PROJECTILE_SCENE := preload("res://scenes/weapons/wasp_projectile.tsc
 const KEY_DIAMOND_RULES_SCRIPT := preload("res://src/resources/key_diamond_rules.gd")
 const KEY_DIAMOND_PICKUP_SCENE := preload("res://scenes/pickups/key_diamond_pickup.tscn")
 const KEY_MIX_EFFECT_SCRIPT := preload("res://src/effects/key_mix_effect.gd")
+const TELEPORT_PARTICLES_SCRIPT := preload("res://src/effects/teleport_star_particles.gd")
 const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
 const GODOT_PLAYBACK_SPEED_CORRECTION := 1.12
 const WASP_FIRE_STEP_RANGE := 100.0
@@ -24,6 +25,9 @@ const PLAYER_DEATH_STEP_SPEED := 3.0
 const ACKNEX_TO_GODOT_SCALE := 0.01
 const PLAYER_BOUNCE_TICKS_PER_SECOND := ACKNEX_TIME_UNITS_PER_SECOND * 1.5
 const CHARACTER_COLLISION_MASK := 1 << 1
+const TELEPORT_PHASE_PRE_FADE := 0
+const TELEPORT_PHASE_FADE_OUT := 1
+const TELEPORT_PHASE_FADE_IN := 2
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
@@ -44,6 +48,9 @@ const CHARACTER_COLLISION_MASK := 1 << 1
 @export var enemy_push_max_source_speed: float = 2.7
 @export var enemy_push_collision_normal_speed: float = 30.0 * ACKNEX_TO_GODOT_SCALE * PLAYER_BOUNCE_TICKS_PER_SECOND
 @export var enemy_push_immediate_seconds: float = 0.04
+@export var teleport_pre_fade_seconds: float = 4.0 / ACKNEX_TIME_UNITS_PER_SECOND
+@export var teleport_fade_out_seconds: float = 10.0 / ACKNEX_TIME_UNITS_PER_SECOND
+@export var teleport_fade_in_seconds: float = 10.0 / ACKNEX_TIME_UNITS_PER_SECOND
 
 signal damaged(amount: float, source: Node)
 signal death_started(source: Node)
@@ -53,6 +60,8 @@ signal game_over()
 signal key_diamond_changed(current_key_id: int, previous_key_id: int)
 signal key_diamond_mixed(first_key_id: int, second_key_id: int, mixed_key_id: int)
 signal key_diamond_ejected(key_id: int, pickup: Node)
+signal teleport_started(source: Node)
+signal teleport_finished(source: Node)
 
 @onready var visual_pivot: Node3D = $VisualPivot
 
@@ -89,6 +98,16 @@ var _respawn_transform: Transform3D
 var _has_respawn_transform: bool = false
 var _current_key_id: int = KEY_DIAMOND_RULES_SCRIPT.KEY_NONE
 var _last_ejected_key: Node = null
+var _teleporting := false
+var _teleport_phase := TELEPORT_PHASE_PRE_FADE
+var _teleport_phase_remaining := 0.0
+var _teleport_destination_transform := Transform3D.IDENTITY
+var _teleport_source: Node = null
+var _teleport_alpha := 1.0
+var _teleport_particle_emit_remaining := 0.0
+var _saved_collision_layer := 0
+var _saved_collision_mask := 0
+var _has_saved_collision_state := false
 
 
 func _ready() -> void:
@@ -103,7 +122,7 @@ func _ready() -> void:
 
 
 func take_damage(amount: float, source: Node = null) -> bool:
-    if amount <= 0.0 or _health <= 0.0 or _dead or _game_over:
+    if amount <= 0.0 or _health <= 0.0 or _dead or _game_over or _teleporting:
         return false
     if is_in_invulnerability_window():
         return false
@@ -169,6 +188,36 @@ func is_in_invulnerability_window() -> bool:
         return false
     var elapsed_msec := Time.get_ticks_msec() - _last_damage_time_msec
     return elapsed_msec < int(damage_invulnerability_seconds * 1000.0)
+
+
+func begin_teleport(destination_transform: Transform3D, source: Node = null) -> bool:
+    if _dead or _game_over or _teleporting:
+        return false
+
+    _teleporting = true
+    _teleport_phase = TELEPORT_PHASE_PRE_FADE
+    _teleport_phase_remaining = maxf(teleport_pre_fade_seconds, 0.0)
+    _teleport_destination_transform = destination_transform
+    _teleport_source = source
+    _teleport_particle_emit_remaining = 0.0
+    _saved_collision_layer = collision_layer
+    _saved_collision_mask = collision_mask
+    _has_saved_collision_state = true
+    collision_layer = 0
+    collision_mask = 0
+    _clear_motion_for_teleport()
+    _set_teleport_alpha(1.0)
+    _spawn_teleport_particles(global_position, 5)
+    teleport_started.emit(source)
+    return true
+
+
+func is_teleporting() -> bool:
+    return _teleporting
+
+
+func get_teleport_alpha() -> float:
+    return _teleport_alpha
 
 
 func apply_enemy_push(source_velocity: Vector3, source_bounce_force: float = 1.0, _source: Node = null) -> void:
@@ -273,6 +322,9 @@ func consume_key_for_gate(required_key_id: int, strict_match: bool = false) -> i
 func _physics_process(delta: float) -> void:
     if _dead or _game_over:
         _update_death_state(delta)
+        return
+    if _teleporting:
+        _update_teleport_state(delta)
         return
 
     var was_on_floor := is_on_floor()
@@ -551,7 +603,7 @@ func _clear_wasp_fire() -> void:
 
 
 func _is_movement_locked() -> bool:
-    return _dead or _game_over or _wasp_fire_active or is_landing_movement_locked()
+    return _dead or _game_over or _teleporting or _wasp_fire_active or is_landing_movement_locked()
 
 
 func _begin_landing_movement_lock(forward_input: float = 0.0, turn_input: float = 0.0, jump_pressed: bool = false) -> void:
@@ -569,6 +621,121 @@ func _get_landing_movement_lock_seconds(forward_input: float = 0.0, turn_input: 
     if not is_zero_approx(forward_input) or jump_pressed:
         step_speed = PLAYER_LANDING_INPUT_STEP_SPEED
     return _seconds_for_wdl_animation_steps(PLAYER_LANDING_END_STEP_RANGE, step_speed)
+
+
+func _update_teleport_state(delta: float) -> void:
+    var safe_delta := maxf(delta, 0.0)
+    _clear_motion_for_teleport()
+    _clear_animation_sequence()
+    _play_animation_action(&"stand", 1.0, false, false, 0.0)
+
+    match _teleport_phase:
+        TELEPORT_PHASE_PRE_FADE:
+            _teleport_phase_remaining -= safe_delta
+            if _teleport_phase_remaining <= 0.0:
+                _teleport_phase = TELEPORT_PHASE_FADE_OUT
+                _teleport_phase_remaining = maxf(teleport_fade_out_seconds, 0.001)
+                _teleport_particle_emit_remaining = 0.0
+        TELEPORT_PHASE_FADE_OUT:
+            _emit_teleport_transition_particles(safe_delta, 3)
+            _teleport_phase_remaining -= safe_delta
+            var fade_out_duration := maxf(teleport_fade_out_seconds, 0.001)
+            _set_teleport_alpha(clampf(_teleport_phase_remaining / fade_out_duration, 0.0, 1.0))
+            if _teleport_phase_remaining <= 0.0:
+                _move_to_teleport_destination()
+        TELEPORT_PHASE_FADE_IN:
+            _emit_teleport_transition_particles(safe_delta, 2)
+            _teleport_phase_remaining -= safe_delta
+            var fade_in_duration := maxf(teleport_fade_in_seconds, 0.001)
+            _set_teleport_alpha(clampf(1.0 - (_teleport_phase_remaining / fade_in_duration), 0.0, 1.0))
+            if _teleport_phase_remaining <= 0.0:
+                _finish_teleport()
+
+
+func _clear_motion_for_teleport() -> void:
+    velocity = Vector3.ZERO
+    _input_horizontal_velocity = Vector3.ZERO
+    _enemy_push_velocity = Vector3.ZERO
+    _boosting = false
+    _quick_turn_active = false
+    _quick_turn_remaining_degrees = 0.0
+    _quick_turn_speed_degrees = 0.0
+    _landing_movement_lock_remaining = 0.0
+    _jump_fire_blocked = false
+    _clear_wasp_fire()
+
+
+func _emit_teleport_transition_particles(delta: float, count: int) -> void:
+    _teleport_particle_emit_remaining -= delta
+    while _teleport_particle_emit_remaining <= 0.0:
+        _spawn_teleport_particles(global_position, count)
+        _teleport_particle_emit_remaining += 1.0 / ACKNEX_TIME_UNITS_PER_SECOND
+
+
+func _move_to_teleport_destination() -> void:
+    _set_teleport_alpha(0.0)
+    global_transform = _teleport_destination_transform
+    velocity = Vector3.ZERO
+    _input_horizontal_velocity = Vector3.ZERO
+    _enemy_push_velocity = Vector3.ZERO
+    _reset_follow_cameras_after_teleport()
+    _spawn_teleport_particles(global_position, 5)
+    _teleport_phase = TELEPORT_PHASE_FADE_IN
+    _teleport_phase_remaining = maxf(teleport_fade_in_seconds, 0.001)
+    _teleport_particle_emit_remaining = 0.0
+
+
+func _finish_teleport() -> void:
+    _set_teleport_alpha(1.0)
+    if _has_saved_collision_state:
+        collision_layer = _saved_collision_layer
+        collision_mask = _saved_collision_mask
+        _has_saved_collision_state = false
+    _clear_motion_for_teleport()
+    _teleporting = false
+    var source := _teleport_source
+    _teleport_source = null
+    teleport_finished.emit(source)
+
+
+func _set_teleport_alpha(alpha: float) -> void:
+    _teleport_alpha = clampf(alpha, 0.0, 1.0)
+    if visual_pivot != null:
+        _set_geometry_transparency(visual_pivot, 1.0 - _teleport_alpha)
+
+
+func _set_geometry_transparency(node: Node, transparency: float) -> void:
+    if node is GeometryInstance3D:
+        (node as GeometryInstance3D).transparency = clampf(transparency, 0.0, 1.0)
+    for child in node.get_children():
+        _set_geometry_transparency(child, transparency)
+
+
+func _spawn_teleport_particles(world_position: Vector3, count: int) -> void:
+    var parent := get_parent()
+    if parent == null:
+        parent = self
+    var emitter := TELEPORT_PARTICLES_SCRIPT.new()
+    emitter.name = "PlayerTeleportParticles"
+    emitter.set("idle_enabled", false)
+    emitter.set("auto_free_when_empty", true)
+    parent.add_child(emitter)
+    emitter.global_position = world_position
+    emitter.call("emit_burst", count)
+
+
+func _reset_follow_cameras_after_teleport() -> void:
+    var scene_tree := get_tree()
+    if scene_tree == null:
+        return
+    _reset_follow_cameras_in_node(scene_tree.root)
+
+
+func _reset_follow_cameras_in_node(node: Node) -> void:
+    if node is Camera3D and node.has_method("reset_to_target"):
+        node.call("reset_to_target")
+    for child in node.get_children():
+        _reset_follow_cameras_in_node(child)
 
 
 func _spawn_wasp_projectile(wasp_type: Resource, yaw_offset_degrees: float = 0.0) -> bool:

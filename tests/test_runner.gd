@@ -18,6 +18,7 @@ const KEY_GATE_GALLERY_SCENE_PATH := "res://scenes/gates/key_gate_gallery.tscn"
 const GATE_WMB_MANIFEST_PATH := "res://assets/models/gates/gate_wmb_manifest.json"
 const MOVING_PLATFORM_SCENE_PATH := "res://scenes/props/moving_platform.tscn"
 const PLATFORM_WMB_MANIFEST_PATH := "res://assets/models/platforms/platform_wmb_manifest.json"
+const TELEPORTER_SCENE_PATH := "res://scenes/props/teleporter.tscn"
 const KEY_DIAMOND_PANEL_SCENE_PATH := "res://scenes/ui/key_diamond_panel.tscn"
 const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
 const KEY_DIAMOND_RULES_SCRIPT_PATH := "res://src/resources/key_diamond_rules.gd"
@@ -103,6 +104,7 @@ func _run() -> void:
     await _test_key_diamond_system(assets)
     await _test_gate_visual_models(assets)
     await _test_moving_platform_system(assets)
+    await _test_teleporter_system(assets)
     await _test_eye_of_truth_pickup(game, assets)
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
@@ -240,6 +242,20 @@ func _test_asset_catalog(assets: Node) -> void:
         "model.platform.green"
     ]:
         _expect(assets.load_asset(platform_asset_id) != null, "Unable to load converted moving platform WMB: %s" % platform_asset_id)
+    var teleport_model := assets.load_asset("model.teleport.pad") as PackedScene
+    _expect(teleport_model != null, "Unable to load converted teleport WMB model.")
+    var teleport_tile := assets.load_asset("texture.teleport.tile") as Texture2D
+    var teleport_tile_side := assets.load_asset("texture.teleport.tile_side") as Texture2D
+    _expect(teleport_tile != null, "Unable to load original teleport pad top texture.")
+    _expect(teleport_tile_side != null, "Unable to load original teleport pad side texture.")
+    if teleport_model != null:
+        var teleport_model_instance := teleport_model.instantiate() as Node3D
+        root.add_child(teleport_model_instance)
+        _expect(teleport_tile != null and _model_uses_texture(teleport_model_instance, teleport_tile), "Converted teleport WMB should use the original tileteleport2 texture.")
+        _expect(teleport_tile_side != null and _model_uses_texture(teleport_model_instance, teleport_tile_side), "Converted teleport WMB should use the original tileteleport2_b texture.")
+        teleport_model_instance.queue_free()
+    for star_index in range(1, 6):
+        _expect(assets.load_asset("texture.particle.teleport_star_%d" % star_index) != null, "Unable to load original StarHit teleport particle %d." % star_index)
     _expect(assets.load_asset("model.cactus1") != null, "Unable to load copied cactus model resource.")
     _expect(assets.has_asset("texture.particle.small_star_1a"), "Asset catalog is missing original boost particle sprite.")
     _expect(assets.load_asset("texture.particle.small_star_1a") != null, "Unable to load original boost particle sprite.")
@@ -2132,6 +2148,108 @@ func _test_moving_platform_variants(platform_scene: PackedScene) -> void:
     await process_frame
 
 
+func _test_teleporter_system(_assets: Node) -> void:
+    var teleporter_scene := load(TELEPORTER_SCENE_PATH) as PackedScene
+    _expect(teleporter_scene != null, "Teleporter scene should load.")
+    if teleporter_scene == null:
+        return
+
+    var floor := StaticBody3D.new()
+    floor.name = "TeleportTestFloor"
+    floor.collision_layer = WORLD_LAYER
+    floor.collision_mask = CHARACTER_LAYER
+    var floor_shape := CollisionShape3D.new()
+    var floor_box := BoxShape3D.new()
+    floor_box.size = Vector3(12.0, 1.0, 12.0)
+    floor_shape.position = Vector3(0.0, -0.5, 0.0)
+    floor_shape.shape = floor_box
+    floor.add_child(floor_shape)
+    root.add_child(floor)
+
+    var player_scene := load(PLAYER_SCENE_PATH) as PackedScene
+    var player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    player.global_position = Vector3.ZERO
+
+    var destination_marker := Marker3D.new()
+    destination_marker.name = "TeleportDestination"
+    root.add_child(destination_marker)
+    destination_marker.global_position = Vector3(3.0, 0.0, 2.0)
+    destination_marker.rotation.y = PI / 2.0
+
+    var teleporter := teleporter_scene.instantiate() as Area3D
+    teleporter.name = "TeleportSource"
+    teleporter.set("cooldown_seconds", 5.0)
+    root.add_child(teleporter)
+    teleporter.global_position = Vector3(6.0, 0.0, 0.0)
+    teleporter.set("destination_path", teleporter.get_path_to(destination_marker))
+    await process_frame
+
+    _expect(teleporter.collision_layer == PICKUP_SENSOR_LAYER, "Teleporter should live on the pickup sensor collision layer.")
+    _expect(teleporter.collision_mask == CHARACTER_LAYER, "Teleporter should monitor solid characters without blocking them.")
+    _expect(teleporter.has_method("try_teleport_body"), "Teleporter should expose a test/importer trigger hook.")
+    _expect(bool(teleporter.call("has_original_visual_model")), "Teleporter should load the original converted WMB visual.")
+    _expect(String(teleporter.call("get_visual_source_path")) == "res://assets/models/teleports/teleport/teleport.gltf", "Teleporter should expose the original teleport WMB visual path.")
+    var idle_emitter := teleporter.call("get_idle_particle_emitter") as Node
+    _expect(idle_emitter != null, "Teleporter should spawn its idle StarHit particle emitter.")
+    if idle_emitter != null:
+        _expect(int(idle_emitter.call("get_configured_texture_count")) == 5, "Teleporter idle particles should use all five original StarHit textures.")
+        _expect(bool(idle_emitter.call("is_idle_enabled")), "Teleporter idle particles should emit while the pad is active.")
+
+    var non_player := Node3D.new()
+    non_player.name = "TeleportNonPlayer"
+    root.add_child(non_player)
+    _expect(not bool(teleporter.call("try_teleport_body", non_player)), "Teleporter should ignore non-player bodies.")
+    non_player.queue_free()
+
+    var airborne_player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(airborne_player)
+    airborne_player.global_position = Vector3(0.0, 5.0, 0.0)
+    await process_frame
+    _expect(not bool(teleporter.call("try_teleport_body", airborne_player)), "Teleporter should ignore Sammy while he is airborne.")
+    airborne_player.queue_free()
+
+    var camera_script: GDScript = load(CAMERA_SCRIPT_PATH)
+    var camera := Camera3D.new()
+    camera.name = "TeleportParityCamera"
+    camera.set_script(camera_script)
+    root.add_child(camera)
+    camera.target_path = camera.get_path_to(player)
+    camera.global_position = Vector3(-20.0, 12.0, -20.0)
+
+    for _settle_frame in 8:
+        await physics_frame
+    _expect(player.is_on_floor(), "Teleport setup should put Sammy on the test floor.")
+    _expect(bool(teleporter.call("try_teleport_body", player)), "Grounded Sammy should trigger the teleporter.")
+    _expect(bool(player.call("is_teleporting")), "Player should expose active teleport state after triggering.")
+    _expect(int(player.collision_layer) == 0 and int(player.collision_mask) == 0, "Teleporting Sammy should temporarily stop colliding like the original passable/idplayer path.")
+    player.call("apply_quick_turn")
+    _expect(not bool(player.call("is_quick_turning")), "Teleporting should lock quick turn until the fade sequence finishes.")
+    _expect(not bool(player.call("fire_wasp")), "Teleporting should lock wasp fire until the fade sequence finishes.")
+    _expect(not bool(player.call("take_damage", 1.0, null)), "Teleporting should suppress direct damage interactions.")
+
+    for _teleport_frame in 120:
+        if not bool(player.call("is_teleporting")):
+            break
+        await physics_frame
+
+    _expect(not bool(player.call("is_teleporting")), "Teleport sequence should finish after the WDL fade-out/fade-in window.")
+    _expect(player.global_position.distance_to(destination_marker.global_position) < 0.05, "Teleport should move Sammy to the configured destination marker.")
+    _expect(player.get_facing_direction().distance_to(Vector3.LEFT) < 0.05, "Teleport destination marker yaw should control Sammy's facing direction.")
+    _expect(int(player.collision_layer) == CHARACTER_LAYER, "Teleport should restore Sammy's character collision layer.")
+    _expect(int(player.collision_mask) == WORLD_AND_CHARACTER_MASK, "Teleport should restore Sammy's world/character collision mask.")
+    _expect(is_equal_approx(float(player.call("get_teleport_alpha")), 1.0), "Teleport should restore Sammy to full visibility.")
+    _expect(camera.global_position.distance_to(player.global_position + (camera.call("_get_follow_offset") as Vector3)) < 0.05, "Teleport should snap the follow camera to Sammy's destination.")
+    _expect(not bool(teleporter.call("try_teleport_body", player)), "Teleporter cooldown should prevent immediate retrigger loops after arrival.")
+
+    camera.queue_free()
+    teleporter.queue_free()
+    destination_marker.queue_free()
+    player.queue_free()
+    floor.queue_free()
+    await process_frame
+
+
 func _make_platform_boost_rider() -> CharacterBody3D:
     var script := GDScript.new()
     script.source_code = "extends CharacterBody3D\n" \
@@ -3391,6 +3509,8 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("Platforms/UnlockedMovingPlatform") != null, "Prototype unlocked moving platform should be editor-instanced.")
     _expect(world.get_node_or_null("Platforms/YellowKeyMovingPlatform") != null, "Prototype key-gated moving platform should be editor-instanced.")
     _expect(world.get_node_or_null("Platforms/PlatformGallery") != null, "Prototype platform gallery should be editor-authored.")
+    _expect(world.get_node_or_null("Teleporters/TeleporterA") != null, "Prototype teleport pair should include TeleporterA.")
+    _expect(world.get_node_or_null("Teleporters/TeleporterB") != null, "Prototype teleport pair should include TeleporterB.")
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
     var floor := world.get_node_or_null("PrototypeFloor") as StaticBody3D
     _expect(floor != null, "Prototype floor should be a StaticBody3D.")
@@ -3418,6 +3538,13 @@ func _test_prototype_world() -> void:
     if yellow_platform != null:
         _expect(int(yellow_platform.get("required_key_id")) == KEY_DIAMOND_YELLOW, "Prototype yellow key platform should use the original yellow key requirement.")
         _expect(int(yellow_platform.get("key_match_mode")) == PLATFORM_MATCH_EXACT, "Prototype yellow key platform should use exact WDL key matching.")
+    for teleporter_path in ["Teleporters/TeleporterA", "Teleporters/TeleporterB"]:
+        var teleporter := world.get_node_or_null(teleporter_path) as Area3D
+        _expect(teleporter != null, "Prototype teleporter should be editor-instanced as an Area3D: %s" % teleporter_path)
+        if teleporter != null:
+            _expect(teleporter.collision_layer == PICKUP_SENSOR_LAYER, "Prototype teleporter should live on the pickup sensor layer: %s" % teleporter_path)
+            _expect(teleporter.collision_mask == CHARACTER_LAYER, "Prototype teleporter should monitor character bodies: %s" % teleporter_path)
+            _expect(not String(teleporter.get("destination_path")).is_empty(), "Prototype teleporter should point at its paired ExitMarker: %s" % teleporter_path)
     var gallery_platform_configs := [
         ["ActivatedVisualPlatform", PLATFORM_VARIANT_UNLOCKED_ACTIVE, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT],
         ["ColumnPlatform", PLATFORM_VARIANT_UNLOCKED_COLUMN, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT],
@@ -3483,6 +3610,11 @@ func _test_prototype_world() -> void:
         var invisible_gallery_root := invisible_gallery_platform.get_node_or_null("VisualRoot") as Node3D
         _expect(String(invisible_gallery_platform.call("get_visual_source_path")).is_empty(), "Invisible gallery platform should hide its source visual until activation.")
         _expect(invisible_gallery_root != null and not invisible_gallery_root.visible, "Invisible gallery platform VisualRoot should be hidden until activation.")
+    for teleporter_path in ["Teleporters/TeleporterA", "Teleporters/TeleporterB"]:
+        var teleporter := world.get_node_or_null(teleporter_path) as Area3D
+        if teleporter != null:
+            _expect(String(teleporter.call("get_visual_source_path")) == "res://assets/models/teleports/teleport/teleport.gltf", "Prototype teleporter should use the converted original teleport WMB visual: %s" % teleporter_path)
+            _expect(teleporter.call("get_idle_particle_emitter") != null, "Prototype teleporter should spawn idle original StarHit particles: %s" % teleporter_path)
     for _settle_step in 10:
         await physics_frame
     _expect(world.get_node_or_null("Player") != null, "Prototype world is missing its editor-instanced player.")

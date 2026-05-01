@@ -122,6 +122,24 @@ const CATALOG := {
         "kind": "model",
         "description": "Original alternate inactive moving platform WMB"
     },
+    "model.teleport.pad": {
+        "path": "res://assets/models/teleports/teleport/teleport.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/teleport.wmb",
+        "kind": "model",
+        "description": "Original teleport pad WMB"
+    },
+    "texture.teleport.tile": {
+        "path": "res://assets/textures/teleports/tileteleport2.png",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/teleport.wmb",
+        "kind": "texture",
+        "description": "Original teleport pad top texture decoded from teleport.wmb"
+    },
+    "texture.teleport.tile_side": {
+        "path": "res://assets/textures/teleports/tileteleport2_b.png",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/teleport.wmb",
+        "kind": "texture",
+        "description": "Original teleport pad side texture decoded from teleport.wmb"
+    },
     "model.enemy_visibility_range": {
         "path": "res://assets/models/circl100/circl100_animated.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/circl100/circl100_animated.gltf",
@@ -163,6 +181,36 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/textures/tistar1a.png",
         "kind": "texture",
         "description": "Original SmallStar1A sprite used by particle_Boost1"
+    },
+    "texture.particle.teleport_star_1": {
+        "path": "res://assets/textures/particles/StarHit1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/StarHit1.png",
+        "kind": "texture",
+        "description": "Original StarHit1 sprite used by particle_Teleport"
+    },
+    "texture.particle.teleport_star_2": {
+        "path": "res://assets/textures/particles/StarHit2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/StarHit2.png",
+        "kind": "texture",
+        "description": "Original StarHit2 sprite used by particle_Teleport"
+    },
+    "texture.particle.teleport_star_3": {
+        "path": "res://assets/textures/particles/StarHit3.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/StarHit3.png",
+        "kind": "texture",
+        "description": "Original StarHit3 sprite used by particle_Teleport"
+    },
+    "texture.particle.teleport_star_4": {
+        "path": "res://assets/textures/particles/StarHit4.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/StarHit4.png",
+        "kind": "texture",
+        "description": "Original StarHit4 sprite used by particle_Teleport"
+    },
+    "texture.particle.teleport_star_5": {
+        "path": "res://assets/textures/particles/StarHit5.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/StarHit5.png",
+        "kind": "texture",
+        "description": "Original StarHit5 sprite used by particle_Teleport"
     },
     "texture.particle.eye_truth_1": {
         "path": "res://assets/textures/particles/peye1.png",

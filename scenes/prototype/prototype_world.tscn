@@ -25,6 +25,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="23_key_panel"]
 [ext_resource type="PackedScene" path="res://scenes/gates/key_gate_gallery.tscn" id="24_gate_gallery"]
 [ext_resource type="PackedScene" path="res://scenes/props/moving_platform.tscn" id="25_platform"]
+[ext_resource type="PackedScene" path="res://scenes/props/teleporter.tscn" id="26_teleporter"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.22, 0.32, 0.26, 1)
@@ -66,6 +67,22 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1735701, 15.62971)
 [node name="PrototypeCamera" type="Camera3D" parent="." unique_id=1505781596]
 script = ExtResource("3_camera")
 target_path = NodePath("../Player")
+
+[node name="Teleporters" type="Node3D" parent="." unique_id=1517428535]
+
+[node name="TeleporterA" parent="Teleporters" unique_id=1915098392 instance=ExtResource("26_teleporter")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, 13)
+destination_path = NodePath("../DestA")
+
+[node name="TeleporterB" parent="Teleporters" unique_id=1675891941 instance=ExtResource("26_teleporter")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -17.482319, 0, 24)
+destination_path = NodePath("../DestB")
+
+[node name="DestA" type="Marker3D" parent="Teleporters" unique_id=1997109940]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.563908, 0, -38.44226)
+
+[node name="DestB" type="Marker3D" parent="Teleporters" unique_id=557268474]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.166836, 0, -38.04149)
 
 [node name="BoostPickup" parent="." unique_id=1342866040 instance=ExtResource("5_boost")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0, -1.5)
@@ -138,93 +155,93 @@ end_offset = Vector3(0, 0, -4)
 wdl_speed_units = 12.0
 endpoint_wait_ticks = 12.0
 
-[node name="PlatformGallery" type="Node3D" parent="Platforms"]
+[node name="PlatformGallery" type="Node3D" parent="Platforms" unique_id=1598337819]
 
-[node name="ActivatedVisualPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="ActivatedVisualPlatform" parent="Platforms/PlatformGallery" unique_id=1453054700 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.15, 24)
 platform_variant = 1
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="ColumnPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="ColumnPlatform" parent="Platforms/PlatformGallery" unique_id=2092646184 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0.15, 24)
 platform_variant = 2
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="ColumnAltPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="ColumnAltPlatform" parent="Platforms/PlatformGallery" unique_id=486002194 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0.15, 24)
 platform_variant = 3
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="RedKeyPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="RedKeyPlatform" parent="Platforms/PlatformGallery" unique_id=135764105 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.15, 20)
 platform_variant = 4
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="YellowKeyPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="YellowKeyPlatform" parent="Platforms/PlatformGallery" unique_id=1260193159 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0.15, 20)
 platform_variant = 5
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="BlueKeyPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="BlueKeyPlatform" parent="Platforms/PlatformGallery" unique_id=1586100477 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0.15, 20)
 platform_variant = 6
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="OrangeMixedKeyPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="OrangeMixedKeyPlatform" parent="Platforms/PlatformGallery" unique_id=1424127400 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.15, 16)
 platform_variant = 7
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="MagentaMixedKeyPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="MagentaMixedKeyPlatform" parent="Platforms/PlatformGallery" unique_id=618241956 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0.15, 16)
 platform_variant = 8
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="GreenMixedKeyPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="GreenMixedKeyPlatform" parent="Platforms/PlatformGallery" unique_id=1131598497 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0.15, 16)
 platform_variant = 9
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="InvisibleRedKeyPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="InvisibleRedKeyPlatform" parent="Platforms/PlatformGallery" unique_id=1260158906 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0.15, 20)
 platform_variant = 10
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="LocalAxisPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="LocalAxisPlatform" parent="Platforms/PlatformGallery" unique_id=281854514 instance=ExtResource("25_platform")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 26, 0.15, 24)
 platform_variant = 2
 end_offset = Vector3(2, 0, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="VerticalPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="VerticalPlatform" parent="Platforms/PlatformGallery" unique_id=1099070422 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0.15, 16)
 platform_variant = 3
 end_offset = Vector3(0, 2, 0)
 wdl_speed_units = 8.0
 endpoint_wait_ticks = 8.0
 
-[node name="TurnaroundPlatform" parent="Platforms/PlatformGallery" instance=ExtResource("25_platform")]
+[node name="TurnaroundPlatform" parent="Platforms/PlatformGallery" unique_id=1089570586 instance=ExtResource("25_platform")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0.15, 24)
 platform_variant = 1
 end_offset = Vector3(1, 0, 0)

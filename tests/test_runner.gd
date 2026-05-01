@@ -13,6 +13,8 @@ const BOOST_PICKUP_SCENE_PATH := "res://scenes/pickups/boost_pickup.tscn"
 const EYE_OF_TRUTH_PICKUP_SCENE_PATH := "res://scenes/pickups/eye_of_truth_pickup.tscn"
 const DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/diamond_pickup.tscn"
 const KEY_DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/key_diamond_pickup.tscn"
+const LAUNCHED_KEY_GEM_SCENE_PATH := "res://scenes/pickups/launched_key_gem.tscn"
+const GEM_SPAWNER_SCENE_PATH := "res://scenes/spawners/gem_spawner.tscn"
 const KEY_GATE_SCENE_PATH := "res://scenes/gates/key_gate.tscn"
 const KEY_GATE_GALLERY_SCENE_PATH := "res://scenes/gates/key_gate_gallery.tscn"
 const GATE_WMB_MANIFEST_PATH := "res://assets/models/gates/gate_wmb_manifest.json"
@@ -105,6 +107,7 @@ func _run() -> void:
     _test_wasp_resources(assets)
     _test_wasp_inventory()
     await _test_key_diamond_system(assets)
+    await _test_gem_spawner_system(assets)
     await _test_gate_visual_models(assets)
     await _test_moving_platform_system(assets)
     await _test_teleporter_system(assets)
@@ -316,6 +319,18 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("texture.diamond.default") != null, "Unable to load original score diamond sprite sheet.")
     _expect(assets.load_asset("texture.score.plus50") != null, "Unable to load original +50 score sprite sheet.")
     _expect(assets.load_asset("texture.score.plus100") != null, "Unable to load original +100 score sprite sheet.")
+    for spawner_model_asset_id in [
+        "model.gem_spawner.boulder3",
+        "model.gem_spawner.boulder4",
+        "model.gem_spawner.boulder5"
+    ]:
+        _expect(assets.load_asset(spawner_model_asset_id) != null, "Unable to load original gem spawner WMB model: %s" % spawner_model_asset_id)
+    _expect(assets.load_asset("texture.gem_spawner.small") != null, "Unable to load original small.pcx gem spawner sprite.")
+    _expect(assets.load_asset("metadata.gem_spawner_wmb_manifest") != null, "Unable to load converted gem spawner WMB manifest.")
+    for gem_particle_index in range(1, 7):
+        _expect(assets.load_asset("texture.particle.gem_fragment_%d" % gem_particle_index) != null, "Unable to load original key-gem fragment texture %d." % gem_particle_index)
+        _expect(assets.load_asset("texture.particle.gem_star_%da" % gem_particle_index) != null, "Unable to load original key-gem star A texture %d." % gem_particle_index)
+        _expect(assets.load_asset("texture.particle.gem_star_%db" % gem_particle_index) != null, "Unable to load original key-gem star B texture %d." % gem_particle_index)
     for key_asset_id in [
         "texture.key_diamond.red",
         "texture.key_diamond.yellow",
@@ -360,6 +375,12 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.has_asset("sfx.wasp_kaput"), "Asset catalog is missing wasp impact sound.")
     _expect(assets.load_asset("sfx.wasp_kaput") != null, "Unable to load wasp impact sound.")
     _expect(assets.load_asset("sfx.colored_gem") != null, "Unable to load original ColoredGem_son.")
+    _expect(assets.load_asset("sfx.gem_blink") != null, "Unable to load original Cligno1_son for temporary gems.")
+    _expect(assets.load_asset("sfx.gem_break") != null, "Unable to load original broken4 gem explosion sound.")
+    _expect(assets.load_asset("sfx.gem_bounce_high") != null, "Unable to load original first key-gem bounce sound.")
+    _expect(assets.load_asset("sfx.gem_bounce_mid") != null, "Unable to load original second key-gem bounce sound.")
+    _expect(assets.load_asset("sfx.gem_bounce_low") != null, "Unable to load original third key-gem bounce sound.")
+    _expect(assets.load_asset("sfx.gem_bounce_last") != null, "Unable to load original later key-gem bounce sound.")
     _expect(assets.load_asset("sfx.key_mix") != null, "Unable to load original GemMixing_son.")
     _expect(assets.load_asset("sfx.key_mix_end") != null, "Unable to load original EndGemMixing_son.")
     _expect(assets.load_asset("sfx.door_open") != null, "Unable to load original DoorOpen_son.")
@@ -1294,6 +1315,9 @@ func _test_key_diamond_system(assets: Node) -> void:
     _expect(ejected_key != null, "Replacing an incompatible key should eject the previous key as a recoverable pickup.")
     if ejected_key != null:
         _expect(int(ejected_key.call("get_key_id")) == 3, "Ejected key pickup should preserve the previous orange key.")
+        _expect(ejected_key.is_in_group("launched_key_gem"), "Ejected incompatible keys should use the WDL launched-gem path.")
+        _expect(ejected_key.has_method("is_collectable"), "Ejected key gems should expose delayed collectability.")
+        _expect(not bool(ejected_key.call("is_collectable")), "Ejected key gems should not be immediately collectable before their WDL bounce gate.")
 
     var gate_scene := load(KEY_GATE_SCENE_PATH) as PackedScene
     var gate := gate_scene.instantiate() as StaticBody3D
@@ -1770,6 +1794,234 @@ func _test_key_diamond_system(assets: Node) -> void:
     var leftover_flight_effect := root.get_node_or_null("GateKeyFlightEffect")
     if leftover_flight_effect != null:
         leftover_flight_effect.queue_free()
+    await process_frame
+
+
+func _test_gem_spawner_system(assets: Node) -> void:
+    _expect(assets != null, "Gem spawner tests need Assets service.")
+    if assets == null:
+        return
+
+    var launched_scene := load(LAUNCHED_KEY_GEM_SCENE_PATH) as PackedScene
+    var spawner_scene := load(GEM_SPAWNER_SCENE_PATH) as PackedScene
+    _expect(launched_scene != null, "Launched key gem scene should load.")
+    _expect(spawner_scene != null, "Gem spawner scene should load.")
+    if launched_scene == null or spawner_scene == null:
+        return
+
+    var player_scene := load(PLAYER_SCENE_PATH) as PackedScene
+    var player := player_scene.instantiate()
+    player.set("key_mix_sound_asset_id", "")
+    player.set("key_mix_end_sound_asset_id", "")
+    root.add_child(player)
+    await process_frame
+
+    var launched := launched_scene.instantiate() as Area3D
+    _expect(launched != null, "Launched key gem should instantiate as an Area3D.")
+    if launched == null:
+        player.queue_free()
+        await process_frame
+        return
+    root.add_child(launched)
+    launched.set("collect_sound_asset_id", "")
+    launched.set("blink_sound_asset_id", "")
+    launched.set("expire_sound_asset_id", "")
+    launched.set("bounce_sound_asset_ids", PackedStringArray())
+    _expect(bool(launched.call("configure_launch", KEY_DIAMOND_RED, 1001.0, Vector3.ZERO, 0, null)), "Launched key gem should configure for a persistent red gem.")
+    _expect(launched.collision_layer == PICKUP_SENSOR_LAYER, "Launched key gem should live on the pickup sensor collision layer.")
+    _expect(launched.collision_mask == CHARACTER_LAYER, "Launched key gem should monitor solid characters.")
+    _expect(int(launched.call("get_key_id")) == KEY_DIAMOND_RED, "Launched key gem should preserve its configured key id.")
+    _expect(bool(launched.call("is_persistent_restart_lifetime")), "WDL lifetime 1001 should mark the gem as persistent across restart-style resets.")
+    _expect(bool(launched.call("is_collectable")), "A settled launched gem with zero required bounces should be collectable.")
+    var launched_visual := launched.call("get_visual_sprite") as Sprite3D
+    _expect(launched_visual != null, "Launched key gem should spawn a key-gem sprite visual.")
+    if launched_visual != null:
+        _expect(launched_visual.texture == assets.load_asset("texture.key_diamond.red"), "Launched red gem should use the original red sheet.")
+    var launched_effect := launched.call("get_particle_effect") as Node
+    _expect(launched_effect != null, "Configuring a launched key gem should emit the original-style key-gem spawn particles.")
+    if launched_effect != null:
+        _expect(int(launched_effect.call("get_configured_star_texture_count", KEY_DIAMOND_RED)) == 2, "Red key-gem particles should use both original tistar1 variants.")
+        _expect(int(launched_effect.call("get_configured_fragment_texture_count")) == 6, "Key-gem explosion particles should know all six original morgem fragment textures.")
+        _expect(int(launched_effect.call("get_live_particle_count")) > 0, "Launched key gem spawn effect should create live particles.")
+    var non_player := Node3D.new()
+    root.add_child(non_player)
+    _expect(not bool(launched.call("collect", non_player)), "Launched key gem should ignore non-player bodies.")
+    _expect(bool(launched.call("collect", player)), "Player should collect a collectable launched key gem.")
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_RED, "Collecting a launched red gem should update PlayerKey.")
+    _expect(bool(launched.call("was_collected")), "Launched gem should mark itself collected.")
+
+    var timed := launched_scene.instantiate() as Area3D
+    root.add_child(timed)
+    timed.set("blink_sound_asset_id", "")
+    timed.set("expire_sound_asset_id", "")
+    timed.set("bounce_sound_asset_ids", PackedStringArray())
+    _expect(bool(timed.call("configure_launch", KEY_DIAMOND_YELLOW, 4.0, Vector3.ZERO, 0, null)), "Timed launched gem should configure from WDL lifetime ticks.")
+    timed.call("_process", 0.5)
+    _expect(bool(timed.call("is_expired")), "Temporary launched gems should expire after their WDL lifetime ticks.")
+    _expect(not bool(timed.call("is_collectable")), "Expired temporary gems should not remain collectable.")
+
+    var decorative := launched_scene.instantiate() as Area3D
+    root.add_child(decorative)
+    decorative.set("expire_sound_asset_id", "")
+    _expect(bool(decorative.call("configure_launch", KEY_DIAMOND_BLUE, 0.0, Vector3.ZERO, 0, null)), "Decorative launched gem should configure with WDL lifetime 0.")
+    _expect(bool(decorative.call("is_expired")), "Decorative launched gems should disappear after their launch motion settles.")
+
+    var bouncing := launched_scene.instantiate() as Area3D
+    root.add_child(bouncing)
+    bouncing.set("bounce_sound_asset_ids", PackedStringArray())
+    bouncing.set("expire_sound_asset_id", "")
+    _expect(bool(bouncing.call("configure_launch", KEY_DIAMOND_GREEN, 1000.0, Vector3(0.0, 1.0, 0.0), 1, null)), "Bouncing launched gem should configure with initial velocity.")
+    for _i in range(40):
+        bouncing.call("_physics_process", 0.05)
+        if int(bouncing.call("get_bounce_count")) >= 1:
+            break
+    _expect(int(bouncing.call("get_bounce_count")) >= 1, "Launched gem should bounce against its configured ground plane.")
+    _expect(bool(bouncing.call("is_collectable")), "Launched gem should become collectable after the configured bounce count.")
+
+    var spawner := spawner_scene.instantiate() as Area3D
+    spawner.set("wdl_flag2_disable_impact", true)
+    root.add_child(spawner)
+    await process_frame
+    _expect(is_equal_approx(float(spawner.get("wdl_lifetime_ticks")), 60.0), "GemSpawner should default to the original temporary WDL lifetime, not a persistent drop.")
+    _expect(String(spawner.call("get_effective_source_wmb_name")) == "boulder4.wmb", "GemSpawner should default to an original boulder WMB visual.")
+    _expect(String(spawner.call("get_visual_source_path")) == "res://assets/models/spawners/boulder4/boulder4.gltf", "Default GemSpawner should load the converted original boulder4 WMB model.")
+    var spawner_solid_body := spawner.call("get_solid_body") as StaticBody3D
+    _expect(spawner_solid_body != null, "GemSpawner should add a solid world body for the original boulder model.")
+    if spawner_solid_body != null:
+        _expect(int(spawner_solid_body.collision_layer) == WORLD_LAYER, "GemSpawner solid body should live on the world collision layer.")
+        _expect(int(spawner_solid_body.collision_mask) == 0, "GemSpawner solid body should not actively scan bodies.")
+        _expect(spawner_solid_body.get_parent() == spawner, "GemSpawner solid body should stay attached to the spawner for wasp-hit routing.")
+        var spawner_solid_shape := spawner.call("get_solid_collision_shape") as CollisionShape3D
+        _expect(spawner_solid_shape != null and spawner_solid_shape.shape != null, "GemSpawner solid body should expose a blocking collision shape.")
+    spawner.set("wdl_key_id", 999)
+    spawner.set("wdl_lifetime_ticks", 60.0)
+    spawner.set("wdl_horizontal_speed_units", 0.0)
+    spawner.set("wdl_vertical_speed_units", 0.0)
+    spawner.set("spawn_offset", Vector3.ZERO)
+    spawner.set("collectable_after_bounces", 0)
+    var spawned := spawner.call("emit_gem") as Area3D
+    _expect(spawned != null, "GemSpawner.emit_gem should spawn a launched key gem.")
+    if spawned != null:
+        spawned.set("bounce_sound_asset_ids", PackedStringArray())
+        _expect(int(spawned.call("get_key_id")) >= KEY_DIAMOND_RED and int(spawned.call("get_key_id")) <= KEY_DIAMOND_GREEN, "WDL key id 999 should emit a random original key color.")
+        _expect(bool(spawned.call("is_collectable")), "Spawner-emitted settled gems should honor collectable bounce settings.")
+        _expect(is_equal_approx(float(spawned.call("get_lifetime_remaining_ticks")), 60.0), "Spawner-emitted key diamonds should inherit a finite original WDL lifetime.")
+        spawned.set("blink_sound_asset_id", "")
+        spawned.set("expire_sound_asset_id", "")
+        spawned.call("_process", 4.0)
+        _expect(bool(spawned.call("is_expired")), "Spawner-emitted temporary key diamonds should disappear after their WDL lifetime.")
+    _expect(int(spawner.call("get_spawned_count")) == 1, "GemSpawner should track emitted gems.")
+
+    var preset_spawner := spawner_scene.instantiate() as Area3D
+    root.add_child(preset_spawner)
+    await process_frame
+    _expect(bool(preset_spawner.call("apply_original_preset", &"auto_random_boulder3")), "GemSpawner should expose the original auto-random boulder3 preset.")
+    _expect(String(preset_spawner.call("get_effective_source_wmb_name")) == "boulder3.wmb", "Original boulder3 preset should select boulder3.wmb.")
+    _expect(is_equal_approx(float(preset_spawner.get("wdl_lifetime_ticks")), 60.0), "Original boulder3 preset should preserve Skill1 finite lifetime 60.")
+    _expect(int(preset_spawner.get("wdl_key_id")) == 999, "Original boulder3 preset should emit random key colors.")
+    _expect(is_equal_approx(float(preset_spawner.get("wdl_auto_interval_ticks")), 48.0), "Original boulder3 preset should preserve Skill8 auto interval.")
+    _expect(bool(preset_spawner.get("auto_emit_on_ready")), "Original boulder3 preset should enable WDL automatic emission.")
+    _expect(is_equal_approx(float(preset_spawner.get("auto_initial_delay_ticks")), 48.0), "Original boulder3 preset should preserve InitBoulder waitt 48 startup delay.")
+    _expect(String(preset_spawner.call("get_visual_source_path")) == "res://assets/models/spawners/boulder3/boulder3.gltf", "Original boulder3 preset should load the boulder3 WMB visual.")
+    _expect(bool(preset_spawner.call("apply_original_preset", &"impact_red_boulder5_long")), "GemSpawner should expose the original impact boulder5 preset.")
+    _expect(String(preset_spawner.call("get_effective_source_wmb_name")) == "boulder5.wmb", "Original impact preset should select boulder5.wmb.")
+    _expect(is_equal_approx(float(preset_spawner.get("wdl_lifetime_ticks")), 480.0), "Original impact boulder5 long preset should preserve Skill1 lifetime 480.")
+    _expect(int(preset_spawner.get("wdl_required_impactor_id")) == 9999, "Original impact boulder5 preset should preserve Skill5 impact identity.")
+    _expect(bool(preset_spawner.call("apply_original_preset", &"auto_random_small_long")), "GemSpawner should expose the original small.pcx random preset.")
+    _expect(String(preset_spawner.call("get_effective_source_wmb_name")) == "small.pcx", "Original small preset should select small.pcx.")
+    _expect(String(preset_spawner.call("get_visual_source_path")) == "res://assets/textures/spawners/small.png", "Original small preset should load the small.pcx sprite visual.")
+
+    var impact_spawner := spawner_scene.instantiate() as Area3D
+    root.add_child(impact_spawner)
+    impact_spawner.set("wdl_key_id", KEY_DIAMOND_BLUE)
+    impact_spawner.set("wdl_flag2_disable_impact", true)
+    _expect(impact_spawner.call("emit_from_impactor", player) == null, "WDL flag2 should disable impact emission.")
+    impact_spawner.set("wdl_flag2_disable_impact", false)
+    impact_spawner.set("required_impactor_group", &"player")
+    var impact_gem := impact_spawner.call("emit_from_impactor", player) as Area3D
+    _expect(impact_gem != null, "Impact-enabled gem spawner should emit for accepted player impactors.")
+    if impact_gem != null:
+        _expect(int(impact_gem.call("get_key_id")) == KEY_DIAMOND_BLUE, "Impact spawner should preserve its configured WDL key color.")
+
+    var wasp_spawner := spawner_scene.instantiate() as Area3D
+    root.add_child(wasp_spawner)
+    await process_frame
+    wasp_spawner.set("wdl_key_id", KEY_DIAMOND_BLUE)
+    wasp_spawner.set("wdl_required_impactor_id", 9999)
+    wasp_spawner.set("wdl_horizontal_speed_units", 0.0)
+    wasp_spawner.set("wdl_vertical_speed_units", 0.0)
+    wasp_spawner.set("spawn_offset", Vector3.ZERO)
+    wasp_spawner.set("collectable_after_bounces", 0)
+    wasp_spawner.set("wdl_lifetime_ticks", 96.0)
+    _expect(bool(wasp_spawner.call("requires_wasp_projectile")), "Skill5 9999 gem spawners should require a wasp projectile impact.")
+    _expect(wasp_spawner.call("emit_from_impactor", player) == null, "Wasp-only gem spawners should reject ordinary player impacts.")
+    var wasp_projectile_scene := load(WASP_PROJECTILE_SCENE_PATH) as PackedScene
+    _expect(wasp_projectile_scene != null, "Wasp projectile scene should load for wasp-only gem spawner tests.")
+    var wasp_projectile: Node = null
+    if wasp_projectile_scene != null:
+        wasp_projectile = wasp_projectile_scene.instantiate()
+        root.add_child(wasp_projectile)
+        wasp_projectile.set("hit_sound_asset_id", "")
+        wasp_projectile.call("configure", load(WASP_TYPE_2_PATH), null, Transform3D(Basis(), Vector3(0.0, 0.7, 0.0)))
+        _expect(int(wasp_projectile.call("get_idplayer")) == 9999, "Godot wasp projectiles should expose the original IdWasp/Idplayer 9999 identity.")
+        var wasp_solid_body := wasp_spawner.call("get_solid_body") as StaticBody3D
+        _expect(wasp_solid_body != null, "Wasp-only gem spawner should expose a solid body for projectile impacts.")
+        if wasp_solid_body != null:
+            wasp_projectile.call("_on_body_entered", wasp_solid_body)
+            _expect(int(wasp_spawner.call("get_spawned_count")) == 1, "Wasp-only gem spawners should emit when hit by a wasp projectile.")
+            _expect(bool(wasp_projectile.call("is_consumed")), "Wasp projectile should despawn after hitting the solid gem spawner body.")
+            var wasp_spawned_gems: Array[Node] = wasp_spawner.call("get_spawned_gems")
+            if not wasp_spawned_gems.is_empty():
+                var wasp_gem := wasp_spawned_gems[0] as Area3D
+                _expect(wasp_gem != null and int(wasp_gem.call("get_key_id")) == KEY_DIAMOND_BLUE, "Wasp-only gem spawner should emit its configured key color.")
+
+    var auto_spawner := spawner_scene.instantiate() as Area3D
+    auto_spawner.set("wdl_key_id", KEY_DIAMOND_MAGENTA)
+    auto_spawner.set("wdl_auto_interval_ticks", 1.0)
+    auto_spawner.set("auto_emit_on_ready", true)
+    auto_spawner.set("auto_initial_delay_ticks", 0.0)
+    auto_spawner.set("max_auto_emissions", 1)
+    root.add_child(auto_spawner)
+    auto_spawner.call("_process", 1.0 / 16.0)
+    _expect(int(auto_spawner.call("get_spawned_count")) == 1, "Auto gem spawner should emit after its WDL interval.")
+    auto_spawner.set("wdl_flag3_random_20", true)
+    auto_spawner.set("wdl_flag4_random_45", true)
+    auto_spawner.set("wdl_flag5_random_90", true)
+    auto_spawner.set("wdl_flag6_random_180", true)
+    _expect(is_equal_approx(float(auto_spawner.call("get_random_angle_span_degrees")), 335.0), "WDL gem-spawner random-angle flags should add together.")
+
+    for spawned_gem: Node in spawner.call("get_spawned_gems"):
+        if spawned_gem != null:
+            spawned_gem.queue_free()
+    for spawned_gem: Node in impact_spawner.call("get_spawned_gems"):
+        if spawned_gem != null:
+            spawned_gem.queue_free()
+    for spawned_gem: Node in auto_spawner.call("get_spawned_gems"):
+        if spawned_gem != null:
+            spawned_gem.queue_free()
+    for spawned_gem: Node in preset_spawner.call("get_spawned_gems"):
+        if spawned_gem != null:
+            spawned_gem.queue_free()
+    for spawned_gem: Node in wasp_spawner.call("get_spawned_gems"):
+        if spawned_gem != null:
+            spawned_gem.queue_free()
+    for gem_particle_effect: Node in root.find_children("GemParticleEffect", "", true, false):
+        gem_particle_effect.queue_free()
+    if launched_effect != null and is_instance_valid(launched_effect):
+        launched_effect.queue_free()
+    launched.queue_free()
+    timed.queue_free()
+    decorative.queue_free()
+    bouncing.queue_free()
+    spawner.queue_free()
+    preset_spawner.queue_free()
+    impact_spawner.queue_free()
+    wasp_spawner.queue_free()
+    if wasp_projectile != null and is_instance_valid(wasp_projectile):
+        wasp_projectile.queue_free()
+    auto_spawner.queue_free()
+    non_player.queue_free()
+    player.queue_free()
     await process_frame
 
 
@@ -2674,6 +2926,7 @@ func _test_wasp_projectile_damages_enemy() -> void:
 
     _expect(int(projectile.get("collision_layer")) == PROJECTILE_LAYER, "Wasp projectile should live on the projectile collision layer.")
     _expect(int(projectile.get("collision_mask")) == WORLD_AND_CHARACTER_MASK, "Wasp projectile should detect world and character bodies.")
+    _expect(int(projectile.call("get_idplayer")) == 9999, "Wasp projectile should expose the original IdWasp/Idplayer 9999 identity.")
 
     for step in 60:
         if not is_instance_valid(projectile) or bool(projectile.call("is_consumed")):
@@ -3787,6 +4040,12 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("DiamondPickup100") != null, "Prototype +100 score diamond should be editor-instanced.")
     _expect(world.get_node_or_null("KeyDiamondRed") != null, "Prototype red key diamond should be editor-instanced.")
     _expect(world.get_node_or_null("KeyDiamondYellow") != null, "Prototype yellow key diamond should be editor-instanced.")
+    _expect(world.get_node_or_null("GemSpawners") != null, "Prototype gem-spawner gallery should be editor-authored.")
+    _expect(world.get_node_or_null("GemSpawners/AutoRandomGemSpawner") != null, "Prototype should include an auto random gem spawner.")
+    _expect(world.get_node_or_null("GemSpawners/ImpactOnlyGemSpawner") != null, "Prototype should include an impact-only gem spawner.")
+    _expect(world.get_node_or_null("GemSpawners/TimedGemSpawner") != null, "Prototype should include a timed gem spawner.")
+    _expect(world.get_node_or_null("GemSpawners/PersistentGemSpawner") != null, "Prototype should include a persistent gem spawner.")
+    _expect(world.get_node_or_null("GemSpawners/DecorativeGemSpawner") != null, "Prototype should include a decorative gem spawner.")
     _expect(world.get_node_or_null("OrangeKeyGate") != null, "Prototype orange key gate should be editor-instanced.")
     _expect(world.get_node_or_null("KeyDiamondPanel") != null, "Prototype key-diamond panel should be editor-instanced.")
     _expect(world.get_node_or_null("GateTestGallery") != null, "Prototype gate test gallery should be editor-instanced.")
@@ -4104,6 +4363,38 @@ func _test_prototype_world() -> void:
         _expect(key_panel != null, "Prototype world should expose the key-diamond panel.")
         if key_panel != null:
             _expect(not bool(key_panel.call("is_showing_key")), "Prototype key panel should start hidden before a key is held.")
+        var auto_gem_spawner := world.get_node_or_null("GemSpawners/AutoRandomGemSpawner") as Area3D
+        var impact_gem_spawner := world.get_node_or_null("GemSpawners/ImpactOnlyGemSpawner") as Area3D
+        var timed_gem_spawner := world.get_node_or_null("GemSpawners/TimedGemSpawner") as Area3D
+        var persistent_gem_spawner := world.get_node_or_null("GemSpawners/PersistentGemSpawner") as Area3D
+        var decorative_gem_spawner := world.get_node_or_null("GemSpawners/DecorativeGemSpawner") as Area3D
+        _expect(auto_gem_spawner != null, "Prototype world should expose the auto random gem spawner.")
+        _expect(impact_gem_spawner != null, "Prototype world should expose the impact-only gem spawner.")
+        _expect(timed_gem_spawner != null, "Prototype world should expose the timed gem spawner.")
+        _expect(persistent_gem_spawner != null, "Prototype world should expose the persistent gem spawner.")
+        _expect(decorative_gem_spawner != null, "Prototype world should expose the decorative gem spawner.")
+        if auto_gem_spawner != null:
+            _expect(String(auto_gem_spawner.call("get_effective_source_wmb_name")) == "boulder3.wmb", "Prototype auto random gem spawner should use the original boulder3 WMB visual.")
+            _expect(String(auto_gem_spawner.call("get_visual_source_path")) == "res://assets/models/spawners/boulder3/boulder3.gltf", "Prototype auto random gem spawner should load the converted boulder3 visual.")
+            _expect(is_equal_approx(float(auto_gem_spawner.get("wdl_lifetime_ticks")), 60.0), "Prototype auto random gem spawner should emit finite WDL lifetime gems.")
+            _expect(is_equal_approx(float(auto_gem_spawner.get("auto_initial_delay_ticks")), 48.0), "Prototype auto random gem spawner should preserve InitBoulder waitt 48 startup delay.")
+            auto_gem_spawner.call("_process", 6.0)
+            _expect(int(auto_gem_spawner.call("get_spawned_count")) >= 1, "Prototype auto random gem spawner should emit a demo gem.")
+        if impact_gem_spawner != null:
+            _expect(String(impact_gem_spawner.call("get_effective_source_wmb_name")) == "boulder5.wmb", "Prototype impact-only gem spawner should use the original boulder5 WMB visual.")
+            _expect(is_equal_approx(float(impact_gem_spawner.get("wdl_lifetime_ticks")), 96.0), "Prototype impact-only gem spawner should preserve the shorter boulder5 finite lifetime.")
+            _expect(int(impact_gem_spawner.get("wdl_required_impactor_id")) == 9999, "Prototype impact-only gem spawner should require the original wasp projectile identity.")
+            _expect(bool(impact_gem_spawner.call("requires_wasp_projectile")), "Prototype impact-only gem spawner should only emit for wasp projectile hits.")
+        if timed_gem_spawner != null:
+            _expect(String(timed_gem_spawner.call("get_effective_source_wmb_name")) == "small.pcx", "Prototype timed gem spawner should use the original small.pcx visual.")
+            _expect(String(timed_gem_spawner.call("get_visual_source_path")) == "res://assets/textures/spawners/small.png", "Prototype timed gem spawner should load the converted small.pcx sprite.")
+            _expect(is_equal_approx(float(timed_gem_spawner.get("wdl_lifetime_ticks")), 16.0), "Prototype timed gem spawner should use the original small.pcx temporary WDL lifetime.")
+        if persistent_gem_spawner != null:
+            _expect(String(persistent_gem_spawner.call("get_effective_source_wmb_name")) == "boulder4.wmb", "Prototype persistent gem spawner should use the original boulder4 WMB visual.")
+            _expect(is_equal_approx(float(persistent_gem_spawner.get("wdl_lifetime_ticks")), 1001.0), "Prototype persistent gem spawner should use WDL lifetime 1001.")
+        if decorative_gem_spawner != null:
+            _expect(String(decorative_gem_spawner.call("get_effective_source_wmb_name")) == "small.pcx", "Prototype decorative gem spawner should use the original small.pcx visual.")
+            _expect(is_equal_approx(float(decorative_gem_spawner.get("wdl_lifetime_ticks")), 0.0), "Prototype decorative gem spawner should use WDL lifetime 0.")
         var red_key_pickup := world.get_node_or_null("KeyDiamondRed") as Area3D
         var yellow_key_pickup := world.get_node_or_null("KeyDiamondYellow") as Area3D
         var orange_gate := world.get_node_or_null("OrangeKeyGate") as StaticBody3D

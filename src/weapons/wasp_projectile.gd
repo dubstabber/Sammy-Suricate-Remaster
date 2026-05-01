@@ -5,6 +5,7 @@ const WASP_TYPE_SCRIPT := preload("res://src/resources/wasp_type.gd")
 const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
 const WALK_ACTION := &"walk"
 const DEATH_ACTION := &"death"
+const ORIGINAL_IDPLAYER := 9999
 
 @export var model_asset_id: String = "model.wasp1"
 @export var hit_sound_asset_id: String = "sfx.wasp_kaput"
@@ -61,6 +62,7 @@ func _on_body_entered(body: Node) -> void:
 	if _consumed or body == null or body == _source_player:
 		return
 
+	_notify_wasp_hit(body)
 	if body.has_method("take_damage") and _wasp_type != null:
 		body.call("take_damage", int(_wasp_type.damage), self)
 
@@ -138,6 +140,10 @@ func _despawn(play_hit_sound: bool) -> void:
 
 func get_wasp_type() -> Resource:
 	return _wasp_type
+
+
+func get_idplayer() -> int:
+	return ORIGINAL_IDPLAYER
 
 
 func get_velocity() -> Vector3:
@@ -260,6 +266,15 @@ func _find_homing_target() -> Node3D:
 			best_distance = distance
 			best_target = candidate_node
 	return best_target
+
+
+func _notify_wasp_hit(body: Node) -> void:
+	if body.has_method("hit_by_wasp"):
+		body.call("hit_by_wasp", self)
+		return
+	var parent := body.get_parent()
+	if parent != null and parent.has_method("hit_by_wasp"):
+		parent.call("hit_by_wasp", self)
 
 
 func _refresh_velocity() -> void:

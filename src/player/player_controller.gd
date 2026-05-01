@@ -6,7 +6,7 @@ const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_an
 const WASP_INVENTORY_SCRIPT := preload("res://src/weapons/wasp_inventory.gd")
 const WASP_PROJECTILE_SCENE := preload("res://scenes/weapons/wasp_projectile.tscn")
 const KEY_DIAMOND_RULES_SCRIPT := preload("res://src/resources/key_diamond_rules.gd")
-const KEY_DIAMOND_PICKUP_SCENE := preload("res://scenes/pickups/key_diamond_pickup.tscn")
+const LAUNCHED_KEY_GEM_SCENE := preload("res://scenes/pickups/launched_key_gem.tscn")
 const KEY_MIX_EFFECT_SCRIPT := preload("res://src/effects/key_mix_effect.gd")
 const TELEPORT_PARTICLES_SCRIPT := preload("res://src/effects/teleport_star_particles.gd")
 const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
@@ -1055,13 +1055,16 @@ func _spawn_ejected_key(key_id: int) -> Node:
     var parent := get_parent()
     if parent == null or key_id == KEY_DIAMOND_RULES_SCRIPT.KEY_NONE:
         return null
-    var pickup := KEY_DIAMOND_PICKUP_SCENE.instantiate() as Node3D
+    var pickup := LAUNCHED_KEY_GEM_SCENE.instantiate() as Node3D
     if pickup == null:
         return null
-    if pickup.has_method("configure_for_key_id"):
-        pickup.call("configure_for_key_id", key_id)
     parent.add_child(pickup)
     pickup.global_position = global_position - get_facing_direction() * 1.15 + Vector3(0.0, 0.02, 0.0)
+    if pickup.has_method("configure_launch"):
+        var launch_velocity := -get_facing_direction() * 1.6 + Vector3.UP * 1.6
+        pickup.call("configure_launch", key_id, 1001.0, launch_velocity, 5, self)
+    elif pickup.has_method("configure_for_key_id"):
+        pickup.call("configure_for_key_id", key_id)
     _last_ejected_key = pickup
     key_diamond_ejected.emit(key_id, pickup)
     return pickup

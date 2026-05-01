@@ -134,16 +134,40 @@ const CATALOG := {
         "kind": "model",
         "description": "Original restart checkpoint WMB"
     },
-    "model.death_pad.tile": {
-        "path": "res://assets/models/death_pads/tiledeat/tiledeat.gltf",
-        "source": "extract-sammy-assets/extracted/godot/raw/levels/tiledeat.wmb",
-        "kind": "model",
-        "description": "Original TileDeath WMB"
-    },
-    "texture.teleport.tile": {
-        "path": "res://assets/textures/teleports/tileteleport2.png",
-        "source": "extract-sammy-assets/extracted/godot/raw/levels/teleport.wmb",
-        "kind": "texture",
+	"model.death_pad.tile": {
+		"path": "res://assets/models/death_pads/tiledeat/tiledeat.gltf",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/tiledeat.wmb",
+		"kind": "model",
+		"description": "Original TileDeath WMB"
+	},
+	"model.gem_spawner.boulder3": {
+		"path": "res://assets/models/spawners/boulder3/boulder3.gltf",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/boulder3.wmb",
+		"kind": "model",
+		"description": "Original boulder3 WMB used by InitBoulder gem spawners"
+	},
+	"model.gem_spawner.boulder4": {
+		"path": "res://assets/models/spawners/boulder4/boulder4.gltf",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/boulder4.wmb",
+		"kind": "model",
+		"description": "Original boulder4 WMB used by InitBoulder gem spawners"
+	},
+	"model.gem_spawner.boulder5": {
+		"path": "res://assets/models/spawners/boulder5/boulder5.gltf",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/boulder5.wmb",
+		"kind": "model",
+		"description": "Original boulder5 WMB used by InitBoulder gem spawners"
+	},
+	"texture.gem_spawner.small": {
+		"path": "res://assets/textures/spawners/small.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/small.png",
+		"kind": "texture",
+		"description": "Original small.pcx sprite used by small InitBoulder gem spawners"
+	},
+	"texture.teleport.tile": {
+		"path": "res://assets/textures/teleports/tileteleport2.png",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/teleport.wmb",
+		"kind": "texture",
         "description": "Original teleport pad top texture decoded from teleport.wmb"
     },
     "texture.teleport.tile_side": {
@@ -206,12 +230,120 @@ const CATALOG := {
         "kind": "texture",
         "description": "Original Eye of Truth pickup and panel texture"
     },
-    "texture.particle.small_star_1a": {
-        "path": "res://assets/textures/particles/tistar1a.png",
-        "source": "extract-sammy-assets/extracted/godot/textures/tistar1a.png",
-        "kind": "texture",
-        "description": "Original SmallStar1A sprite used by particle_Boost1"
-    },
+	"texture.particle.small_star_1a": {
+		"path": "res://assets/textures/particles/tistar1a.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar1a.png",
+		"kind": "texture",
+		"description": "Original SmallStar1A sprite used by particle_Boost1"
+	},
+	"texture.particle.gem_star_1a": {
+		"path": "res://assets/textures/particles/tistar1a.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar1a.png",
+		"kind": "texture",
+		"description": "Original red key-gem trail star A"
+	},
+	"texture.particle.gem_star_1b": {
+		"path": "res://assets/textures/particles/tistar1b.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar1b.png",
+		"kind": "texture",
+		"description": "Original red key-gem trail star B"
+	},
+	"texture.particle.gem_star_2a": {
+		"path": "res://assets/textures/particles/tistar2a.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar2a.png",
+		"kind": "texture",
+		"description": "Original yellow key-gem trail star A"
+	},
+	"texture.particle.gem_star_2b": {
+		"path": "res://assets/textures/particles/tistar2b.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar2b.png",
+		"kind": "texture",
+		"description": "Original yellow key-gem trail star B"
+	},
+	"texture.particle.gem_star_3a": {
+		"path": "res://assets/textures/particles/tistar3a.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar3a.png",
+		"kind": "texture",
+		"description": "Original orange key-gem trail star A"
+	},
+	"texture.particle.gem_star_3b": {
+		"path": "res://assets/textures/particles/tistar3b.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar3b.png",
+		"kind": "texture",
+		"description": "Original orange key-gem trail star B"
+	},
+	"texture.particle.gem_star_4a": {
+		"path": "res://assets/textures/particles/tistar4a.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar4a.png",
+		"kind": "texture",
+		"description": "Original blue key-gem trail star A"
+	},
+	"texture.particle.gem_star_4b": {
+		"path": "res://assets/textures/particles/tistar4b.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar4b.png",
+		"kind": "texture",
+		"description": "Original blue key-gem trail star B"
+	},
+	"texture.particle.gem_star_5a": {
+		"path": "res://assets/textures/particles/tistar5a.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar5a.png",
+		"kind": "texture",
+		"description": "Original magenta key-gem trail star A"
+	},
+	"texture.particle.gem_star_5b": {
+		"path": "res://assets/textures/particles/tistar5b.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar5b.png",
+		"kind": "texture",
+		"description": "Original magenta key-gem trail star B"
+	},
+	"texture.particle.gem_star_6a": {
+		"path": "res://assets/textures/particles/tistar6a.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar6a.png",
+		"kind": "texture",
+		"description": "Original green key-gem trail star A"
+	},
+	"texture.particle.gem_star_6b": {
+		"path": "res://assets/textures/particles/tistar6b.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/tistar6b.png",
+		"kind": "texture",
+		"description": "Original green key-gem trail star B"
+	},
+	"texture.particle.gem_fragment_1": {
+		"path": "res://assets/textures/particles/morgem1.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/morgem1.png",
+		"kind": "texture",
+		"description": "Original red key-gem explosion fragment"
+	},
+	"texture.particle.gem_fragment_2": {
+		"path": "res://assets/textures/particles/morgem2.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/morgem2.png",
+		"kind": "texture",
+		"description": "Original yellow key-gem explosion fragment"
+	},
+	"texture.particle.gem_fragment_3": {
+		"path": "res://assets/textures/particles/morgem3.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/morgem3.png",
+		"kind": "texture",
+		"description": "Original orange key-gem explosion fragment"
+	},
+	"texture.particle.gem_fragment_4": {
+		"path": "res://assets/textures/particles/morgem4.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/morgem4.png",
+		"kind": "texture",
+		"description": "Original blue key-gem explosion fragment"
+	},
+	"texture.particle.gem_fragment_5": {
+		"path": "res://assets/textures/particles/morgem5.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/morgem5.png",
+		"kind": "texture",
+		"description": "Original magenta key-gem explosion fragment"
+	},
+	"texture.particle.gem_fragment_6": {
+		"path": "res://assets/textures/particles/morgem6.png",
+		"source": "extract-sammy-assets/extracted/godot/textures/morgem6.png",
+		"kind": "texture",
+		"description": "Original green key-gem explosion fragment"
+	},
     "texture.particle.teleport_star_1": {
         "path": "res://assets/textures/particles/StarHit1.png",
         "source": "extract-sammy-assets/extracted/godot/textures/StarHit1.png",
@@ -416,6 +548,42 @@ const CATALOG := {
         "kind": "audio",
         "description": "Original Diam_son used by score diamond pickups"
     },
+    "sfx.gem_blink": {
+        "path": "res://assets/audio/Cligno1.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/Cligno1.wav",
+        "kind": "audio",
+        "description": "Original Cligno1_son used by temporary blinking gems"
+    },
+    "sfx.gem_break": {
+        "path": "res://assets/audio/broken4.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/broken4.wav",
+        "kind": "audio",
+        "description": "Original broken4 sound used when key gems explode"
+    },
+    "sfx.gem_bounce_high": {
+        "path": "res://assets/audio/ding6.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/ding6.wav",
+        "kind": "audio",
+        "description": "Original first key-gem bounce sound"
+    },
+    "sfx.gem_bounce_mid": {
+        "path": "res://assets/audio/ding5.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/ding5.wav",
+        "kind": "audio",
+        "description": "Original second key-gem bounce sound"
+    },
+    "sfx.gem_bounce_low": {
+        "path": "res://assets/audio/ding3.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/ding3.wav",
+        "kind": "audio",
+        "description": "Original third key-gem bounce sound"
+    },
+    "sfx.gem_bounce_last": {
+        "path": "res://assets/audio/ding7.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/ding7.wav",
+        "kind": "audio",
+        "description": "Original later key-gem bounce sound"
+    },
     "sfx.boost_pickup": {
         "path": "res://assets/audio/Chimes2.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/Chimes2.wav",
@@ -527,12 +695,18 @@ const CATALOG := {
         "kind": "metadata",
         "description": "Converted original moving platform WMB manifest"
     },
-    "metadata.checkpoint_wmb_manifest": {
-        "path": "res://assets/models/checkpoints/checkpoint_wmb_manifest.json",
-        "source": "extract-sammy-assets/extracted/godot/raw/levels/restart.wmb",
-        "kind": "metadata",
-        "description": "Converted original restart checkpoint WMB manifest"
-    }
+	"metadata.checkpoint_wmb_manifest": {
+		"path": "res://assets/models/checkpoints/checkpoint_wmb_manifest.json",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/restart.wmb",
+		"kind": "metadata",
+		"description": "Converted original restart checkpoint WMB manifest"
+	},
+	"metadata.gem_spawner_wmb_manifest": {
+		"path": "res://assets/models/spawners/gem_spawner_wmb_manifest.json",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels",
+		"kind": "metadata",
+		"description": "Converted original InitBoulder gem spawner WMB manifest"
+	}
 }
 
 var entries: Dictionary = {}

@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/pickups/launched_key_gem.gd" id="1_launched_gem"]
+[ext_resource type="Resource" path="res://assets/key_diamonds/red.tres" id="2_key_red"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_launched_key_gem"]
+radius = 0.45
+
+[node name="LaunchedKeyGem" type="Area3D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_launched_gem")
+key_type = ExtResource("2_key_red")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.35, 0)
+shape = SubResource("SphereShape3D_launched_key_gem")

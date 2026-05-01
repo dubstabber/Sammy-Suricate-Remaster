@@ -30,6 +30,8 @@
 [ext_resource type="PackedScene" path="res://scenes/props/checkpoint.tscn" id="28_checkpoint"]
 [ext_resource type="PackedScene" path="res://scenes/spawners/gem_spawner.tscn" id="29_gem_spawner"]
 [ext_resource type="PackedScene" path="res://scenes/spawners/wasp_spawner.tscn" id="30_wasp_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/small_heart_pickup.tscn" id="31_small_heart"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/life_heart_pickup.tscn" id="32_life_heart"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.22, 0.32, 0.26, 1)
@@ -113,6 +115,12 @@ points = 100
 
 [node name="DiamondPickup50B" parent="." unique_id=1932031839 instance=ExtResource("18_diamond")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 21.048233)
+
+[node name="SmallHeartPickup" parent="." instance=ExtResource("31_small_heart")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 21.048233)
+
+[node name="LifeHeartPickup" parent="." instance=ExtResource("32_life_heart")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.75, 0, 21.048233)
 
 [node name="KeyDiamondRed" parent="." unique_id=133353771 instance=ExtResource("19_key_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 18)

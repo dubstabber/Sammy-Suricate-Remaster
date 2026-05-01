@@ -141,6 +141,14 @@ func take_damage(amount: float, source: Node = null) -> bool:
     return true
 
 
+func add_health(amount: float) -> float:
+    if amount <= 0.0 or _dead or _game_over:
+        return 0.0
+    var previous_health := _health
+    _health = clampf(_health + amount, 0.0, maxf(max_health, 0.0))
+    return _health - previous_health
+
+
 func get_health() -> float:
     return _health
 

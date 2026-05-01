@@ -13,6 +13,8 @@ const LAUNCHED_WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/launched_wasp_pic
 const BOOST_PICKUP_SCENE_PATH := "res://scenes/pickups/boost_pickup.tscn"
 const EYE_OF_TRUTH_PICKUP_SCENE_PATH := "res://scenes/pickups/eye_of_truth_pickup.tscn"
 const DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/diamond_pickup.tscn"
+const SMALL_HEART_PICKUP_SCENE_PATH := "res://scenes/pickups/small_heart_pickup.tscn"
+const LIFE_HEART_PICKUP_SCENE_PATH := "res://scenes/pickups/life_heart_pickup.tscn"
 const KEY_DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/key_diamond_pickup.tscn"
 const LAUNCHED_KEY_GEM_SCENE_PATH := "res://scenes/pickups/launched_key_gem.tscn"
 const GEM_SPAWNER_SCENE_PATH := "res://scenes/spawners/gem_spawner.tscn"
@@ -129,6 +131,8 @@ func _run() -> void:
     await _test_player_enemy_hit_push_integration()
     await _test_player_death_lives_core()
     await _test_player_scene()
+    await _test_small_heart_pickup(assets)
+    await _test_life_heart_pickup(assets)
     await _test_diamond_pickup(game, assets)
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
@@ -308,6 +312,10 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("model.cactus1") != null, "Unable to load copied cactus model resource.")
     _expect(assets.has_asset("texture.particle.small_star_1a"), "Asset catalog is missing original boost particle sprite.")
     _expect(assets.load_asset("texture.particle.small_star_1a") != null, "Unable to load original boost particle sprite.")
+    _expect(assets.has_asset("model.life_heart"), "Asset catalog is missing original InitBonusVie life pickup model.")
+    _expect(assets.load_asset("model.life_heart") != null, "Unable to load original lifeA pickup model.")
+    _expect(assets.has_asset("texture.small_heart"), "Asset catalog is missing original InitSmallHeart sprite sheet.")
+    _expect(assets.load_asset("texture.small_heart") != null, "Unable to load original heart+11 sprite sheet.")
     _expect(assets.has_asset("model.enemy_visibility_range"), "Asset catalog is missing the original Eye of Truth range circle model.")
     _expect(assets.load_asset("model.enemy_visibility_range") != null, "Unable to load original Eye of Truth range circle model.")
     _expect(assets.has_asset("model.eye_of_truth"), "Asset catalog is missing the original Eye of Truth pickup model.")
@@ -319,6 +327,8 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(_png_has_transparent_pixels("res://assets/models/Paneye/skins/Paneye_skin0.png"), "Eye of Truth panel texture should preserve original transparent cutout pixels.")
     _expect(assets.load_asset("texture.particle.eye_truth_1") != null, "Unable to load original Eye of Truth particle sprite 1.")
     _expect(assets.load_asset("texture.particle.eye_truth_2") != null, "Unable to load original Eye of Truth particle sprite 2.")
+    for heart_particle_index in range(1, 8):
+        _expect(assets.load_asset("texture.particle.heart_%d" % heart_particle_index) != null, "Unable to load original heart particle sprite %d." % heart_particle_index)
     _expect(assets.load_asset("texture.diamond.default") != null, "Unable to load original score diamond sprite sheet.")
     _expect(assets.load_asset("texture.score.plus50") != null, "Unable to load original +50 score sprite sheet.")
     _expect(assets.load_asset("texture.score.plus100") != null, "Unable to load original +100 score sprite sheet.")
@@ -367,6 +377,8 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
     _expect(assets.load_asset("sfx.diamond") != null, "Unable to load original Diam_son score pickup sound.")
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")
+    _expect(assets.load_asset("sfx.get_life") != null, "Unable to load original GetLife_son pickup sound.")
+    _expect(assets.load_asset("sfx.gagne1") != null, "Unable to load original Gagne1 heart pickup sound.")
     _expect(assets.load_asset("sfx.platform_activate") != null, "Unable to load original moving-platform activation sound.")
     _expect(assets.load_asset("sfx.eye_truth") != null, "Unable to load original EyeTruth sound.")
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
@@ -438,6 +450,165 @@ func _test_score_state(game: Node) -> void:
     _expect(int(game.call("get_score_points")) == 0, "Score should not go below zero.")
     _expect(int(game.call("get_last_score_delta")) == -50, "Last score delta should report the clamped negative change.")
     game.call("clear_score")
+
+
+func _test_small_heart_pickup(assets: Node) -> void:
+    _expect(assets != null, "SmallHeart pickup test needs Assets service.")
+    if assets == null:
+        return
+
+    var scene := load(SMALL_HEART_PICKUP_SCENE_PATH) as PackedScene
+    _expect(scene != null, "SmallHeart pickup scene should load.")
+    if scene == null:
+        return
+
+    var pickup := scene.instantiate() as Area3D
+    _expect(pickup != null, "SmallHeart pickup should instantiate as an Area3D.")
+    if pickup == null:
+        return
+    root.add_child(pickup)
+    await process_frame
+
+    _expect(pickup.collision_layer == PICKUP_SENSOR_LAYER, "SmallHeart pickup should live on the pickup sensor collision layer.")
+    _expect(pickup.collision_mask == CHARACTER_LAYER, "SmallHeart pickup should monitor solid characters without blocking them.")
+    _expect(pickup.has_method("collect"), "SmallHeart pickup should expose a collection hook for tests/importers.")
+    _expect(pickup.has_method("was_collected"), "SmallHeart pickup should expose collected state.")
+    _expect(pickup.has_method("get_health_amount"), "SmallHeart pickup should expose its configured WindowHearts amount.")
+    _expect(is_equal_approx(float(pickup.call("get_health_amount")), 12.0), "SmallHeart should default to the original +12 WindowHearts value.")
+    _expect(String(pickup.get("texture_asset_id")) == "texture.small_heart", "SmallHeart pickup should use the original heart+11 sprite sheet.")
+    _expect(String(pickup.get("collect_sound_asset_id")) == "sfx.gagne1", "SmallHeart pickup should use the original Gagne1 sound.")
+    _expect(String(pickup.get("secondary_collect_sound_asset_id")) == "sfx.boost_pickup", "SmallHeart pickup should layer the original Chimes2 sound.")
+    _expect(is_equal_approx(float(pickup.get("visual_frames_per_second")), 16.0), "SmallHeart visual should advance one frame per original 16 Hz tick.")
+    var visual := pickup.call("get_visual_sprite") as Sprite3D
+    _expect(visual != null, "SmallHeart pickup should spawn a billboarded sprite visual.")
+    if visual != null:
+        _expect(visual.texture == assets.load_asset("texture.small_heart"), "SmallHeart visual should use the original heart+11 texture.")
+        _expect(visual.hframes == 11, "SmallHeart visual should expose the original 11-frame sprite sheet.")
+        _expect(visual.billboard == BaseMaterial3D.BILLBOARD_ENABLED, "SmallHeart visual should billboard toward the camera.")
+        var visual_frame := visual.frame
+        pickup.call("_process", 1.0 / 16.0)
+        _expect(visual.frame != visual_frame, "SmallHeart visual should cycle frames while active.")
+
+    var non_player_stub := Node3D.new()
+    non_player_stub.name = "NonPlayerSmallHeartContact"
+    root.add_child(non_player_stub)
+    _expect(not bool(pickup.call("collect", non_player_stub)), "SmallHeart pickup should ignore bodies without the player health API.")
+    non_player_stub.queue_free()
+
+    var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
+    var player := player_scene.instantiate() as CharacterBody3D
+    player.position = Vector3(8.0, 0.0, 0.0)
+    root.add_child(player)
+    await process_frame
+    player.call("take_damage", 20.0, null)
+    pickup.set("collect_sound_asset_id", "")
+    pickup.set("secondary_collect_sound_asset_id", "")
+    _expect(bool(pickup.call("collect", player)), "SmallHeart pickup should collect when Sammy has missing WindowHearts.")
+    _expect(is_equal_approx(float(player.call("get_health")), 40.0), "SmallHeart should restore 12 WindowHearts from partial health.")
+    _expect(bool(pickup.call("was_collected")), "SmallHeart pickup should mark itself collected after a heal.")
+    _expect(not bool(pickup.call("collect", player)), "SmallHeart pickup should not collect twice.")
+    _expect(int(pickup.call("get_live_particle_count")) == 30, "SmallHeart collection should emit the original 30 heart particles.")
+    if visual != null:
+        var visual_scale_before := visual.scale.x
+        pickup.call("_process", 1.0 / 16.0)
+        _expect(visual.scale.x < visual_scale_before, "SmallHeart visual should shrink after collection.")
+    await process_frame
+    _expect(not pickup.monitoring, "SmallHeart pickup should stop monitoring after successful collection.")
+    _expect(not pickup.monitorable, "SmallHeart pickup should stop being monitorable after successful collection.")
+
+    var full_pickup := scene.instantiate() as Area3D
+    var full_player := player_scene.instantiate() as CharacterBody3D
+    full_player.position = Vector3(10.0, 0.0, 0.0)
+    root.add_child(full_pickup)
+    root.add_child(full_player)
+    await process_frame
+    full_pickup.set("collect_sound_asset_id", "")
+    full_pickup.set("secondary_collect_sound_asset_id", "")
+    _expect(not bool(full_pickup.call("collect", full_player)), "SmallHeart pickup should not collect when WindowHearts are already full.")
+    _expect(not bool(full_pickup.call("was_collected")), "Full-health SmallHeart contact should leave the pickup available.")
+    _expect(bool(full_pickup.call("is_rejecting_full_health_collection")), "Full-health SmallHeart contact should start the original reject shrink/reappear behavior.")
+    await process_frame
+    _expect(full_pickup.monitoring, "Full-health SmallHeart rejection should keep monitoring enabled for later collection.")
+    _expect(full_pickup.monitorable, "Full-health SmallHeart rejection should keep the pickup monitorable.")
+
+    pickup.queue_free()
+    full_pickup.queue_free()
+    player.queue_free()
+    full_player.queue_free()
+    await process_frame
+
+
+func _test_life_heart_pickup(assets: Node) -> void:
+    _expect(assets != null, "LifeHeart pickup test needs Assets service.")
+    if assets == null:
+        return
+
+    var scene := load(LIFE_HEART_PICKUP_SCENE_PATH) as PackedScene
+    _expect(scene != null, "LifeHeart pickup scene should load.")
+    if scene == null:
+        return
+
+    var pickup := scene.instantiate() as Area3D
+    _expect(pickup != null, "LifeHeart pickup should instantiate as an Area3D.")
+    if pickup == null:
+        return
+    root.add_child(pickup)
+    await process_frame
+
+    _expect(pickup.collision_layer == PICKUP_SENSOR_LAYER, "LifeHeart pickup should live on the pickup sensor collision layer.")
+    _expect(pickup.collision_mask == CHARACTER_LAYER, "LifeHeart pickup should monitor solid characters without blocking them.")
+    _expect(pickup.has_method("collect"), "LifeHeart pickup should expose a collection hook for tests/importers.")
+    _expect(pickup.has_method("was_collected"), "LifeHeart pickup should expose collected state.")
+    _expect(pickup.has_method("get_life_amount"), "LifeHeart pickup should expose its configured BallesJoueur1 amount.")
+    _expect(int(pickup.call("get_life_amount")) == 1, "LifeHeart should default to one original-style player life.")
+    _expect(String(pickup.get("model_asset_id")) == "model.life_heart", "LifeHeart pickup should use the original lifeA model.")
+    _expect(String(pickup.get("collect_sound_asset_id")) == "sfx.get_life", "LifeHeart pickup should use the original GetLife sound.")
+    _expect(is_equal_approx(float(pickup.get("idle_turn_degrees_per_second")), 160.0), "LifeHeart pickup should rotate at InitBonusVie's 10 degrees per 16 Hz tick.")
+    var visual := pickup.call("get_visual_model") as Node3D
+    _expect(visual != null, "LifeHeart pickup should spawn the original lifeA model visual.")
+    if visual != null:
+        _expect(visual.name == "LifeHeartVisual", "LifeHeart model should have a stable visual node name.")
+
+    var non_player_stub := Node3D.new()
+    non_player_stub.name = "NonPlayerLifeHeartContact"
+    root.add_child(non_player_stub)
+    _expect(not bool(pickup.call("collect", non_player_stub)), "LifeHeart pickup should ignore bodies without the player life API.")
+    non_player_stub.queue_free()
+
+    var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
+    var player := player_scene.instantiate() as CharacterBody3D
+    player.position = Vector3(8.0, 0.0, 0.0)
+    root.add_child(player)
+    await process_frame
+    player.call("set_lives", 18)
+    pickup.set("collect_sound_asset_id", "")
+    _expect(bool(pickup.call("collect", player)), "LifeHeart pickup should collect when Sammy can gain a life.")
+    _expect(int(player.call("get_lives")) == 19, "LifeHeart should clamp lives to original MaxBalles.")
+    _expect(bool(pickup.call("was_collected")), "LifeHeart pickup should mark itself collected after granting a life.")
+    _expect(not bool(pickup.call("collect", player)), "LifeHeart pickup should not collect twice.")
+    await process_frame
+    _expect(not pickup.monitoring, "LifeHeart pickup should stop monitoring after successful collection.")
+    _expect(not pickup.monitorable, "LifeHeart pickup should stop being monitorable after successful collection.")
+
+    var max_pickup := scene.instantiate() as Area3D
+    var max_player := player_scene.instantiate() as CharacterBody3D
+    max_player.position = Vector3(10.0, 0.0, 0.0)
+    root.add_child(max_pickup)
+    root.add_child(max_player)
+    await process_frame
+    max_player.call("set_lives", int(max_player.call("get_max_lives")))
+    max_pickup.set("collect_sound_asset_id", "")
+    _expect(not bool(max_pickup.call("collect", max_player)), "LifeHeart pickup should stay available when Sammy is already at MaxBalles.")
+    _expect(not bool(max_pickup.call("was_collected")), "Max-life LifeHeart contact should not consume the pickup.")
+    await process_frame
+    _expect(max_pickup.monitoring, "Max-life LifeHeart rejection should keep monitoring enabled for later collection.")
+    _expect(max_pickup.monitorable, "Max-life LifeHeart rejection should keep the pickup monitorable.")
+
+    pickup.queue_free()
+    max_pickup.queue_free()
+    player.queue_free()
+    max_player.queue_free()
+    await process_frame
 
 
 func _test_diamond_pickup(game: Node, assets: Node) -> void:
@@ -3905,9 +4076,13 @@ func _test_player_scene() -> void:
     _expect(int(player.get("collision_mask")) == WORLD_AND_CHARACTER_MASK, "Player should collide with world and other solid characters.")
     _expect(is_equal_approx(float(player.call("get_max_health")), 48.0), "Player max health should use original WindowHeartsOrg.")
     _expect(is_equal_approx(float(player.call("get_health")), 48.0), "Player should start with original WindowHearts.")
+    _expect(player.has_method("add_health"), "Player controller should expose original SmallHeart healing.")
     _expect(is_equal_approx(float(player.get("damage_invulnerability_seconds")), 0.0), "Enemy damage should not be blocked by a modern global invulnerability window.")
     player.call("take_damage", 0.25, null)
     _expect(is_equal_approx(float(player.call("get_health")), 47.75), "Player health should preserve fractional WindowHearts damage.")
+    _expect(is_equal_approx(float(player.call("add_health", 12.0)), 0.25), "SmallHeart healing should clamp to WindowHeartsOrg and report the actual healed amount.")
+    _expect(is_equal_approx(float(player.call("get_health")), 48.0), "SmallHeart healing should restore WindowHearts without exceeding WindowHeartsOrg.")
+    _expect(is_equal_approx(float(player.call("add_health", -1.0)), 0.0), "SmallHeart healing should ignore non-positive amounts.")
     _expect(player.get_node_or_null("VisualPivot") != null, "Player scene is missing visual pivot.")
     var sammy_model := player.get_node_or_null("VisualPivot/SammyModel") as Node3D
     _expect(sammy_model != null, "Player scene did not spawn the Sammy model.")
@@ -4589,6 +4764,27 @@ func _test_prototype_world() -> void:
         _expect(hundred_diamond != null, "Prototype world should expose a +100 score diamond for playtesting.")
         if hundred_diamond != null:
             _expect(int(hundred_diamond.call("get_points")) == 100, "Prototype +100 diamond should preserve its configured point value.")
+        var small_heart := world.get_node_or_null("SmallHeartPickup") as Area3D
+        _expect(small_heart != null, "Prototype world should expose a SmallHeart health pickup for playtesting.")
+        if small_heart != null:
+            _expect(small_heart.collision_layer == PICKUP_SENSOR_LAYER, "Prototype SmallHeart should live on the pickup sensor collision layer.")
+            _expect(small_heart.collision_mask == CHARACTER_LAYER, "Prototype SmallHeart should monitor solid characters without blocking them.")
+            _expect(is_equal_approx(float(small_heart.call("get_health_amount")), 12.0), "Prototype SmallHeart should restore the original 12 WindowHearts.")
+            _expect(String(small_heart.get("texture_asset_id")) == "texture.small_heart", "Prototype SmallHeart should use the original heart+11 sprite sheet.")
+            var small_heart_visual := small_heart.call("get_visual_sprite") as Sprite3D
+            _expect(small_heart_visual != null, "Prototype SmallHeart should spawn the original sprite visual.")
+            if small_heart_visual != null:
+                _expect(small_heart_visual.texture == assets.load_asset("texture.small_heart"), "Prototype SmallHeart visual should use the original heart+11 texture.")
+                _expect(small_heart_visual.hframes == 11, "Prototype SmallHeart visual should preserve the 11 original frames.")
+        var life_heart := world.get_node_or_null("LifeHeartPickup") as Area3D
+        _expect(life_heart != null, "Prototype world should expose a LifeHeart extra-life pickup for playtesting.")
+        if life_heart != null:
+            _expect(life_heart.collision_layer == PICKUP_SENSOR_LAYER, "Prototype LifeHeart should live on the pickup sensor collision layer.")
+            _expect(life_heart.collision_mask == CHARACTER_LAYER, "Prototype LifeHeart should monitor solid characters without blocking them.")
+            _expect(int(life_heart.call("get_life_amount")) == 1, "Prototype LifeHeart should grant one original-style life.")
+            _expect(String(life_heart.get("model_asset_id")) == "model.life_heart", "Prototype LifeHeart should use the original lifeA model.")
+            var life_heart_visual := life_heart.call("get_visual_model") as Node3D
+            _expect(life_heart_visual != null, "Prototype LifeHeart should spawn the original lifeA model visual.")
         var key_panel := world.get_node_or_null("KeyDiamondPanel")
         _expect(key_panel != null, "Prototype world should expose the key-diamond panel.")
         if key_panel != null:

@@ -68,6 +68,12 @@ const CATALOG := {
         "animation_library": "res://assets/animations/boost_clips.tres",
         "default_animation": "stand"
     },
+    "model.life_heart": {
+        "path": "res://assets/models/lifeA/lifeA.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/lifeA/lifeA.gltf",
+        "kind": "model",
+        "description": "Original InitBonusVie extra-life pickup model"
+    },
     "model.platform.default": {
         "path": "res://assets/models/platforms/platfor2/platfor2.gltf",
         "source": "extract-sammy-assets/extracted/godot/raw/levels/platfor2.wmb",
@@ -476,6 +482,54 @@ const CATALOG := {
         "kind": "texture",
         "description": "Original particle_RangeLion2 / particle_TakeEyeTruth sprite"
     },
+    "texture.particle.heart_1": {
+        "path": "res://assets/textures/particles/heart/phearth1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/phearth1.png",
+        "kind": "texture",
+        "description": "Original PartHearth1 sprite used by particle_SmallHeart"
+    },
+    "texture.particle.heart_2": {
+        "path": "res://assets/textures/particles/heart/phearth2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/phearth2.png",
+        "kind": "texture",
+        "description": "Original PartHearth2 sprite"
+    },
+    "texture.particle.heart_3": {
+        "path": "res://assets/textures/particles/heart/phearth3.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/phearth3.png",
+        "kind": "texture",
+        "description": "Original PartHearth3 sprite"
+    },
+    "texture.particle.heart_4": {
+        "path": "res://assets/textures/particles/heart/phearth4.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/phearth4.png",
+        "kind": "texture",
+        "description": "Original PartHearth4 sprite"
+    },
+    "texture.particle.heart_5": {
+        "path": "res://assets/textures/particles/heart/phearth5.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/phearth5.png",
+        "kind": "texture",
+        "description": "Original PartHearth5 sprite"
+    },
+    "texture.particle.heart_6": {
+        "path": "res://assets/textures/particles/heart/phearth6.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/phearth6.png",
+        "kind": "texture",
+        "description": "Original PartHearth6 sprite"
+    },
+    "texture.particle.heart_7": {
+        "path": "res://assets/textures/particles/heart/phearth7.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/phearth7.png",
+        "kind": "texture",
+        "description": "Original PartHearth7 sprite"
+    },
+    "texture.small_heart": {
+        "path": "res://assets/textures/heart/heart+11.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/heart+11.png",
+        "kind": "texture",
+        "description": "Original InitSmallHeart 11-frame red heart sprite sheet"
+    },
     "texture.diamond.default": {
         "path": "res://assets/textures/score/gemgr+17.png",
         "source": "extract-sammy-assets/extracted/godot/textures/gemgr+17.png",
@@ -613,6 +667,18 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/audio/Chimes2.wav",
         "kind": "audio",
         "description": "Original speed boost pickup chime"
+    },
+    "sfx.get_life": {
+        "path": "res://assets/audio/getlife.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/getlife.wav",
+        "kind": "audio",
+        "description": "Original GetLife_son used by InitBonusVie"
+    },
+    "sfx.gagne1": {
+        "path": "res://assets/audio/gagne1.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/gagne1.wav",
+        "kind": "audio",
+        "description": "Original Gagne1 used by InitSmallHeart"
     },
     "sfx.eye_truth": {
         "path": "res://assets/audio/EyeTruth.wav",

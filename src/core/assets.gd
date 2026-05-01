@@ -128,6 +128,12 @@ const CATALOG := {
         "kind": "model",
         "description": "Original teleport pad WMB"
     },
+    "model.checkpoint.restart": {
+        "path": "res://assets/models/checkpoints/restart/restart.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/restart.wmb",
+        "kind": "model",
+        "description": "Original restart checkpoint WMB"
+    },
     "model.death_pad.tile": {
         "path": "res://assets/models/death_pads/tiledeat/tiledeat.gltf",
         "source": "extract-sammy-assets/extracted/godot/raw/levels/tiledeat.wmb",
@@ -157,6 +163,12 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/raw/levels/tiledeat.wmb",
         "kind": "texture",
         "description": "Original death pad border texture decoded from tiledeat.wmb"
+    },
+    "texture.checkpoint.green_grad": {
+        "path": "res://assets/textures/checkpoints/green_grad1.png",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/restart.wmb",
+        "kind": "texture",
+        "description": "Original restart checkpoint WMB texture"
     },
     "model.enemy_visibility_range": {
         "path": "res://assets/models/circl100/circl100_animated.gltf",
@@ -229,6 +241,18 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/textures/StarHit5.png",
         "kind": "texture",
         "description": "Original StarHit5 sprite used by particle_Teleport"
+    },
+    "texture.particle.checkpoint_green_1": {
+        "path": "res://assets/textures/particles/greenpr1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/greenpr1.png",
+        "kind": "texture",
+        "description": "Original greenparticle1 sprite used by particle_GemRestart"
+    },
+    "texture.particle.checkpoint_green_2": {
+        "path": "res://assets/textures/particles/greenpr2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/greenpr2.png",
+        "kind": "texture",
+        "description": "Original greenparticle2 sprite used by particle_GemRestart"
     },
     "texture.particle.tile_death_fumee_b1": {
         "path": "res://assets/textures/particles/fumeeB1.png",
@@ -410,6 +434,12 @@ const CATALOG := {
         "kind": "audio",
         "description": "Original Blouit_son used by RetourneSammy quick turn"
     },
+    "sfx.checkpoint_restart": {
+        "path": "res://assets/audio/Restart.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/Restart.wav",
+        "kind": "audio",
+        "description": "Original Restart_son used when activating a restart checkpoint"
+    },
     "sfx.key_mix": {
         "path": "res://assets/audio/Gemmix.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/Gemmix.wav",
@@ -496,6 +526,12 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/raw/levels",
         "kind": "metadata",
         "description": "Converted original moving platform WMB manifest"
+    },
+    "metadata.checkpoint_wmb_manifest": {
+        "path": "res://assets/models/checkpoints/checkpoint_wmb_manifest.json",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/restart.wmb",
+        "kind": "metadata",
+        "description": "Converted original restart checkpoint WMB manifest"
     }
 }
 

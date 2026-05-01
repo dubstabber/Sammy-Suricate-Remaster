@@ -190,6 +190,14 @@ func set_respawn_transform(respawn_transform: Transform3D) -> void:
     _has_respawn_transform = true
 
 
+func has_respawn_transform() -> bool:
+    return _has_respawn_transform
+
+
+func get_respawn_transform() -> Transform3D:
+    return _respawn_transform
+
+
 func is_in_invulnerability_window() -> bool:
     if damage_invulnerability_seconds <= 0.0:
         return false

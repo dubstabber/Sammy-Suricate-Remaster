@@ -20,6 +20,7 @@ const MOVING_PLATFORM_SCENE_PATH := "res://scenes/props/moving_platform.tscn"
 const PLATFORM_WMB_MANIFEST_PATH := "res://assets/models/platforms/platform_wmb_manifest.json"
 const TELEPORTER_SCENE_PATH := "res://scenes/props/teleporter.tscn"
 const DEATH_PAD_SCENE_PATH := "res://scenes/props/death_pad.tscn"
+const CHECKPOINT_SCENE_PATH := "res://scenes/props/checkpoint.tscn"
 const KEY_DIAMOND_PANEL_SCENE_PATH := "res://scenes/ui/key_diamond_panel.tscn"
 const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
 const KEY_DIAMOND_RULES_SCRIPT_PATH := "res://src/resources/key_diamond_rules.gd"
@@ -51,6 +52,7 @@ const CHARACTER_LAYER := 2
 const PICKUP_SENSOR_LAYER := 4
 const PROJECTILE_LAYER := 8
 const WORLD_AND_CHARACTER_MASK := 3
+const CHECKPOINT_RESPAWN_HEIGHT_OFFSET := 1.5
 const KEY_GATE_MATCH_COMPONENT := 1
 const KEY_GATE_MATCH_EXACT := 2
 const KEY_GATE_MATCH_UNLOCKED := 3
@@ -107,6 +109,7 @@ func _run() -> void:
     await _test_moving_platform_system(assets)
     await _test_teleporter_system(assets)
     await _test_death_pad_system(assets)
+    await _test_checkpoint_system(assets)
     await _test_eye_of_truth_pickup(game, assets)
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
@@ -268,8 +271,22 @@ func _test_asset_catalog(assets: Node) -> void:
         _expect(death_pad_tile != null and _model_uses_texture(death_pad_model_instance, death_pad_tile), "Converted TileDeath WMB should use the original tiledeath texture.")
         _expect(death_pad_tile_border != null and _model_uses_texture(death_pad_model_instance, death_pad_tile_border), "Converted TileDeath WMB should use the original tiledeath_bord texture.")
         death_pad_model_instance.queue_free()
+    var checkpoint_model := assets.load_asset("model.checkpoint.restart") as PackedScene
+    _expect(checkpoint_model != null, "Unable to load converted restart checkpoint WMB model.")
+    var checkpoint_texture := assets.load_asset("texture.checkpoint.green_grad") as Texture2D
+    _expect(checkpoint_texture != null, "Unable to load original restart checkpoint WMB texture.")
+    if checkpoint_model != null:
+        var checkpoint_model_instance := checkpoint_model.instantiate() as Node3D
+        root.add_child(checkpoint_model_instance)
+        _expect(checkpoint_texture != null and _model_uses_texture(checkpoint_model_instance, checkpoint_texture), "Converted restart checkpoint WMB should use the original green_grad1 texture.")
+        checkpoint_model_instance.queue_free()
     for star_index in range(1, 6):
         _expect(assets.load_asset("texture.particle.teleport_star_%d" % star_index) != null, "Unable to load original StarHit teleport particle %d." % star_index)
+    for checkpoint_particle_asset_id in [
+        "texture.particle.checkpoint_green_1",
+        "texture.particle.checkpoint_green_2"
+    ]:
+        _expect(assets.load_asset(checkpoint_particle_asset_id) != null, "Unable to load original restart checkpoint particle: %s" % checkpoint_particle_asset_id)
     for smoke_asset_id in [
         "texture.particle.tile_death_fumee_b1",
         "texture.particle.tile_death_fumee_b3",
@@ -330,6 +347,7 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.platform_activate") != null, "Unable to load original moving-platform activation sound.")
     _expect(assets.load_asset("sfx.eye_truth") != null, "Unable to load original EyeTruth sound.")
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
+    _expect(assets.load_asset("sfx.checkpoint_restart") != null, "Unable to load original Restart_son checkpoint sound.")
     _expect(assets.has_asset("model.wasp1"), "Asset catalog is missing wasp projectile model.")
     _expect(assets.load_asset("model.wasp1") != null, "Unable to load wasp projectile model.")
     _expect(assets.get_asset_path("model.wasp1") == "res://assets/models/wasp1/wasp1_animated.gltf", "Wasp runtime model should use the animated GLTF.")
@@ -2418,6 +2436,104 @@ func _test_death_pad_system(_assets: Node) -> void:
     await process_frame
 
 
+func _test_checkpoint_system(assets: Node) -> void:
+    var checkpoint_scene := load(CHECKPOINT_SCENE_PATH) as PackedScene
+    _expect(checkpoint_scene != null, "Checkpoint scene should load.")
+    if checkpoint_scene == null:
+        return
+
+    var floor := StaticBody3D.new()
+    floor.name = "CheckpointTestFloor"
+    floor.collision_layer = WORLD_LAYER
+    floor.collision_mask = CHARACTER_LAYER
+    var floor_shape := CollisionShape3D.new()
+    var floor_box := BoxShape3D.new()
+    floor_box.size = Vector3(12.0, 1.0, 12.0)
+    floor_shape.position = Vector3(0.0, -0.5, 0.0)
+    floor_shape.shape = floor_box
+    floor.add_child(floor_shape)
+    root.add_child(floor)
+
+    var player_scene := load(PLAYER_SCENE_PATH) as PackedScene
+    var player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    player.global_position = Vector3.ZERO
+    player.call("set_lives", 2)
+
+    var checkpoint := checkpoint_scene.instantiate() as Area3D
+    checkpoint.name = "CheckpointSource"
+    checkpoint.set("reactivation_delay_seconds", 0.01)
+    root.add_child(checkpoint)
+    checkpoint.global_position = Vector3(5.0, 0.0, 0.0)
+    var respawn_marker := checkpoint.get_node_or_null("RespawnMarker") as Marker3D
+    _expect(respawn_marker != null, "Checkpoint should expose a designer-editable RespawnMarker.")
+    if respawn_marker != null:
+        _expect(is_equal_approx(respawn_marker.position.y, CHECKPOINT_RESPAWN_HEIGHT_OFFSET), "Checkpoint RespawnMarker should preserve the original +150 Acknex-unit restart height.")
+    var respawn_transform := Transform3D(Basis(Vector3.UP, PI / 2.0), Vector3(3.0, CHECKPOINT_RESPAWN_HEIGHT_OFFSET, 2.0))
+    if respawn_marker != null:
+        respawn_marker.global_transform = respawn_transform
+    await process_frame
+
+    _expect(checkpoint.collision_layer == PICKUP_SENSOR_LAYER, "Checkpoint should live on the pickup sensor collision layer.")
+    _expect(checkpoint.collision_mask == CHARACTER_LAYER, "Checkpoint should monitor solid characters without blocking them.")
+    _expect(checkpoint.has_method("try_activate_body"), "Checkpoint should expose a test/importer activation hook.")
+    _expect(bool(checkpoint.call("has_original_visual_model")), "Checkpoint should load the original converted restart WMB visual.")
+    _expect(String(checkpoint.call("get_visual_source_path")) == "res://assets/models/checkpoints/restart/restart.gltf", "Checkpoint should expose the original restart WMB visual path.")
+    var idle_emitter := checkpoint.call("get_idle_particle_emitter") as Node
+    _expect(idle_emitter != null, "Checkpoint should spawn its idle GemRestart particle emitter.")
+    if idle_emitter != null:
+        _expect(int(idle_emitter.call("get_configured_texture_count")) == 2, "Checkpoint particles should use both original green particle sprites.")
+        _expect(bool(idle_emitter.call("is_idle_enabled")), "Checkpoint idle particles should emit while the checkpoint is active.")
+
+    var non_player := Node3D.new()
+    non_player.name = "CheckpointNonPlayer"
+    root.add_child(non_player)
+    _expect(not bool(checkpoint.call("try_activate_body", non_player)), "Checkpoint should ignore non-player bodies.")
+    non_player.queue_free()
+
+    var airborne_player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(airborne_player)
+    airborne_player.global_position = Vector3(0.0, 5.0, 0.0)
+    await process_frame
+    _expect(not bool(checkpoint.call("try_activate_body", airborne_player)), "Checkpoint should ignore Sammy while he is airborne.")
+    airborne_player.queue_free()
+
+    for _settle_frame in 8:
+        await physics_frame
+    _expect(player.is_on_floor(), "Checkpoint setup should put Sammy on the test floor.")
+
+    _expect(bool(checkpoint.call("try_activate_body", player)), "Grounded Sammy should activate the restart checkpoint.")
+    _expect(not bool(checkpoint.call("is_active")), "Checkpoint should hide/deactivate after activation until Sammy respawns.")
+    var visual_root := checkpoint.get_node_or_null("VisualRoot") as Node3D
+    _expect(visual_root != null and not visual_root.visible, "Checkpoint VisualRoot should be hidden after activation.")
+    if idle_emitter != null:
+        _expect(not bool(idle_emitter.call("is_idle_enabled")), "Checkpoint idle particles should pause after activation.")
+        _expect(int(idle_emitter.call("get_live_particle_count")) >= 25, "Checkpoint activation should emit the original first GemRestart particle burst.")
+    _expect(bool(player.call("has_respawn_transform")), "Checkpoint activation should set the player's restart transform.")
+    var stored_respawn := player.call("get_respawn_transform") as Transform3D
+    _expect(stored_respawn.origin.distance_to(respawn_transform.origin) < 0.01, "Checkpoint should store the marker position as Sammy's restart point.")
+    _expect((-stored_respawn.basis.z).distance_to(Vector3.LEFT) < 0.05, "Checkpoint should store the marker yaw as Sammy's restart facing.")
+    var audio := root.get_node_or_null("Audio")
+    if audio != null:
+        _expect(_audio_service_has_stream(audio, assets.load_asset("sfx.checkpoint_restart") as AudioStream), "Checkpoint activation should play the original Restart_son.")
+
+    _expect(bool(player.call("take_damage", 99.0, null)), "Checkpoint test should be able to kill Sammy after activation.")
+    var death_duration := float(player.call("_get_death_duration_seconds"))
+    player.call("_update_death_state", death_duration + 0.1)
+    _expect(not bool(player.call("is_dead")), "Checkpoint death test should respawn Sammy while lives remain.")
+    _expect(player.global_position.distance_to(respawn_transform.origin) < 0.05, "Normal death respawn should move Sammy to the latest checkpoint.")
+    _expect(player.get_facing_direction().distance_to(Vector3.LEFT) < 0.05, "Normal death respawn should restore the latest checkpoint yaw.")
+
+    checkpoint.call("_process", 0.02)
+    _expect(bool(checkpoint.call("is_active")), "Checkpoint should reactivate after Sammy respawns and the original waitt 4 delay elapses.")
+    _expect(visual_root != null and visual_root.visible, "Checkpoint VisualRoot should reappear after respawn reactivation.")
+
+    checkpoint.queue_free()
+    player.queue_free()
+    floor.queue_free()
+    await process_frame
+
+
 func _make_platform_boost_rider() -> CharacterBody3D:
     var script := GDScript.new()
     script.source_code = "extends CharacterBody3D\n" \
@@ -3679,6 +3795,7 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("Platforms/PlatformGallery") != null, "Prototype platform gallery should be editor-authored.")
     _expect(world.get_node_or_null("Teleporters/TeleporterA") != null, "Prototype teleport pair should include TeleporterA.")
     _expect(world.get_node_or_null("Teleporters/TeleporterB") != null, "Prototype teleport pair should include TeleporterB.")
+    _expect(world.get_node_or_null("Checkpoints/CheckpointA") != null, "Prototype world should include an editor-authored restart checkpoint.")
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
     var floor := world.get_node_or_null("PrototypeFloor") as StaticBody3D
     _expect(floor != null, "Prototype floor should be a StaticBody3D.")
@@ -3788,6 +3905,11 @@ func _test_prototype_world() -> void:
     if death_pad != null:
         _expect(String(death_pad.call("get_visual_source_path")) == "res://assets/models/death_pads/tiledeat/tiledeat.gltf", "Prototype death pad should use the converted original TileDeath WMB visual.")
         _expect(death_pad.call("get_idle_particle_emitter") != null, "Prototype death pad should spawn idle original TileDeath smoke particles.")
+    var checkpoint := world.get_node_or_null("Checkpoints/CheckpointA") as Area3D
+    _expect(checkpoint != null, "Prototype world should spawn an editor-authored restart checkpoint.")
+    if checkpoint != null:
+        _expect(String(checkpoint.call("get_visual_source_path")) == "res://assets/models/checkpoints/restart/restart.gltf", "Prototype checkpoint should use the converted original restart WMB visual.")
+        _expect(checkpoint.call("get_idle_particle_emitter") != null, "Prototype checkpoint should spawn idle original GemRestart particles.")
     for _settle_step in 10:
         await physics_frame
     _expect(world.get_node_or_null("Player") != null, "Prototype world is missing its editor-instanced player.")

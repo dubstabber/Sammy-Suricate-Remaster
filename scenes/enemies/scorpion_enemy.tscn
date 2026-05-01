@@ -1,0 +1,47 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/enemies/enemy_controller.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/scorpion/scorpion_animated.gltf" id="2_model"]
+[ext_resource type="Script" path="res://src/animation/model_animation_controller.gd" id="3_animation"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_scorpion"]
+radius = 0.32
+height = 0.55
+
+[node name="model_scorpion_animated" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 3
+floor_snap_length = 0.15
+script = ExtResource("1_enemy")
+asset_id = "model.scorpion.animated"
+max_health = 12.0
+enemy_resistance = 12.0
+enemy_weight_force = 0.75
+enemy_family_id = 3.0
+react_range = 10.0
+chase_start_range = 5.0
+chase_disengage_range = 6.28
+chase_start_scan_interval_seconds = 1.0
+chase_start_chance = 0.5
+attack_range = 0.72
+walk_animation_speed_multiplier = 3.0
+chase_animation_speed_multiplier = 7.0
+perception_eye_height = 0.45
+can_player_top_bounce = true
+player_top_bounce_height = 0.52
+attack_sound_asset_id = "sfx.scorpion_attack"
+walk_sound_asset_id = "sfx.scorpion_walk"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.275, 0)
+shape = SubResource("CapsuleShape3D_scorpion")
+
+[node name="Visual" parent="." instance=ExtResource("2_model")]
+rotation = Vector3(0, 1.5708, 0)
+scale = Vector3(0.01, 0.01, 0.01)
+
+[node name="ModelAnimationController" type="Node" parent="."]
+script = ExtResource("3_animation")
+animation_library_path = "res://assets/animations/scorpion_clips.tres"
+default_action = "stand"
+model_root_path = NodePath("../Visual")

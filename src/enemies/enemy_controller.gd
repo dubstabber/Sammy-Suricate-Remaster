@@ -3,6 +3,7 @@ class_name SammyEnemyController
 
 const ACKNEX_TO_GODOT_SCALE := 0.01
 const ACKNEX_TICKS_PER_SECOND := 16.0
+const PLAYER_BOUNCE_TICKS_PER_SECOND := ACKNEX_TICKS_PER_SECOND * 1.5
 const WDL_SPEED_UNITS_TO_METERS_PER_SECOND := ACKNEX_TO_GODOT_SCALE * ACKNEX_TICKS_PER_SECOND
 const MINIMUM_ANIMATION_SPEED_SCALE := 0.001
 const ENEMY_VISIBILITY_RANGE_SCRIPT := preload("res://src/effects/enemy_visibility_range.gd")
@@ -36,8 +37,13 @@ enum EnemyState {
 @export var enemy_weight_force: float = 0.62
 @export var enemy_family_id: float = 1.0
 
-# WDL LionAttackRange = 500 acknex units; 500 * 0.01 = 5 m engage radius.
+# Generic enemies use this as their immediate chase radius. Enemies that need
+# the original LionReactRange/LionAttackRange split can set chase_start_range.
 @export var react_range: float = 5.0
+@export var chase_start_range: float = 0.0
+@export var chase_disengage_range: float = 0.0
+@export var chase_start_scan_interval_seconds: float = 0.0
+@export_range(0.0, 1.0, 0.01) var chase_start_chance: float = 1.0
 @export var attack_range: float = 1.1
 @export var visibility_range_enabled: bool = true
 @export var move_speed: float = 1.2
@@ -65,6 +71,8 @@ enum EnemyState {
 # Runtime playback scale supplies SpeedEnnemy or SpeedEnnemy * LionAccelattack,
 # converted back from the Godot movement speed used by this controller.
 @export var movement_animation_units_per_meter: float = 1.0 / WDL_SPEED_UNITS_TO_METERS_PER_SECOND
+@export var walk_animation_speed_multiplier: float = 1.0
+@export var chase_animation_speed_multiplier: float = 1.0
 @export var attack_animation_speed: float = 1.2
 @export var hit_animation_speed: float = 1.5
 @export var roar_animation_speed: float = 1.0
@@ -89,6 +97,11 @@ enum EnemyState {
 @export var roar_cooldown_seconds: float = 4.0
 # WDL lion.wdl: idle wait can pick LionEtat=13 (random run) instead of walking.
 @export var random_run_chance: float = 0.1
+@export var can_player_top_bounce: bool = false
+@export var player_top_bounce_height: float = 0.55
+@export var player_top_bounce_velocity: float = 30.0 * ACKNEX_TO_GODOT_SCALE * PLAYER_BOUNCE_TICKS_PER_SECOND
+@export var attack_sound_asset_id: String = ""
+@export var walk_sound_asset_id: String = ""
 
 signal damaged(amount: float, source: Node)
 signal died(source: Node)
@@ -124,6 +137,7 @@ var _attack_push_direction: Vector3 = Vector3.ZERO
 var _attack_started_in_range: bool = false
 var _blocked_time_accumulator: float = 0.0
 var _roar_cooldown_remaining: float = 0.0
+var _chase_start_scan_remaining: float = 0.0
 var _visibility_range: Node = null
 
 
@@ -236,9 +250,34 @@ func get_visibility_range_original_frame() -> int:
 	return int(_visibility_range.call("get_current_original_frame"))
 
 
+func allows_player_top_bounce() -> bool:
+	return can_player_top_bounce and not _is_dead and _state != EnemyState.DYING and _state != EnemyState.DEAD
+
+
+func get_player_top_bounce_height() -> float:
+	return maxf(player_top_bounce_height, 0.0)
+
+
+func get_player_top_bounce_velocity() -> float:
+	return maxf(player_top_bounce_velocity, 0.0)
+
+
+func get_chase_start_range() -> float:
+	if chase_start_range > 0.0:
+		return chase_start_range
+	return maxf(react_range, 0.0)
+
+
+func get_chase_disengage_range() -> float:
+	if chase_disengage_range > 0.0:
+		return chase_disengage_range
+	return get_chase_start_range() * maxf(disengage_range_factor, 0.0)
+
+
 func _physics_process(delta: float) -> void:
 	_update_shared_attack_call(delta)
 	_roar_cooldown_remaining = maxf(0.0, _roar_cooldown_remaining - maxf(delta, 0.0))
+	_chase_start_scan_remaining = maxf(0.0, _chase_start_scan_remaining - maxf(delta, 0.0))
 	var horizontal := _update_ai(delta)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
@@ -258,7 +297,7 @@ func get_animation_speed_units_for_horizontal_speed(horizontal_speed: float) -> 
 
 
 func get_walk_animation_speed_scale() -> float:
-	return get_animation_speed_units_for_horizontal_speed(move_speed)
+	return get_animation_speed_units_for_horizontal_speed(move_speed) * maxf(walk_animation_speed_multiplier, 0.0)
 
 
 func get_chase_animation_action() -> StringName:
@@ -266,7 +305,7 @@ func get_chase_animation_action() -> StringName:
 
 
 func get_chase_animation_speed_scale() -> float:
-	return get_animation_speed_units_for_horizontal_speed(run_speed)
+	return get_animation_speed_units_for_horizontal_speed(run_speed) * maxf(chase_animation_speed_multiplier, 0.0)
 
 
 func get_attack_push_source_velocity() -> Vector3:
@@ -383,7 +422,7 @@ func _tick_wait(delta: float) -> Vector3:
 	if _should_answer_attack_call():
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
-	if _should_engage_target():
+	if _should_begin_chase():
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
 	if _wait_remaining <= 0.0:
@@ -401,7 +440,7 @@ func _tick_walk(delta: float) -> Vector3:
 	if _should_answer_attack_call():
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
-	if _should_engage_target():
+	if _should_begin_chase():
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
 	if not _has_wander_target:
@@ -429,7 +468,7 @@ func _tick_chase(delta: float) -> Vector3:
 	if dist <= attack_range and absf(yaw_delta) <= deg_to_rad(attack_yaw_threshold_deg):
 		_enter_state(EnemyState.ATTACK_SWING)
 		return _attack_lunge_velocity()
-	if dist > react_range * disengage_range_factor:
+	if dist > get_chase_disengage_range():
 		_enter_state(EnemyState.WAIT)
 		return Vector3.ZERO
 	if absf(yaw_delta) > deg_to_rad(chase_yaw_threshold_deg):
@@ -528,6 +567,8 @@ func _enter_state(new_state: int) -> void:
 			var distance := randf_range(0.6, 1.6)
 			_wander_target = global_position + Vector3(cos(angle), 0.0, sin(angle)) * distance
 			_has_wander_target = true
+			if old_state == EnemyState.CHASE or old_state == EnemyState.ATTACK_SWING:
+				_play_sfx(walk_sound_asset_id)
 			_play_action(&"walk", get_walk_animation_speed_scale())
 		EnemyState.CHASE:
 			if old_state != EnemyState.CHASE:
@@ -561,6 +602,7 @@ func _refresh_movement_animation_speed() -> void:
 
 
 func _begin_attack_swing() -> void:
+	_play_sfx(attack_sound_asset_id)
 	_attack_target = _target
 	_attack_started_in_range = _target != null and _target_horizontal_offset().length() <= attack_range * 1.2
 	_attack_push_direction = Vector3.ZERO
@@ -701,7 +743,26 @@ func _should_engage_target() -> bool:
 	if not _is_attackable_target(_target):
 		return false
 	var to_target := _target_horizontal_offset()
-	if to_target.length() > react_range:
+	if to_target.length() > get_chase_start_range():
+		return false
+	return _has_line_of_sight_to(_target)
+
+
+func _should_begin_chase() -> bool:
+	if not _is_attackable_target(_target):
+		return false
+	var to_target := _target_horizontal_offset()
+	if to_target.length() > get_chase_start_range():
+		return false
+	var scan_interval := maxf(chase_start_scan_interval_seconds, 0.0)
+	if scan_interval > 0.0:
+		if _chase_start_scan_remaining > 0.0:
+			return false
+		_chase_start_scan_remaining = scan_interval
+	var chance := clampf(chase_start_chance, 0.0, 1.0)
+	if chance <= 0.0:
+		return false
+	if chance < 1.0 and randf() > chance:
 		return false
 	return _has_line_of_sight_to(_target)
 
@@ -901,3 +962,11 @@ func _apply_asset_catalog_settings() -> void:
 	visual.rotation_degrees = assets.get_model_rotation_degrees(asset_id)
 	if assets.should_ground_model(asset_id):
 		assets.align_model_instance_to_ground(visual, global_position.y)
+
+
+func _play_sfx(asset_id: String) -> void:
+	if asset_id.is_empty():
+		return
+	var audio := get_node_or_null("/root/Audio")
+	if audio != null and audio.has_method("play_sfx"):
+		audio.call("play_sfx", asset_id)

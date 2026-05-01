@@ -46,6 +46,16 @@ const CATALOG := {
         "animation_library": "res://assets/animations/punk_clips.tres",
         "default_animation": "stand"
     },
+    "model.scorpion.animated": {
+        "path": "res://assets/models/scorpion/scorpion_animated.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/scorpion/scorpion_animated.gltf",
+        "kind": "model",
+        "description": "Scorpion enemy morph-target animation preview model",
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
+        "ground_to_floor": true,
+        "animation_library": "res://assets/animations/scorpion_clips.tres",
+        "default_animation": "stand"
+    },
     "model.sky3": {
         "path": "res://assets/models/sky3/sky3.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/sky3/sky3.gltf",
@@ -787,6 +797,18 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/audio/WaspKapu.wav",
         "kind": "audio",
         "description": "Original WaspKaputt_son wasp impact sound"
+    },
+    "sfx.scorpion_attack": {
+        "path": "res://assets/audio/scoratt1.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/scoratt1.wav",
+        "kind": "audio",
+        "description": "Original ScorpionAttack_son used by scorpion attacks"
+    },
+    "sfx.scorpion_walk": {
+        "path": "res://assets/audio/scorwalk.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/scorwalk.wav",
+        "kind": "audio",
+        "description": "Original ScorpionWalk_son used when scorpions return to walking"
     },
     "model.wasp1": {
         "path": "res://assets/models/wasp1/wasp1_animated.gltf",

@@ -5,6 +5,7 @@ const GAME_SCRIPT_PATH := "res://src/core/game.gd"
 const WMB_MANIFEST_SCRIPT_PATH := "res://src/levels/wmb_manifest.gd"
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const PLAYER_SCENE_PATH := "res://scenes/player/player.tscn"
+const SCORPION_SCENE_PATH := "res://scenes/enemies/scorpion_enemy.tscn"
 const EDITOR_PREVIEW_SCRIPT_PATH := "res://src/editor/sammy_editor_model_preview.gd"
 const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
@@ -128,6 +129,8 @@ func _run() -> void:
     await _test_enemy_blocked_roar()
     await _test_enemy_random_run_trigger()
     await _test_enemy_friend_call_key_distinguishes_families()
+    await _test_scorpion_top_bounce()
+    await _test_scorpion_aggression_tuning()
     await _test_player_real_push_integration()
     await _test_player_enemy_hit_push_integration()
     await _test_player_death_lives_core()
@@ -245,6 +248,7 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("model.sammy.animated") != null, "Unable to load Sammy animated model resource.")
     _expect(assets.load_asset("model.rasta.animated") != null, "Unable to load copied rasta model resource.")
     _expect(assets.load_asset("model.punk.animated") != null, "Unable to load copied punk model resource.")
+    _expect(assets.load_asset("model.scorpion.animated") != null, "Unable to load copied scorpion model resource.")
     _expect(assets.load_asset("model.boost") != null, "Unable to load copied boost model resource.")
     for platform_asset_id in [
         "model.platform.default",
@@ -364,16 +368,21 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("texture.ui.gem_panel_background") != null, "Unable to load original key panel background.")
     _expect(assets.get_model_scale("model.sammy.animated").is_equal_approx(Vector3(0.08, 0.08, 0.08)), "Sammy model scale should include original WDL scale 8.")
     _expect(assets.get_model_scale("model.rasta.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Rasta model should use default Acknex entity scale.")
+    _expect(assets.get_model_scale("model.scorpion.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Scorpion model should use default Acknex entity scale.")
     _expect(assets.get_model_rotation_degrees("model.sammy.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Sammy model should rotate Acknex +X forward to Godot -Z forward.")
     _expect(assets.get_model_rotation_degrees("model.rasta.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Rasta model should use the Acknex character forward correction.")
     _expect(assets.get_model_rotation_degrees("model.punk.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Punk model should use the Acknex character forward correction.")
+    _expect(assets.get_model_rotation_degrees("model.scorpion.animated").is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Scorpion model should use the Acknex character forward correction.")
     _expect(assets.get_model_rotation_degrees("model.cactus1").is_equal_approx(Vector3.ZERO), "Static props should not inherit the character forward correction.")
     _expect(assets.should_ground_model("model.sammy.animated"), "Sammy model should be grounded to the floor.")
     _expect(assets.should_ground_model("model.rasta.animated"), "Rasta model should be grounded to the floor.")
     _expect(assets.should_ground_model("model.punk.animated"), "Punk model should be grounded to the floor.")
+    _expect(assets.should_ground_model("model.scorpion.animated"), "Scorpion model should be grounded to the floor.")
     _expect(not assets.should_ground_model("model.cactus1"), "Static props should not use character grounding.")
     _expect(assets.get_model_animation_library_path("model.sammy.animated") == "res://assets/animations/suricat1_clips.tres", "Sammy should use the generated animation library.")
+    _expect(assets.get_model_animation_library_path("model.scorpion.animated") == "res://assets/animations/scorpion_clips.tres", "Scorpion should use the generated animation library.")
     _expect(assets.get_model_default_animation("model.rasta.animated") == "stand", "Rasta should expose a default stand animation.")
+    _expect(assets.get_model_default_animation("model.scorpion.animated") == "stand", "Scorpion should expose a default stand animation.")
     _expect(assets.has_asset("music.sammy01"), "Asset catalog is missing copied music resource.")
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
     _expect(assets.load_asset("sfx.diamond") != null, "Unable to load original Diam_son score pickup sound.")
@@ -395,6 +404,8 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.takewasp") != null, "Unable to load original wasp pickup chime.")
     _expect(assets.has_asset("sfx.wasp_kaput"), "Asset catalog is missing wasp impact sound.")
     _expect(assets.load_asset("sfx.wasp_kaput") != null, "Unable to load wasp impact sound.")
+    _expect(assets.load_asset("sfx.scorpion_attack") != null, "Unable to load original ScorpionAttack_son.")
+    _expect(assets.load_asset("sfx.scorpion_walk") != null, "Unable to load original ScorpionWalk_son.")
     _expect(assets.load_asset("sfx.colored_gem") != null, "Unable to load original ColoredGem_son.")
     _expect(assets.load_asset("sfx.gem_blink") != null, "Unable to load original Cligno1_son for temporary gems.")
     _expect(assets.load_asset("sfx.gem_break") != null, "Unable to load original broken4 gem explosion sound.")
@@ -893,6 +904,11 @@ func _test_animation_libraries() -> void:
             ["stand", "AltStand", "rugit", "attack", "hit", "walk", "run", "death"],
             ["stand", "walk", "run"]
     )
+    _expect_animation_library(
+            "res://assets/animations/scorpion_clips.tres",
+            ["stand", "rugit", "attack", "hit", "walk", "run", "death"],
+            ["stand", "walk", "run"]
+    )
     _expect_animation_library("res://assets/animations/boost_clips.tres", ["stand"], ["stand"])
     _expect_animation_library("res://assets/animations/cactus1_clips.tres", ["stand"], ["stand"])
     _expect_animation_library("res://assets/animations/wasp1_clips.tres", ["stand", "walk", "death"], ["stand", "walk"])
@@ -905,6 +921,9 @@ func _test_animation_libraries() -> void:
     _expect_clip_length("res://assets/animations/punk_clips.tres", "stand", 100.0 / (3.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/punk_clips.tres", "walk", 100.0 / (0.82 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/punk_clips.tres", "run", 100.0 / (0.3 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/scorpion_clips.tres", "stand", 100.0 / (3.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/scorpion_clips.tres", "walk", 100.0 / (0.82 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/scorpion_clips.tres", "run", 100.0 / (0.3 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/wasp1_clips.tres", "stand", 100.0 / (3.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/wasp1_clips.tres", "walk", 100.0 / (0.5 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/wasp1_clips.tres", "death", 100.0 / (6.0 * 16.0 * 1.12))
@@ -3931,6 +3950,144 @@ func _test_enemy_friend_call_key_distinguishes_families() -> void:
     await process_frame
 
 
+func _test_scorpion_top_bounce() -> void:
+    var scorpion_scene: PackedScene = load(SCORPION_SCENE_PATH)
+    _expect(scorpion_scene != null, "Scorpion enemy scene should load.")
+    var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
+    _expect(player_scene != null, "Player scene should load for scorpion bounce tests.")
+    if scorpion_scene == null or player_scene == null:
+        return
+
+    var scorpion: CharacterBody3D = scorpion_scene.instantiate() as CharacterBody3D
+    _expect(is_equal_approx(float(scorpion.get("react_range")), 10.0), "Scorpion should keep the original wider LionReactRange wake radius.")
+    _expect(is_equal_approx(float(scorpion.get("chase_start_range")), 5.0), "Scorpion chase should start from the original LionAttackRange rather than the wider wake radius.")
+    _expect(is_equal_approx(float(scorpion.get("chase_disengage_range")), 6.28), "Scorpion chase should disengage at LionAttackRange + 128 original units.")
+    _expect(is_equal_approx(float(scorpion.get("chase_start_scan_interval_seconds")), 1.0), "Scorpion should use the slower WDL ticks1%16 sight check while not attacking.")
+    _expect(is_equal_approx(float(scorpion.get("chase_start_chance")), 0.5), "Scorpion should keep the original LionRAndomAttack 50 percent chase gate.")
+    _expect(is_equal_approx(float(scorpion.get("attack_range")), 0.72), "Scorpion attack should begin near contact instead of leaving a visible gap.")
+    scorpion.set("affected_by_gravity", false)
+    scorpion.set("react_range", 0.0)
+    root.add_child(scorpion)
+    scorpion.global_position = Vector3.ZERO
+    scorpion.set_physics_process(false)
+
+    var player: CharacterBody3D = player_scene.instantiate() as CharacterBody3D
+    player.set("enemy_top_bounce_sound_asset_id", "")
+    root.add_child(player)
+    await physics_frame
+
+    _expect(scorpion.get("can_player_top_bounce") == true, "Scorpion should enable the original player-on-enemy bounce affordance.")
+    _expect(is_equal_approx(float(scorpion.get("enemy_resistance")), 12.0), "Scorpion should use original EnnemyResistance 12.")
+    _expect(is_equal_approx(float(scorpion.get("enemy_weight_force")), 0.75), "Scorpion should use original WeightForce 0.75.")
+    _expect(is_equal_approx(float(scorpion.get("enemy_family_id")), 3.0), "Scorpion should use IdEnnemySpec 3 for family matching.")
+    _expect(is_equal_approx(float(scorpion.get("walk_animation_speed_multiplier")), 3.0), "Scorpion walk cycle should use the WDL IdEnnemySpec 3 fast stepping multiplier.")
+    _expect(is_equal_approx(float(scorpion.get("chase_animation_speed_multiplier")), 7.0), "Scorpion run cycle should use the WDL IdEnnemySpec 3 fast stepping multiplier.")
+    _expect(String(scorpion.get("attack_sound_asset_id")) == "sfx.scorpion_attack", "Scorpion attacks should use the original scoratt1 sound.")
+    _expect(String(scorpion.get("walk_sound_asset_id")) == "sfx.scorpion_walk", "Scorpion walk return should use the original scorwalk sound.")
+    _expect(scorpion.has_method("allows_player_top_bounce"), "Enemy controller should expose a top-bounce affordance query.")
+    _expect(scorpion.has_method("get_player_top_bounce_velocity"), "Enemy controller should expose the converted top-bounce velocity.")
+    _expect(scorpion.has_method("get_player_top_bounce_height"), "Enemy controller should expose the top-bounce height.")
+
+    player.global_position = scorpion.global_position + Vector3(0.0, 0.2, 0.0)
+    player.velocity = Vector3.ZERO
+    _expect(not bool(player.call("_apply_enemy_top_bounce", scorpion)), "Low/side contact should not trigger the scorpion top-bounce path.")
+
+    player.global_position = scorpion.global_position + Vector3(0.0, float(scorpion.call("get_player_top_bounce_height")) + 0.1, 0.0)
+    player.velocity = Vector3.ZERO
+    _expect(bool(player.call("_apply_enemy_top_bounce", scorpion)), "Player above a scorpion should be able to trigger the original enemy bounce.")
+    _expect(is_equal_approx(player.velocity.y, float(scorpion.call("get_player_top_bounce_velocity"))), "Scorpion top-bounce should apply the converted BounceOnEnnemy * BlobBallVerticalSpeed impulse.")
+    _expect(bool(player.call("is_jump_fire_blocked")), "Scorpion top-bounce should enter the original jump/fire-blocked player state.")
+
+    player.velocity = Vector3.ZERO
+    player.set("_jump_fire_blocked", false)
+    var rasta_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var rasta: CharacterBody3D = rasta_scene.instantiate() as CharacterBody3D
+    rasta.set("affected_by_gravity", false)
+    root.add_child(rasta)
+    rasta.global_position = Vector3(3.0, 0.0, 0.0)
+    rasta.set_physics_process(false)
+    player.global_position = rasta.global_position + Vector3(0.0, 1.3, 0.0)
+    _expect(not bool(player.call("_apply_enemy_top_bounce", rasta)), "Standard rasta/punk-style enemies should not opt into scorpion top-bounce.")
+    rasta.queue_free()
+    await process_frame
+    await physics_frame
+
+    player.global_position = scorpion.global_position + Vector3(0.0, 1.2, 0.0)
+    player.velocity = Vector3(0.0, -0.5, 0.0)
+    player.set("_jump_fire_blocked", false)
+    var bounce_seen := false
+    for _i in 80:
+        await physics_frame
+        if player.velocity.y > 0.0 and bool(player.call("is_jump_fire_blocked")):
+            bounce_seen = true
+            break
+    _expect(bounce_seen, "A real falling player collision with the scorpion top should trigger an additional jump.")
+
+    scorpion.call("take_damage", 999.0, null)
+    player.global_position = scorpion.global_position + Vector3(0.0, 0.7, 0.0)
+    player.velocity = Vector3.ZERO
+    player.set("_jump_fire_blocked", false)
+    _expect(not bool(player.call("_apply_enemy_top_bounce", scorpion)), "Dead scorpions should not remain top-bounce sources.")
+
+    if is_instance_valid(scorpion):
+        scorpion.queue_free()
+    if is_instance_valid(player):
+        player.queue_free()
+    await process_frame
+
+
+func _test_scorpion_aggression_tuning() -> void:
+    const STATE_WAIT := 0
+    const STATE_CHASE := 2
+    const STATE_ATTACK_SWING := 10
+
+    var scorpion_scene: PackedScene = load(SCORPION_SCENE_PATH)
+    _expect(scorpion_scene != null, "Scorpion enemy scene should load for aggression tuning tests.")
+    if scorpion_scene == null:
+        return
+
+    var scorpion: CharacterBody3D = scorpion_scene.instantiate() as CharacterBody3D
+    scorpion.set("affected_by_gravity", false)
+    scorpion.set("chase_start_chance", 1.0)
+    scorpion.set("chase_start_scan_interval_seconds", 0.0)
+    scorpion.set("wait_min", 999.0)
+    scorpion.set("wait_max", 999.0)
+    scorpion.set("turn_rate_deg_per_sec", 720.0)
+    root.add_child(scorpion)
+    scorpion.global_position = Vector3.ZERO
+    await physics_frame
+
+    var player_stub := _make_ai_test_player()
+    root.add_child(player_stub)
+    player_stub.global_position = Vector3(0.0, 0.0, -7.0)
+    await physics_frame
+    await physics_frame
+    _expect(int(scorpion.call("get_state")) == STATE_WAIT, "Scorpion should not constantly chase from the outer LionReactRange wake radius.")
+
+    player_stub.global_position = Vector3(0.0, 0.0, -4.0)
+    await physics_frame
+    await physics_frame
+    _expect(int(scorpion.call("get_state")) == STATE_CHASE, "Scorpion should begin chase once the player crosses the original LionAttackRange.")
+
+    scorpion.set("run_speed", 0.0)
+    var attack_range := float(scorpion.get("attack_range"))
+    player_stub.global_position = scorpion.global_position + Vector3(0.0, 0.0, -(attack_range + 0.12))
+    await physics_frame
+    await physics_frame
+    _expect(int(scorpion.call("get_state")) == STATE_CHASE, "Scorpion should keep approaching instead of swinging while still outside the tighter attack range.")
+
+    player_stub.global_position = scorpion.global_position + Vector3(0.0, 0.0, -maxf(attack_range - 0.08, 0.1))
+    await physics_frame
+    await physics_frame
+    _expect(int(scorpion.call("get_state")) == STATE_ATTACK_SWING or int(player_stub.get("damage_calls")) > 0, "Scorpion should swing only when the player is near contact range.")
+
+    if is_instance_valid(player_stub):
+        player_stub.queue_free()
+    if is_instance_valid(scorpion):
+        scorpion.queue_free()
+    await process_frame
+
+
 func _test_player_real_push_integration() -> void:
     var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
     var player: CharacterBody3D = player_scene.instantiate() as CharacterBody3D
@@ -4615,12 +4772,19 @@ func _test_prototype_world() -> void:
             _expect(int(gallery_platform.get("key_match_mode")) == int(gallery_platform_config[4]), "Gallery platform should use its expected original key match mode: %s" % gallery_platform_name)
     var enemies := world.get_node_or_null("Enemies")
     _expect(enemies != null, "Prototype scene should expose a designer-editable Enemies container.")
-    for enemy_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated"]:
+    for enemy_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated", "Enemies/model_scorpion_animated"]:
         var enemy := world.get_node_or_null(enemy_path) as CharacterBody3D
         _expect(enemy != null, "Prototype enemy should be editor-instanced as a CharacterBody3D: %s" % enemy_path)
         if enemy != null:
             _expect(enemy.collision_layer == CHARACTER_LAYER, "Prototype enemy should live on the character collision layer: %s" % enemy_path)
             _expect(enemy.collision_mask == WORLD_AND_CHARACTER_MASK, "Prototype enemy should collide with world and other solid characters: %s" % enemy_path)
+    var prototype_scorpion := world.get_node_or_null("Enemies/model_scorpion_animated") as CharacterBody3D
+    if prototype_scorpion != null:
+        _expect(prototype_scorpion.get("can_player_top_bounce") == true, "Prototype scorpion should preserve the top-bounce scene setting.")
+        _expect(is_equal_approx(float(prototype_scorpion.get("enemy_resistance")), 12.0), "Prototype scorpion should preserve original EnnemyResistance 12.")
+        _expect(is_equal_approx(float(prototype_scorpion.get("enemy_weight_force")), 0.75), "Prototype scorpion should preserve original WeightForce 0.75.")
+        _expect(is_equal_approx(float(prototype_scorpion.get("chase_start_range")), 5.0), "Prototype scorpion should preserve its original LionAttackRange chase gate.")
+        _expect(is_equal_approx(float(prototype_scorpion.get("attack_range")), 0.72), "Prototype scorpion should preserve its tighter near-contact attack range.")
     root.add_child(world)
     await process_frame
     await process_frame
@@ -4696,13 +4860,13 @@ func _test_prototype_world() -> void:
     _expect(world.has_meta("wmb_manifest_counts"), "Prototype world did not read WMB manifest metadata.")
     var assets := root.get_node_or_null("Assets")
     if assets != null:
-        for node_name in ["model_rasta_animated", "model_punk_animated"]:
+        for node_name in ["model_rasta_animated", "model_punk_animated", "model_scorpion_animated"]:
             var model := world.get_node_or_null("Enemies/%s" % node_name) as Node3D
             _expect(model != null, "Prototype world should contain grounded character model: %s" % node_name)
             if model != null:
                 var bounds: AABB = assets.get_model_global_bounds(model)
                 _expect(absf(bounds.position.y) < 0.01, "Prototype character model should be grounded: %s (bounds y %.4f)" % [node_name, bounds.position.y])
-        for model_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated", "Props/model_cactus1"]:
+        for model_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated", "Enemies/model_scorpion_animated", "Props/model_cactus1"]:
             var model := world.get_node_or_null(model_path) as Node3D
             _expect(model != null, "Prototype world should contain animated catalog model: %s" % model_path)
             if model != null:
@@ -5147,7 +5311,7 @@ func _expect_solid_collision_contacts(world: Node) -> void:
 
 
 func _expect_enemy_gravity(world: Node) -> void:
-    for enemy_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated"]:
+    for enemy_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated", "Enemies/model_scorpion_animated"]:
         var enemy := world.get_node_or_null(enemy_path) as CharacterBody3D
         _expect(enemy != null, "Prototype enemy should be a gravity-aware CharacterBody3D: %s" % enemy_path)
         if enemy == null:

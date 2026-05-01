@@ -36,6 +36,7 @@ const DEATH_PAD_PHASE_FADE_IN := 1
 @export var quick_turn_sound_asset_id: String = "sfx.quick_turn"
 @export var fire_sound_asset_id: String = "sfx.wasp"
 @export var no_wasp_sound_asset_id: String = "sfx.error"
+@export var enemy_top_bounce_sound_asset_id: String = "sfx.quick_turn"
 @export var key_mix_sound_asset_id: String = "sfx.key_mix"
 @export var key_mix_end_sound_asset_id: String = "sfx.key_mix_end"
 @export var wasp_muzzle_offset: Vector3 = Vector3(0.0, 0.6, -0.4)
@@ -429,11 +430,17 @@ func _physics_process(delta: float) -> void:
     else:
         velocity.y -= movement_config.gravity * delta
 
+    var vertical_velocity_before_move := velocity.y
     move_and_slide()
+    var enemy_top_bounced := _try_apply_enemy_top_bounce(vertical_velocity_before_move)
+    if enemy_top_bounced:
+        jumped = true
     _apply_enemy_push_frame_displacement(applied_push_velocity, delta)
     _decay_enemy_push(delta)
     var on_floor := is_on_floor()
-    if not was_on_floor and on_floor:
+    if enemy_top_bounced:
+        on_floor = false
+    if not was_on_floor and on_floor and not enemy_top_bounced:
         _begin_landing_movement_lock(forward_input, turn_input, Input.is_action_pressed("jump"))
     if landing_locked_at_frame_start:
         _update_landing_movement_lock(delta)
@@ -993,6 +1000,52 @@ func _resolve_enemy_push_direction(horizontal_source: Vector3, source: Node) -> 
     return Vector3.ZERO
 
 
+func _try_apply_enemy_top_bounce(vertical_velocity_before_move: float) -> bool:
+    if vertical_velocity_before_move > 0.0:
+        return false
+
+    for index in get_slide_collision_count():
+        var collision := get_slide_collision(index)
+        if collision == null:
+            continue
+        var collider := collision.get_collider() as Node
+        if _apply_enemy_top_bounce(collider):
+            return true
+    return false
+
+
+func _apply_enemy_top_bounce(source: Node) -> bool:
+    if _dead or _game_over or _death_pad_respawning:
+        return false
+    if source == null or not source.has_method("allows_player_top_bounce"):
+        return false
+    if not bool(source.call("allows_player_top_bounce")):
+        return false
+
+    var enemy := source as Node3D
+    if enemy == null or not _is_above_enemy_top(enemy):
+        return false
+
+    var bounce_velocity: float = movement_config.jump_velocity
+    if source.has_method("get_player_top_bounce_velocity"):
+        bounce_velocity = float(source.call("get_player_top_bounce_velocity"))
+    if bounce_velocity <= 0.0:
+        return false
+
+    velocity.y = bounce_velocity
+    _jump_fire_blocked = true
+    _landing_movement_lock_remaining = 0.0
+    _play_sfx(enemy_top_bounce_sound_asset_id)
+    return true
+
+
+func _is_above_enemy_top(enemy: Node3D) -> bool:
+    var top_height := 0.0
+    if enemy.has_method("get_player_top_bounce_height"):
+        top_height = float(enemy.call("get_player_top_bounce_height"))
+    return global_position.y >= enemy.global_position.y + top_height - 0.08
+
+
 func _apply_enemy_push_frame_displacement(applied_push_velocity: Vector3, delta: float) -> void:
     if applied_push_velocity.length_squared() <= 0.0 or delta <= 0.0:
         return
@@ -1090,6 +1143,10 @@ func _spawn_key_mix_effect(first_key_id: int, second_key_id: int, _mixed_key_id:
 
 
 func _play_key_sfx(asset_id: String) -> void:
+    _play_sfx(asset_id)
+
+
+func _play_sfx(asset_id: String) -> void:
     if asset_id.is_empty():
         return
     var audio := get_node_or_null("/root/Audio")

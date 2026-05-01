@@ -69,6 +69,30 @@ const MODEL_CONFIGS := [
         }
     },
     {
+        "name": "scorpion",
+        "gltf_path": "res://assets/models/scorpion/scorpion_animated.gltf",
+        "output_path": "res://assets/animations/scorpion_clips.tres",
+        "looping": ["stand", "walk", "run"],
+        "clip_name_map": {
+            "Stand": "stand",
+            "Rugit": "rugit",
+            "Hit": "hit",
+            "Attack": "attack",
+            "Walk": "walk",
+            "Run": "run",
+            "Death": "death"
+        },
+        "step_speeds": {
+            "stand": 3.0,
+            "rugit": 4.0,
+            "attack": 6.0,
+            "hit": 10.0,
+            "walk": 0.82,
+            "run": 0.3,
+            "death": 4.0
+        }
+    },
+    {
         "name": "boost",
         "gltf_path": "res://assets/models/boost/boost_animated.gltf",
         "output_path": "res://assets/animations/boost_clips.tres",
@@ -152,11 +176,12 @@ func _generate_library(config: Dictionary) -> void:
     var looping: Dictionary = {}
     for clip_name in config.get("looping", []):
         looping[String(clip_name)] = true
+    var clip_name_map := config.get("clip_name_map", {}) as Dictionary
     var step_speeds := config.get("step_speeds", {}) as Dictionary
     var duration_overrides := config.get("duration_overrides", {}) as Dictionary
 
     for clip in clips:
-        var clip_name := String(clip["name"])
+        var clip_name := _mapped_clip_name(String(clip["name"]), clip_name_map)
         if PLACEHOLDER_CLIPS.has(clip_name):
             continue
 
@@ -364,6 +389,17 @@ func _clip_name_for_frame(frame_name: String) -> String:
             break
         end_index -= 1
     return frame_name.substr(0, end_index + 1)
+
+
+func _mapped_clip_name(clip_name: String, clip_name_map: Dictionary) -> String:
+    if clip_name_map.is_empty():
+        return clip_name
+    if clip_name_map.has(clip_name):
+        return String(clip_name_map[clip_name])
+    var lowercase_name := clip_name.to_lower()
+    if clip_name_map.has(lowercase_name):
+        return String(clip_name_map[lowercase_name])
+    return lowercase_name
 
 
 func _fail(message: String) -> void:

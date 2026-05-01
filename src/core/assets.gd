@@ -128,6 +128,12 @@ const CATALOG := {
         "kind": "model",
         "description": "Original teleport pad WMB"
     },
+    "model.death_pad.tile": {
+        "path": "res://assets/models/death_pads/tiledeat/tiledeat.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/tiledeat.wmb",
+        "kind": "model",
+        "description": "Original TileDeath WMB"
+    },
     "texture.teleport.tile": {
         "path": "res://assets/textures/teleports/tileteleport2.png",
         "source": "extract-sammy-assets/extracted/godot/raw/levels/teleport.wmb",
@@ -139,6 +145,18 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/raw/levels/teleport.wmb",
         "kind": "texture",
         "description": "Original teleport pad side texture decoded from teleport.wmb"
+    },
+    "texture.death_pad.tile": {
+        "path": "res://assets/textures/death_pads/tiledeath.png",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/tiledeat.wmb",
+        "kind": "texture",
+        "description": "Original death pad top texture decoded from tiledeat.wmb"
+    },
+    "texture.death_pad.tile_border": {
+        "path": "res://assets/textures/death_pads/tiledeath_bord.png",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/tiledeat.wmb",
+        "kind": "texture",
+        "description": "Original death pad border texture decoded from tiledeat.wmb"
     },
     "model.enemy_visibility_range": {
         "path": "res://assets/models/circl100/circl100_animated.gltf",
@@ -211,6 +229,60 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/textures/StarHit5.png",
         "kind": "texture",
         "description": "Original StarHit5 sprite used by particle_Teleport"
+    },
+    "texture.particle.tile_death_fumee_b1": {
+        "path": "res://assets/textures/particles/fumeeB1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fumeeB1.png",
+        "kind": "texture",
+        "description": "Original fumeeB1 sprite used by particle_TileDeath"
+    },
+    "texture.particle.tile_death_fumee_b3": {
+        "path": "res://assets/textures/particles/fumeeB3.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fumeeB3.png",
+        "kind": "texture",
+        "description": "Original fumeeB3 sprite used by particle_TileDeath"
+    },
+    "texture.particle.tile_death_fumee_b5": {
+        "path": "res://assets/textures/particles/fumeeB5.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fumeeB5.png",
+        "kind": "texture",
+        "description": "Original fumeeB5 sprite used by particle_TileDeath"
+    },
+    "texture.particle.tile_death_fumee3": {
+        "path": "res://assets/textures/particles/fumee3.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fumee3.png",
+        "kind": "texture",
+        "description": "Original fumee3 sprite used by particle_TileDeath"
+    },
+    "texture.particle.tile_death_fumee5": {
+        "path": "res://assets/textures/particles/fumee5.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fumee5.png",
+        "kind": "texture",
+        "description": "Original fumee5 sprite used by particle_TileDeath"
+    },
+    "texture.particle.tile_death_fumee6": {
+        "path": "res://assets/textures/particles/fumee6.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fumee6.png",
+        "kind": "texture",
+        "description": "Original fumee6 sprite used by particle_TileDeath"
+    },
+    "texture.particle.tile_death_fumee7": {
+        "path": "res://assets/textures/particles/fumee7.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fumee7.png",
+        "kind": "texture",
+        "description": "Original fumee7 sprite used by particle_TileDeath"
+    },
+    "texture.particle.tile_death_fumee8": {
+        "path": "res://assets/textures/particles/fumee8.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fumee8.png",
+        "kind": "texture",
+        "description": "Original fumee8 sprite used by particle_TileDeath"
+    },
+    "texture.particle.tile_death_fumee9": {
+        "path": "res://assets/textures/particles/fumee9.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fumee9.png",
+        "kind": "texture",
+        "description": "Original fumee9 sprite used by particle_TileDeath"
     },
     "texture.particle.eye_truth_1": {
         "path": "res://assets/textures/particles/peye1.png",

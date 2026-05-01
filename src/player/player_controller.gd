@@ -28,6 +28,8 @@ const CHARACTER_COLLISION_MASK := 1 << 1
 const TELEPORT_PHASE_PRE_FADE := 0
 const TELEPORT_PHASE_FADE_OUT := 1
 const TELEPORT_PHASE_FADE_IN := 2
+const DEATH_PAD_PHASE_FADE_OUT := 0
+const DEATH_PAD_PHASE_FADE_IN := 1
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
@@ -51,6 +53,8 @@ const TELEPORT_PHASE_FADE_IN := 2
 @export var teleport_pre_fade_seconds: float = 4.0 / ACKNEX_TIME_UNITS_PER_SECOND
 @export var teleport_fade_out_seconds: float = 10.0 / ACKNEX_TIME_UNITS_PER_SECOND
 @export var teleport_fade_in_seconds: float = 10.0 / ACKNEX_TIME_UNITS_PER_SECOND
+@export var death_pad_fade_out_seconds: float = 100.0 / (2.0 * ACKNEX_TIME_UNITS_PER_SECOND)
+@export var death_pad_fade_in_seconds: float = 100.0 / (10.0 * ACKNEX_TIME_UNITS_PER_SECOND)
 
 signal damaged(amount: float, source: Node)
 signal death_started(source: Node)
@@ -105,6 +109,9 @@ var _teleport_destination_transform := Transform3D.IDENTITY
 var _teleport_source: Node = null
 var _teleport_alpha := 1.0
 var _teleport_particle_emit_remaining := 0.0
+var _death_pad_respawning := false
+var _death_pad_phase := DEATH_PAD_PHASE_FADE_OUT
+var _death_pad_phase_remaining := 0.0
 var _saved_collision_layer := 0
 var _saved_collision_mask := 0
 var _has_saved_collision_state := false
@@ -122,7 +129,7 @@ func _ready() -> void:
 
 
 func take_damage(amount: float, source: Node = null) -> bool:
-    if amount <= 0.0 or _health <= 0.0 or _dead or _game_over or _teleporting:
+    if amount <= 0.0 or _health <= 0.0 or _dead or _game_over or _teleporting or _death_pad_respawning:
         return false
     if is_in_invulnerability_window():
         return false
@@ -191,7 +198,7 @@ func is_in_invulnerability_window() -> bool:
 
 
 func begin_teleport(destination_transform: Transform3D, source: Node = null) -> bool:
-    if _dead or _game_over or _teleporting:
+    if _dead or _game_over or _teleporting or _death_pad_respawning:
         return false
 
     _teleporting = true
@@ -220,8 +227,41 @@ func get_teleport_alpha() -> float:
     return _teleport_alpha
 
 
+func begin_death_pad_respawn(_source: Node = null) -> bool:
+    if _dead or _game_over or _teleporting or _death_pad_respawning:
+        return false
+
+    _lives = maxi(0, _lives - 1)
+    life_lost.emit(_lives)
+    _clear_action_state_for_death()
+    if _lives <= 0:
+        _health = 0.0
+        _enter_game_over()
+        return true
+
+    _death_pad_respawning = true
+    _death_pad_phase = DEATH_PAD_PHASE_FADE_OUT
+    _death_pad_phase_remaining = maxf(death_pad_fade_out_seconds, 0.001)
+    _saved_collision_layer = collision_layer
+    _saved_collision_mask = collision_mask
+    _has_saved_collision_state = true
+    collision_layer = 0
+    collision_mask = 0
+    _set_teleport_alpha(1.0)
+    _play_animation_action(&"stand", 1.0, false, true, 0.0)
+    return true
+
+
+func is_death_pad_respawning() -> bool:
+    return _death_pad_respawning
+
+
+func get_death_pad_respawn_alpha() -> float:
+    return _teleport_alpha
+
+
 func apply_enemy_push(source_velocity: Vector3, source_bounce_force: float = 1.0, _source: Node = null) -> void:
-    if _dead or _game_over:
+    if _dead or _game_over or _death_pad_respawning:
         return
 
     var horizontal_source := source_velocity
@@ -322,6 +362,9 @@ func consume_key_for_gate(required_key_id: int, strict_match: bool = false) -> i
 func _physics_process(delta: float) -> void:
     if _dead or _game_over:
         _update_death_state(delta)
+        return
+    if _death_pad_respawning:
+        _update_death_pad_respawn_state(delta)
         return
     if _teleporting:
         _update_teleport_state(delta)
@@ -603,7 +646,7 @@ func _clear_wasp_fire() -> void:
 
 
 func _is_movement_locked() -> bool:
-    return _dead or _game_over or _teleporting or _wasp_fire_active or is_landing_movement_locked()
+    return _dead or _game_over or _teleporting or _death_pad_respawning or _wasp_fire_active or is_landing_movement_locked()
 
 
 func _begin_landing_movement_lock(forward_input: float = 0.0, turn_input: float = 0.0, jump_pressed: bool = false) -> void:
@@ -652,6 +695,27 @@ func _update_teleport_state(delta: float) -> void:
                 _finish_teleport()
 
 
+func _update_death_pad_respawn_state(delta: float) -> void:
+    var safe_delta := maxf(delta, 0.0)
+    _clear_motion_for_teleport()
+    _clear_animation_sequence()
+    _play_animation_action(&"stand", 1.0, false, false, 0.0)
+
+    match _death_pad_phase:
+        DEATH_PAD_PHASE_FADE_OUT:
+            _death_pad_phase_remaining -= safe_delta
+            var fade_out_duration := maxf(death_pad_fade_out_seconds, 0.001)
+            _set_teleport_alpha(clampf(_death_pad_phase_remaining / fade_out_duration, 0.0, 1.0))
+            if _death_pad_phase_remaining <= 0.0:
+                _move_to_death_pad_respawn()
+        DEATH_PAD_PHASE_FADE_IN:
+            _death_pad_phase_remaining -= safe_delta
+            var fade_in_duration := maxf(death_pad_fade_in_seconds, 0.001)
+            _set_teleport_alpha(clampf(1.0 - (_death_pad_phase_remaining / fade_in_duration), 0.0, 1.0))
+            if _death_pad_phase_remaining <= 0.0:
+                _finish_death_pad_respawn()
+
+
 func _clear_motion_for_teleport() -> void:
     velocity = Vector3.ZERO
     _input_horizontal_velocity = Vector3.ZERO
@@ -696,6 +760,33 @@ func _finish_teleport() -> void:
     var source := _teleport_source
     _teleport_source = null
     teleport_finished.emit(source)
+
+
+func _move_to_death_pad_respawn() -> void:
+    _set_teleport_alpha(0.0)
+    if _has_respawn_transform:
+        global_transform = _respawn_transform
+    _health = maxf(max_health, 0.0)
+    velocity = Vector3.ZERO
+    _input_horizontal_velocity = Vector3.ZERO
+    _enemy_push_velocity = Vector3.ZERO
+    _reset_follow_cameras_after_teleport()
+    _play_animation_action(&"stand", 1.0, false, true, 0.0)
+    _death_pad_phase = DEATH_PAD_PHASE_FADE_IN
+    _death_pad_phase_remaining = maxf(death_pad_fade_in_seconds, 0.001)
+
+
+func _finish_death_pad_respawn() -> void:
+    _set_teleport_alpha(1.0)
+    if _has_saved_collision_state:
+        collision_layer = _saved_collision_layer
+        collision_mask = _saved_collision_mask
+        _has_saved_collision_state = false
+    _clear_motion_for_teleport()
+    _death_pad_respawning = false
+    _death_pad_phase_remaining = 0.0
+    _play_animation_action(&"stand", 1.0, false, true, 0.0)
+    respawned.emit()
 
 
 func _set_teleport_alpha(alpha: float) -> void:

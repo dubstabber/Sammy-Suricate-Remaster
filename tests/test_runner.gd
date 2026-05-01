@@ -19,6 +19,7 @@ const GATE_WMB_MANIFEST_PATH := "res://assets/models/gates/gate_wmb_manifest.jso
 const MOVING_PLATFORM_SCENE_PATH := "res://scenes/props/moving_platform.tscn"
 const PLATFORM_WMB_MANIFEST_PATH := "res://assets/models/platforms/platform_wmb_manifest.json"
 const TELEPORTER_SCENE_PATH := "res://scenes/props/teleporter.tscn"
+const DEATH_PAD_SCENE_PATH := "res://scenes/props/death_pad.tscn"
 const KEY_DIAMOND_PANEL_SCENE_PATH := "res://scenes/ui/key_diamond_panel.tscn"
 const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
 const KEY_DIAMOND_RULES_SCRIPT_PATH := "res://src/resources/key_diamond_rules.gd"
@@ -105,6 +106,7 @@ func _run() -> void:
     await _test_gate_visual_models(assets)
     await _test_moving_platform_system(assets)
     await _test_teleporter_system(assets)
+    await _test_death_pad_system(assets)
     await _test_eye_of_truth_pickup(game, assets)
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
@@ -254,8 +256,32 @@ func _test_asset_catalog(assets: Node) -> void:
         _expect(teleport_tile != null and _model_uses_texture(teleport_model_instance, teleport_tile), "Converted teleport WMB should use the original tileteleport2 texture.")
         _expect(teleport_tile_side != null and _model_uses_texture(teleport_model_instance, teleport_tile_side), "Converted teleport WMB should use the original tileteleport2_b texture.")
         teleport_model_instance.queue_free()
+    var death_pad_model := assets.load_asset("model.death_pad.tile") as PackedScene
+    _expect(death_pad_model != null, "Unable to load converted TileDeath WMB model.")
+    var death_pad_tile := assets.load_asset("texture.death_pad.tile") as Texture2D
+    var death_pad_tile_border := assets.load_asset("texture.death_pad.tile_border") as Texture2D
+    _expect(death_pad_tile != null, "Unable to load original death pad top texture.")
+    _expect(death_pad_tile_border != null, "Unable to load original death pad border texture.")
+    if death_pad_model != null:
+        var death_pad_model_instance := death_pad_model.instantiate() as Node3D
+        root.add_child(death_pad_model_instance)
+        _expect(death_pad_tile != null and _model_uses_texture(death_pad_model_instance, death_pad_tile), "Converted TileDeath WMB should use the original tiledeath texture.")
+        _expect(death_pad_tile_border != null and _model_uses_texture(death_pad_model_instance, death_pad_tile_border), "Converted TileDeath WMB should use the original tiledeath_bord texture.")
+        death_pad_model_instance.queue_free()
     for star_index in range(1, 6):
         _expect(assets.load_asset("texture.particle.teleport_star_%d" % star_index) != null, "Unable to load original StarHit teleport particle %d." % star_index)
+    for smoke_asset_id in [
+        "texture.particle.tile_death_fumee_b1",
+        "texture.particle.tile_death_fumee_b3",
+        "texture.particle.tile_death_fumee_b5",
+        "texture.particle.tile_death_fumee3",
+        "texture.particle.tile_death_fumee5",
+        "texture.particle.tile_death_fumee6",
+        "texture.particle.tile_death_fumee7",
+        "texture.particle.tile_death_fumee8",
+        "texture.particle.tile_death_fumee9"
+    ]:
+        _expect(assets.load_asset(smoke_asset_id) != null, "Unable to load original TileDeath smoke particle: %s" % smoke_asset_id)
     _expect(assets.load_asset("model.cactus1") != null, "Unable to load copied cactus model resource.")
     _expect(assets.has_asset("texture.particle.small_star_1a"), "Asset catalog is missing original boost particle sprite.")
     _expect(assets.load_asset("texture.particle.small_star_1a") != null, "Unable to load original boost particle sprite.")
@@ -2250,6 +2276,148 @@ func _test_teleporter_system(_assets: Node) -> void:
     await process_frame
 
 
+func _test_death_pad_system(_assets: Node) -> void:
+    var death_pad_scene := load(DEATH_PAD_SCENE_PATH) as PackedScene
+    _expect(death_pad_scene != null, "Death pad scene should load.")
+    if death_pad_scene == null:
+        return
+
+    var floor := StaticBody3D.new()
+    floor.name = "DeathPadTestFloor"
+    floor.collision_layer = WORLD_LAYER
+    floor.collision_mask = CHARACTER_LAYER
+    var floor_shape := CollisionShape3D.new()
+    var floor_box := BoxShape3D.new()
+    floor_box.size = Vector3(12.0, 1.0, 12.0)
+    floor_shape.position = Vector3(0.0, -0.5, 0.0)
+    floor_shape.shape = floor_box
+    floor.add_child(floor_shape)
+    root.add_child(floor)
+
+    var player_scene := load(PLAYER_SCENE_PATH) as PackedScene
+    var player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    player.global_position = Vector3.ZERO
+    player.call("set_lives", 3)
+    var respawn_transform := Transform3D(Basis(Vector3.UP, PI / 2.0), Vector3(3.0, 0.0, 2.0))
+    player.call("set_respawn_transform", respawn_transform)
+
+    var death_pad := death_pad_scene.instantiate() as Area3D
+    death_pad.name = "DeathPadSource"
+    root.add_child(death_pad)
+    death_pad.global_position = Vector3(6.0, 0.0, 0.0)
+    await process_frame
+
+    _expect(death_pad.collision_layer == PICKUP_SENSOR_LAYER, "Death pad should live on the pickup sensor collision layer.")
+    _expect(death_pad.collision_mask == CHARACTER_LAYER, "Death pad should monitor solid characters without blocking them.")
+    _expect(death_pad.has_method("try_trigger_body"), "Death pad should expose a test/importer trigger hook.")
+    _expect(bool(death_pad.call("has_original_visual_model")), "Death pad should load the original converted TileDeath WMB visual.")
+    _expect(String(death_pad.call("get_visual_source_path")) == "res://assets/models/death_pads/tiledeat/tiledeat.gltf", "Death pad should expose the original TileDeath WMB visual path.")
+    var idle_emitter := death_pad.call("get_idle_particle_emitter") as Node
+    _expect(idle_emitter != null, "Death pad should spawn its idle TileDeath smoke emitter.")
+    if idle_emitter != null:
+        _expect(int(idle_emitter.call("get_configured_texture_count")) == 9, "Death pad idle particles should use the original TileDeath smoke texture sequence.")
+        _expect(bool(idle_emitter.call("is_idle_enabled")), "Death pad idle particles should emit while the pad is active.")
+
+    var non_player := Node3D.new()
+    non_player.name = "DeathPadNonPlayer"
+    root.add_child(non_player)
+    _expect(not bool(death_pad.call("try_trigger_body", non_player)), "Death pad should ignore non-player bodies.")
+    non_player.queue_free()
+
+    var airborne_player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(airborne_player)
+    airborne_player.global_position = Vector3(0.0, 5.0, 0.0)
+    await process_frame
+    _expect(not bool(death_pad.call("try_trigger_body", airborne_player)), "Death pad should ignore Sammy while he is airborne.")
+    airborne_player.queue_free()
+
+    var camera_script: GDScript = load(CAMERA_SCRIPT_PATH)
+    var camera := Camera3D.new()
+    camera.name = "DeathPadParityCamera"
+    camera.set_script(camera_script)
+    root.add_child(camera)
+    camera.target_path = camera.get_path_to(player)
+    camera.global_position = Vector3(-20.0, 12.0, -20.0)
+
+    for _settle_frame in 8:
+        await physics_frame
+    _expect(player.is_on_floor(), "Death pad setup should put Sammy on the test floor.")
+
+    var signals := {
+        "death_started": 0,
+        "life_lost": 0,
+        "respawned": 0,
+        "game_over": 0,
+        "last_lives_remaining": -1
+    }
+    player.connect("death_started", func(_source: Node) -> void:
+        signals["death_started"] = int(signals["death_started"]) + 1)
+    player.connect("life_lost", func(lives_remaining: int) -> void:
+        signals["life_lost"] = int(signals["life_lost"]) + 1
+        signals["last_lives_remaining"] = lives_remaining)
+    player.connect("respawned", func() -> void:
+        signals["respawned"] = int(signals["respawned"]) + 1)
+    player.connect("game_over", func() -> void:
+        signals["game_over"] = int(signals["game_over"]) + 1)
+
+    _expect(bool(player.call("take_damage", 12.0, null)), "Death pad test should be able to start from partial WindowHearts.")
+    var inventory: Node = player.call("get_wasp_inventory")
+    if inventory != null:
+        inventory.call("add_ammo", load(WASP_TYPE_2_PATH), 1)
+    _expect(bool(death_pad.call("try_trigger_body", player)), "Grounded Sammy should trigger the death pad.")
+    _expect(bool(player.call("is_death_pad_respawning")), "Player should expose active death-pad respawn state after triggering.")
+    _expect(not bool(player.call("is_dead")), "Death pad should not use the kaputt death state while lives remain.")
+    _expect(not bool(player.call("is_game_over")), "Death pad should not game-over while lives remain.")
+    _expect(int(player.call("get_lives")) == 2, "Death pad should consume one BallesJoueur1 life immediately.")
+    _expect(int(signals["life_lost"]) == 1 and int(signals["last_lives_remaining"]) == 2, "Death pad life-loss signal should report the immediate remaining count.")
+    _expect(int(signals["death_started"]) == 0, "Death pad respawn should not emit the normal kaputt death signal.")
+    _expect(int(player.collision_layer) == 0 and int(player.collision_mask) == 0, "Death-pad respawning Sammy should temporarily stop colliding like the original passable/idplayer path.")
+    player.call("apply_quick_turn")
+    _expect(not bool(player.call("is_quick_turning")), "Death-pad respawn should lock quick turn until the fade sequence finishes.")
+    _expect(not bool(player.call("fire_wasp")), "Death-pad respawn should lock wasp fire until the fade sequence finishes.")
+    _expect(not bool(player.call("take_damage", 1.0, null)), "Death-pad respawn should suppress direct damage interactions.")
+
+    for _death_pad_frame in 360:
+        if not bool(player.call("is_death_pad_respawning")):
+            break
+        await physics_frame
+
+    _expect(not bool(player.call("is_death_pad_respawning")), "Death-pad respawn sequence should finish after the original fade-out/fade-in window.")
+    _expect(player.global_position.distance_to(respawn_transform.origin) < 0.05, "Death pad should move Sammy to the stored restart point.")
+    _expect(player.get_facing_direction().distance_to(Vector3.LEFT) < 0.05, "Death pad respawn should restore the stored restart yaw.")
+    _expect(int(player.collision_layer) == CHARACTER_LAYER, "Death-pad respawn should restore Sammy's character collision layer.")
+    _expect(int(player.collision_mask) == WORLD_AND_CHARACTER_MASK, "Death-pad respawn should restore Sammy's world/character collision mask.")
+    _expect(is_equal_approx(float(player.call("get_death_pad_respawn_alpha")), 1.0), "Death-pad respawn should restore Sammy to full visibility.")
+    _expect(is_equal_approx(float(player.call("get_health")), float(player.call("get_max_health"))), "Death-pad respawn should restore WindowHearts to WindowHeartsOrg.")
+    _expect(camera.global_position.distance_to(player.global_position + (camera.call("_get_follow_offset") as Vector3)) < 0.05, "Death-pad respawn should snap the follow camera to Sammy's restart point.")
+    _expect(int(signals["respawned"]) == 1, "Death-pad respawn should emit after a non-final death-pad life loss.")
+    _expect(int(signals["game_over"]) == 0, "Death-pad respawn should not emit game over while lives remain.")
+    var animation_controller := player.call("get_animation_controller") as Node
+    if animation_controller != null:
+        _expect(String(animation_controller.call("get_current_action")) == "stand", "Death-pad respawn should return Sammy to the stand animation.")
+
+    var final_player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(final_player)
+    final_player.global_position = Vector3.ZERO
+    final_player.call("set_lives", 1)
+    for _final_settle_frame in 8:
+        await physics_frame
+    _expect(bool(death_pad.call("try_trigger_body", final_player)), "Death pad should accept Sammy on his final life.")
+    _expect(bool(final_player.call("is_dead")), "Final death-pad life loss should keep Sammy in a dead state.")
+    _expect(bool(final_player.call("is_game_over")), "Final death-pad life loss should enter game over.")
+    _expect(not bool(final_player.call("is_death_pad_respawning")), "Final death-pad life loss should not start a respawn fade.")
+    _expect(int(final_player.call("get_lives")) == 0, "Final death-pad life loss should consume the last life immediately.")
+    _expect(is_equal_approx(float(final_player.call("get_health")), 0.0), "Final death-pad life loss should leave WindowHearts at zero.")
+
+    final_player.queue_free()
+    camera.queue_free()
+    death_pad.queue_free()
+    player.queue_free()
+    floor.queue_free()
+    await process_frame
+
+
 func _make_platform_boost_rider() -> CharacterBody3D:
     var script := GDScript.new()
     script.source_code = "extends CharacterBody3D\n" \
@@ -3615,6 +3783,11 @@ func _test_prototype_world() -> void:
         if teleporter != null:
             _expect(String(teleporter.call("get_visual_source_path")) == "res://assets/models/teleports/teleport/teleport.gltf", "Prototype teleporter should use the converted original teleport WMB visual: %s" % teleporter_path)
             _expect(teleporter.call("get_idle_particle_emitter") != null, "Prototype teleporter should spawn idle original StarHit particles: %s" % teleporter_path)
+    var death_pad := world.get_node_or_null("DeathPads/DeathPadA") as Area3D
+    _expect(death_pad != null, "Prototype world should spawn an editor-authored death pad.")
+    if death_pad != null:
+        _expect(String(death_pad.call("get_visual_source_path")) == "res://assets/models/death_pads/tiledeat/tiledeat.gltf", "Prototype death pad should use the converted original TileDeath WMB visual.")
+        _expect(death_pad.call("get_idle_particle_emitter") != null, "Prototype death pad should spawn idle original TileDeath smoke particles.")
     for _settle_step in 10:
         await physics_frame
     _expect(world.get_node_or_null("Player") != null, "Prototype world is missing its editor-instanced player.")

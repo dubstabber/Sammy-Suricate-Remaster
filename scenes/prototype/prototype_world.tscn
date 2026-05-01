@@ -29,6 +29,7 @@
 [ext_resource type="PackedScene" path="res://scenes/props/death_pad.tscn" id="27_death_pad"]
 [ext_resource type="PackedScene" path="res://scenes/props/checkpoint.tscn" id="28_checkpoint"]
 [ext_resource type="PackedScene" path="res://scenes/spawners/gem_spawner.tscn" id="29_gem_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/spawners/wasp_spawner.tscn" id="30_wasp_spawner"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.22, 0.32, 0.26, 1)
@@ -163,6 +164,22 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, 20)
 wdl_lifetime_ticks = 0.0
 wdl_key_id = 1
 source_wmb_name = "small.pcx"
+
+[node name="WaspSpawners" type="Node3D" parent="."]
+
+[node name="TimedWaspHive" parent="WaspSpawners" instance=ExtResource("30_wasp_spawner")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -3.5)
+wdl_wasp_type_id = 3
+wdl_lifetime_ticks = 32.0
+wdl_vertical_speed_units = 18.0
+wdl_horizontal_speed_units = 10.0
+wdl_random_horizontal_bonus_units = 0.0
+wdl_random_vertical_bonus_units = 0.0
+wdl_auto_interval_ticks = 24.0
+auto_emit_on_ready = true
+auto_initial_delay_ticks = 0.0
+player_slot_source_path = NodePath("../../Player")
+source_wmb_name = "hiveblue.wmb"
 
 [node name="OrangeKeyGate" parent="." unique_id=958164261 instance=ExtResource("22_key_gate")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, 14.5)

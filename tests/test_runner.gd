@@ -9,12 +9,14 @@ const EDITOR_PREVIEW_SCRIPT_PATH := "res://src/editor/sammy_editor_model_preview
 const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
 const WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/wasp_pickup.tscn"
+const LAUNCHED_WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/launched_wasp_pickup.tscn"
 const BOOST_PICKUP_SCENE_PATH := "res://scenes/pickups/boost_pickup.tscn"
 const EYE_OF_TRUTH_PICKUP_SCENE_PATH := "res://scenes/pickups/eye_of_truth_pickup.tscn"
 const DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/diamond_pickup.tscn"
 const KEY_DIAMOND_PICKUP_SCENE_PATH := "res://scenes/pickups/key_diamond_pickup.tscn"
 const LAUNCHED_KEY_GEM_SCENE_PATH := "res://scenes/pickups/launched_key_gem.tscn"
 const GEM_SPAWNER_SCENE_PATH := "res://scenes/spawners/gem_spawner.tscn"
+const WASP_SPAWNER_SCENE_PATH := "res://scenes/spawners/wasp_spawner.tscn"
 const KEY_GATE_SCENE_PATH := "res://scenes/gates/key_gate.tscn"
 const KEY_GATE_GALLERY_SCENE_PATH := "res://scenes/gates/key_gate_gallery.tscn"
 const GATE_WMB_MANIFEST_PATH := "res://assets/models/gates/gate_wmb_manifest.json"
@@ -108,6 +110,7 @@ func _run() -> void:
     _test_wasp_inventory()
     await _test_key_diamond_system(assets)
     await _test_gem_spawner_system(assets)
+    await _test_wasp_spawner_system(assets)
     await _test_gate_visual_models(assets)
     await _test_moving_platform_system(assets)
     await _test_teleporter_system(assets)
@@ -322,11 +325,16 @@ func _test_asset_catalog(assets: Node) -> void:
     for spawner_model_asset_id in [
         "model.gem_spawner.boulder3",
         "model.gem_spawner.boulder4",
-        "model.gem_spawner.boulder5"
+        "model.gem_spawner.boulder5",
+        "model.wasp_spawner.hiveblue",
+        "model.wasp_spawner.hivegree",
+        "model.wasp_spawner.hivemult",
+        "model.wasp_spawner.hivestri"
     ]:
-        _expect(assets.load_asset(spawner_model_asset_id) != null, "Unable to load original gem spawner WMB model: %s" % spawner_model_asset_id)
+        _expect(assets.load_asset(spawner_model_asset_id) != null, "Unable to load original spawner WMB model: %s" % spawner_model_asset_id)
     _expect(assets.load_asset("texture.gem_spawner.small") != null, "Unable to load original small.pcx gem spawner sprite.")
     _expect(assets.load_asset("metadata.gem_spawner_wmb_manifest") != null, "Unable to load converted gem spawner WMB manifest.")
+    _expect(assets.load_asset("metadata.wasp_spawner_wmb_manifest") != null, "Unable to load converted wasp hive WMB manifest.")
     for gem_particle_index in range(1, 7):
         _expect(assets.load_asset("texture.particle.gem_fragment_%d" % gem_particle_index) != null, "Unable to load original key-gem fragment texture %d." % gem_particle_index)
         _expect(assets.load_asset("texture.particle.gem_star_%da" % gem_particle_index) != null, "Unable to load original key-gem star A texture %d." % gem_particle_index)
@@ -2022,6 +2030,228 @@ func _test_gem_spawner_system(assets: Node) -> void:
     auto_spawner.queue_free()
     non_player.queue_free()
     player.queue_free()
+    await process_frame
+
+
+func _test_wasp_spawner_system(assets: Node) -> void:
+    _expect(assets != null, "Wasp spawner tests need Assets service.")
+    if assets == null:
+        return
+
+    var launched_scene := load(LAUNCHED_WASP_PICKUP_SCENE_PATH) as PackedScene
+    var spawner_scene := load(WASP_SPAWNER_SCENE_PATH) as PackedScene
+    _expect(launched_scene != null, "Launched wasp pickup scene should load.")
+    _expect(spawner_scene != null, "Wasp spawner scene should load.")
+    if launched_scene == null or spawner_scene == null:
+        return
+
+    var root := Node3D.new()
+    root.name = "WaspSpawnerTestRoot"
+    get_root().add_child(root)
+
+    var player_scene := load(PLAYER_SCENE_PATH) as PackedScene
+    var player := player_scene.instantiate()
+    root.add_child(player)
+
+    var type_2 := load(WASP_TYPE_2_PATH) as Resource
+    var type_3 := load(WASP_TYPE_3_PATH) as Resource
+    _expect(type_2 != null and type_3 != null, "Wasp spawner tests need wasp type resources.")
+    if type_2 == null or type_3 == null:
+        root.queue_free()
+        await process_frame
+        return
+
+    var launched := launched_scene.instantiate() as Area3D
+    root.add_child(launched)
+    launched.set("bounce_sound_asset_id", "")
+    launched.set("collect_sound_asset_id", "")
+    _expect(bool(launched.call("configure_launch", type_2, 3, 16.0, Vector3.ZERO, 0, null)), "Launched wasp pickup should configure from a hive emission.")
+    _expect(bool(launched.call("is_collectable")), "Settled launched wasps should become collectable when configured for zero bounces.")
+    var inventory: Node = player.call("get_wasp_inventory")
+    _expect(inventory != null, "Launched wasp collection needs player inventory.")
+    if inventory != null:
+        _expect(bool(launched.call("collect", player)), "Collectable launched wasp should grant ammo to the player.")
+        _expect(inventory.call("get_current_type") == type_2, "Launched wasp pickup should set the collected wasp type.")
+        _expect(int(inventory.call("get_ammo_count")) == 3, "Launched wasp pickup should grant its configured ammo amount.")
+
+    var timed := launched_scene.instantiate() as Area3D
+    root.add_child(timed)
+    timed.set("bounce_sound_asset_id", "")
+    timed.set("collect_sound_asset_id", "")
+    _expect(bool(timed.call("configure_launch", type_2, 1, 16.0, Vector3.ZERO, 0, null)), "Timed launched wasp should configure with finite WDL lifetime.")
+    timed.call("_process", 0.6)
+    _expect(float(timed.call("get_visual_alpha_ratio")) < 1.0, "Finite launched wasps should fade during the original final lifetime window.")
+    timed.call("_process", 0.5)
+    _expect(bool(timed.call("is_expired")), "Finite launched wasps should disappear after their WDL lifetime ticks.")
+    _expect(not bool(timed.call("is_collectable")), "Expired launched wasps should not remain collectable.")
+
+    var persistent := launched_scene.instantiate() as Area3D
+    root.add_child(persistent)
+    persistent.set("bounce_sound_asset_id", "")
+    _expect(bool(persistent.call("configure_launch", type_2, 1, 1000.0, Vector3.ZERO, 0, null)), "Persistent launched wasp should configure with WDL 1000 lifetime.")
+    persistent.call("_process", 5.0)
+    _expect(not bool(persistent.call("is_expired")), "WDL 1000 launched wasps should persist instead of expiring.")
+
+    var bouncing := launched_scene.instantiate() as Area3D
+    root.add_child(bouncing)
+    bouncing.global_position = Vector3(0.0, 1.0, 0.0)
+    bouncing.set("bounce_sound_asset_id", "")
+    _expect(bool(bouncing.call("configure_launch", type_3, 1, 1000.0, Vector3(0.0, 1.0, 0.0), 1, null)), "Moving launched wasp should configure with launch velocity.")
+    for _i in range(60):
+        bouncing.call("_physics_process", 0.05)
+        if int(bouncing.call("get_bounce_count")) >= 1:
+            break
+    _expect(int(bouncing.call("get_bounce_count")) >= 1, "Launched wasp should bounce against its configured ground plane.")
+    _expect(bool(bouncing.call("is_collectable")), "Launched wasp should become collectable after the first original bounce.")
+
+    var spawner := spawner_scene.instantiate() as Area3D
+    spawner.set("wdl_flag2_disable_impact", true)
+    root.add_child(spawner)
+    await process_frame
+    _expect(String(spawner.call("get_effective_source_wmb_name")) == "hivegree.wmb", "WaspSpawner should default to the original green hive WMB visual.")
+    _expect(String(spawner.call("get_visual_source_path")) == "res://assets/models/spawners/hivegree/hivegree.gltf", "WaspSpawner should load the converted original hivegree WMB model.")
+    var spawner_solid_body := spawner.call("get_solid_body") as StaticBody3D
+    _expect(spawner_solid_body != null, "WaspSpawner should expose a solid body for projectile impacts.")
+    if spawner_solid_body != null:
+        _expect(int(spawner_solid_body.collision_layer) == WORLD_LAYER, "WaspSpawner solid body should live on the world collision layer.")
+        _expect(spawner_solid_body.get_parent() == spawner, "WaspSpawner solid body should stay attached for hit_by_wasp routing.")
+
+    spawner.set("wasp_type", type_3)
+    spawner.set("wdl_horizontal_speed_units", 0.0)
+    spawner.set("wdl_vertical_speed_units", 0.0)
+    spawner.set("wdl_random_horizontal_bonus_units", 0.0)
+    spawner.set("wdl_random_vertical_bonus_units", 0.0)
+    spawner.set("spawn_offset", Vector3.ZERO)
+    spawner.set("collectable_after_bounces", 0)
+    spawner.set("wdl_lifetime_ticks", 16.0)
+    var spawned_wasp := spawner.call("emit_wasp") as Area3D
+    _expect(spawned_wasp != null, "WaspSpawner.emit_wasp should spawn a launched wasp pickup.")
+    if spawned_wasp != null:
+        spawned_wasp.set("bounce_sound_asset_id", "")
+        _expect(spawned_wasp.call("get_wasp_type") == type_3, "WaspSpawner should emit its configured wasp type.")
+        _expect(int(spawned_wasp.call("get_ammo_amount")) == 1, "Hive-launched wasps should grant the original one-ammo pickup.")
+        _expect(bool(spawned_wasp.call("is_collectable")), "WaspSpawner-emitted settled wasps should honor collectable bounce settings.")
+        _expect(spawned_wasp.call("get_source") == spawner, "WaspSpawner-emitted wasps should retain their source spawner.")
+    _expect(int(spawner.call("get_spawned_count")) == 1, "WaspSpawner should track emitted launched wasps.")
+
+    var preset_spawner := spawner_scene.instantiate() as Area3D
+    preset_spawner.set("wdl_flag2_disable_impact", true)
+    root.add_child(preset_spawner)
+    await process_frame
+    _expect(bool(preset_spawner.call("apply_original_preset", &"auto_blue_hive")), "WaspSpawner should expose original hive presets.")
+    _expect(String(preset_spawner.call("get_effective_source_wmb_name")) == "hiveblue.wmb", "Blue hive preset should select hiveblue.wmb.")
+    _expect(int(preset_spawner.get("wdl_wasp_type_id")) == 3, "Blue hive preset should emit the original blue wasp type.")
+    _expect(is_equal_approx(float(preset_spawner.get("wdl_auto_interval_ticks")), 48.0), "Blue hive preset should preserve the WDL auto interval.")
+    _expect(is_equal_approx(float(preset_spawner.get("auto_initial_delay_ticks")), 32.0), "Blue hive preset should preserve the InitHive startup delay.")
+
+    var impact_spawner := spawner_scene.instantiate() as Area3D
+    root.add_child(impact_spawner)
+    impact_spawner.set("wasp_type", type_2)
+    impact_spawner.set("wdl_required_impactor_id", 9999)
+    impact_spawner.set("wdl_horizontal_speed_units", 0.0)
+    impact_spawner.set("wdl_vertical_speed_units", 0.0)
+    impact_spawner.set("wdl_random_horizontal_bonus_units", 0.0)
+    impact_spawner.set("wdl_random_vertical_bonus_units", 0.0)
+    impact_spawner.set("collectable_after_bounces", 0)
+    _expect(bool(impact_spawner.call("requires_wasp_projectile")), "Skill5 9999 wasp hives should require a wasp projectile impact.")
+    _expect(impact_spawner.call("emit_from_impactor", player) == null, "Wasp-only hives should reject ordinary player impacts.")
+    var projectile_scene := load(WASP_PROJECTILE_SCENE_PATH) as PackedScene
+    _expect(projectile_scene != null, "Wasp projectile scene should load for wasp hive impact tests.")
+    var projectile: Node = null
+    if projectile_scene != null:
+        projectile = projectile_scene.instantiate()
+        projectile.set("hit_sound_asset_id", "")
+        root.add_child(projectile)
+        projectile.call("configure", type_2, null, Transform3D(Basis(), Vector3(0.0, 0.7, 0.0)))
+        _expect(bool(impact_spawner.call("hit_by_wasp", projectile)), "Wasp-only hives should emit when hit by a wasp projectile identity.")
+
+    var auto_spawner := spawner_scene.instantiate() as Area3D
+    auto_spawner.set("wdl_flag2_disable_impact", true)
+    auto_spawner.set("wasp_type", type_2)
+    auto_spawner.set("wdl_auto_interval_ticks", 1.0)
+    auto_spawner.set("auto_emit_on_ready", true)
+    auto_spawner.set("auto_initial_delay_ticks", 0.0)
+    auto_spawner.set("max_auto_emissions", 1)
+    auto_spawner.set("wdl_horizontal_speed_units", 0.0)
+    auto_spawner.set("wdl_vertical_speed_units", 0.0)
+    auto_spawner.set("wdl_random_horizontal_bonus_units", 0.0)
+    auto_spawner.set("wdl_random_vertical_bonus_units", 0.0)
+    root.add_child(auto_spawner)
+    auto_spawner.call("_process", 1.0 / 16.0)
+    _expect(int(auto_spawner.call("get_spawned_count")) == 1, "Auto wasp spawner should emit after its WDL interval.")
+
+    var slot_spawner := spawner_scene.instantiate() as Area3D
+    slot_spawner.set("wdl_flag2_disable_impact", true)
+    slot_spawner.set("wasp_type", type_2)
+    slot_spawner.set("wdl_slot_limit", 3)
+    slot_spawner.set("wdl_auto_interval_ticks", 1.0)
+    slot_spawner.set("auto_emit_on_ready", true)
+    slot_spawner.set("auto_initial_delay_ticks", 0.0)
+    slot_spawner.set("wdl_horizontal_speed_units", 0.0)
+    slot_spawner.set("wdl_vertical_speed_units", 0.0)
+    slot_spawner.set("wdl_random_horizontal_bonus_units", 0.0)
+    slot_spawner.set("wdl_random_vertical_bonus_units", 0.0)
+    slot_spawner.set("player_slot_source_path", NodePath("../Player"))
+    root.add_child(slot_spawner)
+    var random_slot_spawner := spawner_scene.instantiate() as Area3D
+    random_slot_spawner.set("wdl_flag2_disable_impact", true)
+    random_slot_spawner.set("wdl_wasp_type_id", 999)
+    random_slot_spawner.set("wdl_slot_limit", 3)
+    random_slot_spawner.set("wdl_auto_interval_ticks", 1.0)
+    random_slot_spawner.set("auto_emit_on_ready", true)
+    random_slot_spawner.set("auto_initial_delay_ticks", 0.0)
+    random_slot_spawner.set("wdl_horizontal_speed_units", 0.0)
+    random_slot_spawner.set("wdl_vertical_speed_units", 0.0)
+    random_slot_spawner.set("wdl_random_horizontal_bonus_units", 0.0)
+    random_slot_spawner.set("wdl_random_vertical_bonus_units", 0.0)
+    random_slot_spawner.set("player_slot_source_path", NodePath("../Player"))
+    root.add_child(random_slot_spawner)
+    if inventory != null:
+        while bool(inventory.call("consume_ammo", 1)):
+            pass
+        inventory.call("add_ammo", type_2, 3)
+        _expect(int(inventory.call("get_ammo_count")) == 3 and inventory.call("get_current_type") == type_2, "Wasp slot gate test expects the player to hold three type-2 wasps.")
+        slot_spawner.call("_process", 1.0 / 16.0)
+        _expect(int(slot_spawner.call("get_spawned_count")) == 0, "Auto wasp hives should pause when the player already has the WDL slot limit for that wasp type.")
+        _expect(bool(slot_spawner.call("is_waiting_for_player_slot")), "Auto wasp hives should expose that they are waiting for player slot capacity.")
+        inventory.call("consume_ammo", 1)
+        slot_spawner.call("_process", 1.0 / 16.0)
+        _expect(int(slot_spawner.call("get_spawned_count")) == 1, "Auto wasp hives should resume after the player drops below the WDL slot limit.")
+        inventory.call("add_ammo", type_3, 6)
+        slot_spawner.call("_process", 1.0 / 16.0)
+        _expect(int(slot_spawner.call("get_spawned_count")) == 2, "Auto wasp hives should emit when the current player slot contains a different wasp type.")
+        random_slot_spawner.call("_process", 1.0 / 16.0)
+        _expect(int(random_slot_spawner.call("get_spawned_count")) == 1, "Random auto wasp hives should preserve the original Skill6 999 behavior and ignore same-slot ammo caps.")
+
+    for spawned: Node in spawner.call("get_spawned_wasps"):
+        if spawned != null:
+            spawned.queue_free()
+    for spawned: Node in impact_spawner.call("get_spawned_wasps"):
+        if spawned != null:
+            spawned.queue_free()
+    for spawned: Node in auto_spawner.call("get_spawned_wasps"):
+        if spawned != null:
+            spawned.queue_free()
+    for spawned: Node in slot_spawner.call("get_spawned_wasps"):
+        if spawned != null:
+            spawned.queue_free()
+    for spawned: Node in random_slot_spawner.call("get_spawned_wasps"):
+        if spawned != null:
+            spawned.queue_free()
+    launched.queue_free()
+    timed.queue_free()
+    persistent.queue_free()
+    bouncing.queue_free()
+    spawner.queue_free()
+    preset_spawner.queue_free()
+    impact_spawner.queue_free()
+    auto_spawner.queue_free()
+    slot_spawner.queue_free()
+    random_slot_spawner.queue_free()
+    if projectile != null and is_instance_valid(projectile):
+        projectile.queue_free()
+    player.queue_free()
+    root.queue_free()
     await process_frame
 
 
@@ -4583,6 +4813,14 @@ func _test_prototype_world() -> void:
                     await process_frame
                     _expect(not wasp_pickup.monitoring, "Wasp pickup should stop monitoring after collection.")
                     _expect(not wasp_pickup.monitorable, "Wasp pickup should stop being monitorable after collection.")
+        var timed_wasp_hive := world.get_node_or_null("WaspSpawners/TimedWaspHive") as Area3D
+        _expect(timed_wasp_hive != null, "Prototype world should include a playable original-style wasp hive spawner.")
+        if timed_wasp_hive != null:
+            _expect(int(timed_wasp_hive.get("wdl_wasp_type_id")) == 3, "Prototype wasp hive should demonstrate a blue launched wasp.")
+            _expect(is_equal_approx(float(timed_wasp_hive.get("wdl_lifetime_ticks")), 32.0), "Prototype wasp hive should demonstrate finite spawned-wasp lifetime.")
+            _expect(int(timed_wasp_hive.get("max_auto_emissions")) == 0, "Prototype wasp hive should keep auto spawning until the player slot reaches the original cap.")
+            _expect(int(timed_wasp_hive.get("wdl_slot_limit")) == 10, "Prototype wasp hive should use the original fallback Skill11 slot limit.")
+            _expect(String(timed_wasp_hive.call("get_visual_source_path")) == "res://assets/models/spawners/hiveblue/hiveblue.gltf", "Prototype wasp hive should use the original hiveblue WMB visual.")
     await _expect_solid_collision_contacts(world)
     await _expect_enemy_gravity(world)
     var audio := root.get_node_or_null("Audio")

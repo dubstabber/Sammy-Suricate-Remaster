@@ -158,6 +158,30 @@ const CATALOG := {
 		"kind": "model",
 		"description": "Original boulder5 WMB used by InitBoulder gem spawners"
 	},
+	"model.wasp_spawner.hiveblue": {
+		"path": "res://assets/models/spawners/hiveblue/hiveblue.gltf",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/hiveblue.wmb",
+		"kind": "model",
+		"description": "Original hiveblue WMB used by InitHive wasp spawners"
+	},
+	"model.wasp_spawner.hivegree": {
+		"path": "res://assets/models/spawners/hivegree/hivegree.gltf",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/hivegree.wmb",
+		"kind": "model",
+		"description": "Original hivegree WMB used by InitHive wasp spawners"
+	},
+	"model.wasp_spawner.hivemult": {
+		"path": "res://assets/models/spawners/hivemult/hivemult.gltf",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/hivemult.wmb",
+		"kind": "model",
+		"description": "Original hivemult WMB used by InitHive wasp spawners"
+	},
+	"model.wasp_spawner.hivestri": {
+		"path": "res://assets/models/spawners/hivestri/hivestri.gltf",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/hivestri.wmb",
+		"kind": "model",
+		"description": "Original hivestri WMB used by InitHive wasp spawners"
+	},
 	"texture.gem_spawner.small": {
 		"path": "res://assets/textures/spawners/small.png",
 		"source": "extract-sammy-assets/extracted/godot/textures/small.png",
@@ -706,6 +730,12 @@ const CATALOG := {
 		"source": "extract-sammy-assets/extracted/godot/raw/levels",
 		"kind": "metadata",
 		"description": "Converted original InitBoulder gem spawner WMB manifest"
+	},
+	"metadata.wasp_spawner_wmb_manifest": {
+		"path": "res://assets/models/spawners/hive_spawner_wmb_manifest.json",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels",
+		"kind": "metadata",
+		"description": "Converted original InitHive wasp spawner WMB manifest"
 	}
 }
 

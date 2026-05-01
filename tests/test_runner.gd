@@ -57,10 +57,24 @@ const KEY_GATE_MATCH_ANY := 5
 const KEY_GATE_CLOSE_STAY_OPEN := 0
 const KEY_GATE_CLOSE_AUTO := 1
 const KEY_GATE_CLOSE_PERMANENT := 2
+const KEY_DIAMOND_RED := 1
 const KEY_DIAMOND_YELLOW := 2
 const KEY_DIAMOND_ORANGE := 3
+const KEY_DIAMOND_BLUE := 4
+const KEY_DIAMOND_MAGENTA := 5
+const KEY_DIAMOND_GREEN := 6
 const PLATFORM_MATCH_COMPONENT := 0
 const PLATFORM_MATCH_EXACT := 1
+const PLATFORM_VARIANT_UNLOCKED_ACTIVE := 1
+const PLATFORM_VARIANT_UNLOCKED_COLUMN := 2
+const PLATFORM_VARIANT_UNLOCKED_COLUMN_ALT := 3
+const PLATFORM_VARIANT_RED_KEY := 4
+const PLATFORM_VARIANT_YELLOW_KEY := 5
+const PLATFORM_VARIANT_BLUE_KEY := 6
+const PLATFORM_VARIANT_ORANGE_MIXED_KEY := 7
+const PLATFORM_VARIANT_MAGENTA_MIXED_KEY := 8
+const PLATFORM_VARIANT_GREEN_MIXED_KEY := 9
+const PLATFORM_VARIANT_INVISIBLE_RED_KEY := 10
 
 var _failures: Array[String] = []
 
@@ -214,9 +228,18 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("model.rasta.animated") != null, "Unable to load copied rasta model resource.")
     _expect(assets.load_asset("model.punk.animated") != null, "Unable to load copied punk model resource.")
     _expect(assets.load_asset("model.boost") != null, "Unable to load copied boost model resource.")
-    _expect(assets.load_asset("model.platform.default") != null, "Unable to load converted inactive moving platform WMB.")
-    _expect(assets.load_asset("model.platform.active") != null, "Unable to load converted active moving platform WMB.")
-    _expect(assets.load_asset("model.platform.yellow") != null, "Unable to load converted yellow moving platform WMB.")
+    for platform_asset_id in [
+        "model.platform.default",
+        "model.platform.active",
+        "model.platform.column_alt",
+        "model.platform.red",
+        "model.platform.yellow",
+        "model.platform.orange",
+        "model.platform.blue",
+        "model.platform.magenta",
+        "model.platform.green"
+    ]:
+        _expect(assets.load_asset(platform_asset_id) != null, "Unable to load converted moving platform WMB: %s" % platform_asset_id)
     _expect(assets.load_asset("model.cactus1") != null, "Unable to load copied cactus model resource.")
     _expect(assets.has_asset("texture.particle.small_star_1a"), "Asset catalog is missing original boost particle sprite.")
     _expect(assets.load_asset("texture.particle.small_star_1a") != null, "Unable to load original boost particle sprite.")
@@ -1869,6 +1892,7 @@ func _test_moving_platform_system(_assets: Node) -> void:
     if platform_scene == null:
         return
     _test_platform_wmb_manifest_textures()
+    await _test_moving_platform_variants(platform_scene)
 
     var platform := platform_scene.instantiate() as AnimatableBody3D
     _expect(platform != null, "Moving platform should instantiate as AnimatableBody3D.")
@@ -1883,6 +1907,7 @@ func _test_moving_platform_system(_assets: Node) -> void:
 
     _expect(platform.collision_layer == WORLD_LAYER, "Moving platform should live on the world collision layer.")
     _expect(platform.collision_mask == CHARACTER_LAYER, "Moving platform should collide with solid characters.")
+    _expect(not platform.sync_to_physics, "Moving platform should allow script-driven transform updates.")
     var sensor := platform.get_node_or_null("ActivationSensor") as Area3D
     _expect(sensor != null, "Moving platform should expose a top activation sensor.")
     if sensor != null:
@@ -1893,10 +1918,12 @@ func _test_moving_platform_system(_assets: Node) -> void:
     _expect(is_equal_approx(float(platform.call("get_endpoint_wait_seconds")), 0.5), "WDL platform wait ticks should convert through 16 ticks/sec.")
     _expect(bool(platform.call("has_original_visual_model")), "Moving platform should load a converted original WMB model.")
     _expect(String(platform.call("get_visual_source_path")) == "res://assets/models/platforms/platfor1/platfor1.gltf", "Unlocked active platform should use the activated original WMB visual.")
+    var starting_position := platform.global_position
     platform.call("_physics_process", 0.25)
     var displacement := platform.call("get_last_platform_displacement") as Vector3
     var velocity := platform.call("get_last_platform_velocity") as Vector3
     _expect(displacement.length() > 0.39 and displacement.length() < 0.41, "Moving platform should advance by converted WDL speed.")
+    _expect(platform.global_position.distance_to(starting_position + displacement) < 0.001, "Moving platform should update its actual AnimatableBody3D transform.")
     _expect(velocity.length() > 1.59 and velocity.length() < 1.61, "Moving platform should expose its last platform velocity.")
     platform.queue_free()
 
@@ -1945,6 +1972,163 @@ func _test_moving_platform_system(_assets: Node) -> void:
     _expect(int(boost_rider.get("boost_calls")) >= 1, "Platform speedup should ask the rider to consume platform boost.")
     boost_platform.queue_free()
     boost_rider.queue_free()
+
+    var local_axis_platform := platform_scene.instantiate() as AnimatableBody3D
+    local_axis_platform.set("platform_variant", PLATFORM_VARIANT_UNLOCKED_COLUMN)
+    local_axis_platform.rotation.y = PI / 2.0
+    local_axis_platform.set("wdl_speed_units", 10.0)
+    root.add_child(local_axis_platform)
+    await process_frame
+    var expected_local_direction := (local_axis_platform.global_transform.basis * Vector3.RIGHT).normalized()
+    local_axis_platform.call("_physics_process", 0.25)
+    var local_axis_displacement := local_axis_platform.call("get_last_platform_displacement") as Vector3
+    _expect(local_axis_displacement.length() > 0.39 and local_axis_displacement.length() < 0.41, "Local-axis platform should advance by converted WDL speed.")
+    _expect(local_axis_displacement.normalized().dot(expected_local_direction) > 0.99, "Local-axis platform should move along its rotated local X axis.")
+    local_axis_platform.queue_free()
+
+    var wait_platform := platform_scene.instantiate() as AnimatableBody3D
+    wait_platform.set("platform_variant", PLATFORM_VARIANT_UNLOCKED_COLUMN)
+    wait_platform.set("end_offset", Vector3(0.2, 0.0, 0.0))
+    wait_platform.set("wdl_speed_units", 20.0)
+    wait_platform.set("endpoint_wait_ticks", 16.0)
+    root.add_child(wait_platform)
+    await process_frame
+    wait_platform.call("_physics_process", 1.0)
+    wait_platform.call("_physics_process", 0.25)
+    var wait_displacement := wait_platform.call("get_last_platform_displacement") as Vector3
+    _expect(wait_displacement.is_zero_approx(), "Endpoint wait should pause movement after the platform reaches its target.")
+    wait_platform.queue_free()
+
+    var turnaround_platform := platform_scene.instantiate() as AnimatableBody3D
+    turnaround_platform.set("platform_variant", PLATFORM_VARIANT_UNLOCKED_ACTIVE)
+    turnaround_platform.set("end_offset", Vector3(0.2, 0.0, 0.0))
+    turnaround_platform.set("wdl_speed_units", 20.0)
+    turnaround_platform.set("endpoint_wait_ticks", 0.0)
+    turnaround_platform.set("turnaround_yaw_degrees", 90.0)
+    root.add_child(turnaround_platform)
+    await process_frame
+    turnaround_platform.call("_physics_process", 1.0)
+    _expect(is_equal_approx(absf(wrapf(turnaround_platform.rotation.y, -PI, PI)), PI / 2.0), "Turnaround platform should rotate by its WDL-style endpoint yaw.")
+    turnaround_platform.queue_free()
+    await process_frame
+
+
+func _test_moving_platform_variants(platform_scene: PackedScene) -> void:
+    var player_scene := load(PLAYER_SCENE_PATH) as PackedScene
+    var player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    await process_frame
+
+    var variants := [
+        {
+            "variant": PLATFORM_VARIANT_UNLOCKED_ACTIVE,
+            "source": "platfor2.wmb",
+            "active": "platfor1.wmb",
+            "key": 0,
+            "match": PLATFORM_MATCH_COMPONENT,
+            "active_visual": "platfor1.wmb"
+        },
+        {
+            "variant": PLATFORM_VARIANT_UNLOCKED_COLUMN,
+            "source": "platfor2.wmb",
+            "active": "platfor2.wmb",
+            "key": 0,
+            "match": PLATFORM_MATCH_COMPONENT,
+            "active_visual": "platfor2.wmb"
+        },
+        {
+            "variant": PLATFORM_VARIANT_UNLOCKED_COLUMN_ALT,
+            "source": "platfor3.wmb",
+            "active": "platfor3.wmb",
+            "key": 0,
+            "match": PLATFORM_MATCH_COMPONENT,
+            "active_visual": "platfor3.wmb"
+        },
+        {
+            "variant": PLATFORM_VARIANT_RED_KEY,
+            "source": "platfred.wmb",
+            "active": "platfor1.wmb",
+            "key": KEY_DIAMOND_RED,
+            "match": PLATFORM_MATCH_EXACT
+        },
+        {
+            "variant": PLATFORM_VARIANT_YELLOW_KEY,
+            "source": "platfyel.wmb",
+            "active": "platfor1.wmb",
+            "key": KEY_DIAMOND_YELLOW,
+            "match": PLATFORM_MATCH_EXACT
+        },
+        {
+            "variant": PLATFORM_VARIANT_BLUE_KEY,
+            "source": "platfblu.wmb",
+            "active": "platfor1.wmb",
+            "key": KEY_DIAMOND_BLUE,
+            "match": PLATFORM_MATCH_EXACT
+        },
+        {
+            "variant": PLATFORM_VARIANT_ORANGE_MIXED_KEY,
+            "source": "platfora.wmb",
+            "active": "platfor1.wmb",
+            "key": KEY_DIAMOND_ORANGE,
+            "match": PLATFORM_MATCH_COMPONENT
+        },
+        {
+            "variant": PLATFORM_VARIANT_MAGENTA_MIXED_KEY,
+            "source": "platfmag.wmb",
+            "active": "platfor1.wmb",
+            "key": KEY_DIAMOND_MAGENTA,
+            "match": PLATFORM_MATCH_COMPONENT
+        },
+        {
+            "variant": PLATFORM_VARIANT_GREEN_MIXED_KEY,
+            "source": "platgree.wmb",
+            "active": "platfor1.wmb",
+            "key": KEY_DIAMOND_GREEN,
+            "match": PLATFORM_MATCH_COMPONENT
+        },
+        {
+            "variant": PLATFORM_VARIANT_INVISIBLE_RED_KEY,
+            "source": "platfred.wmb",
+            "active": "platfor1.wmb",
+            "key": KEY_DIAMOND_RED,
+            "match": PLATFORM_MATCH_EXACT,
+            "invisible": true
+        }
+    ]
+
+    for variant in variants:
+        var platform := platform_scene.instantiate() as AnimatableBody3D
+        platform.set("platform_variant", int(variant["variant"]))
+        root.add_child(platform)
+        await process_frame
+
+        var source := String(variant["source"])
+        var active_source := String(variant["active"])
+        var required_key := int(variant["key"])
+        var match_mode := int(variant["match"])
+        _expect(String(platform.get("source_wmb_name")) == source, "Platform variant should configure its source WMB: %s" % source)
+        _expect(String(platform.get("active_wmb_name")) == active_source, "Platform variant should configure its active WMB: %s" % source)
+        _expect(int(platform.get("required_key_id")) == required_key, "Platform variant should configure its key requirement: %s" % source)
+        _expect(int(platform.get("key_match_mode")) == match_mode, "Platform variant should configure its key-match mode: %s" % source)
+
+        if required_key == 0:
+            var active_visual := String(variant["active_visual"])
+            _expect(bool(platform.call("is_active")), "Unlocked platform variant should start active: %s" % source)
+            _expect(String(platform.call("get_visual_source_path")) == _platform_visual_path(active_visual), "Unlocked platform variant should expose its active visual: %s" % active_visual)
+        else:
+            _expect(not bool(platform.call("is_active")), "Keyed platform variant should wait for activation: %s" % source)
+            if bool(variant.get("invisible", false)):
+                var visual_root := platform.get_node_or_null("VisualRoot") as Node3D
+                _expect(String(platform.call("get_visual_source_path")).is_empty(), "Invisible platform variant should hide its source visual before activation.")
+                _expect(visual_root != null and not visual_root.visible, "Invisible platform variant should hide VisualRoot before activation.")
+            else:
+                _expect(String(platform.call("get_visual_source_path")) == _platform_visual_path(source), "Keyed platform variant should expose its lock visual before activation: %s" % source)
+            player.call("set_current_key_id", required_key)
+            _expect(bool(platform.call("activate", player)), "Platform variant should activate with the matching original key: %s" % source)
+            _expect(String(platform.call("get_visual_source_path")) == _platform_visual_path(active_source), "Activated platform variant should morph to the original valid-platform WMB: %s" % source)
+        platform.queue_free()
+
+    player.queue_free()
     await process_frame
 
 
@@ -1967,6 +2151,11 @@ func _make_platform_boost_rider() -> CharacterBody3D:
     return rider
 
 
+func _platform_visual_path(source_wmb_name: String) -> String:
+    var stem := source_wmb_name.get_file().to_lower().trim_suffix(".wmb")
+    return "res://assets/models/platforms/%s/%s.gltf" % [stem, stem]
+
+
 func _test_platform_wmb_manifest_textures() -> void:
     var text := FileAccess.get_file_as_string(PLATFORM_WMB_MANIFEST_PATH)
     _expect(not text.is_empty(), "Platform WMB conversion manifest should exist.")
@@ -1986,8 +2175,15 @@ func _test_platform_wmb_manifest_textures() -> void:
     _expect(entries_by_source.size() == 9, "Platform WMB conversion should include all bound original platform variants.")
     _expect(_gate_manifest_uses_textures(entries_by_source, "platfor1.wmb", ["platforme_valid", "platform_valide"]), "Active platform WMB should keep both original valid-platform textures.")
     _expect(_gate_manifest_uses_textures(entries_by_source, "platfor2.wmb", ["platform_colonn"]), "Inactive platform WMB should keep the original column platform texture.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "platfor3.wmb", ["platform_colonn"]), "Alternate inactive platform WMB should keep the original column platform texture.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "platfred.wmb", ["lockgem_red", "lockgem_red16x1"]), "Red platform WMB should keep both embedded red lock-gem textures.")
     _expect(_gate_manifest_uses_textures(entries_by_source, "platfyel.wmb", ["lockgem_yellow", "lockgem_yellow1"]), "Yellow platform WMB should keep both embedded yellow lock-gem textures.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "platfora.wmb", ["lockgem_orange", "lockgem_or_16x1"]), "Orange platform WMB should keep both embedded orange lock-gem textures.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "platfblu.wmb", ["lockgem_blue", "lockgem_blue_16"]), "Blue platform WMB should keep both embedded blue lock-gem textures.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "platfmag.wmb", ["lockgem_magmix", "lockgem_magmix1"]), "Magenta platform WMB should keep both embedded magenta lock-gem textures.")
+    _expect(_gate_manifest_uses_textures(entries_by_source, "platgree.wmb", ["lockgem_green", "lockgem_green16"]), "Green platform WMB should keep both embedded green lock-gem textures.")
     _expect(_gate_manifest_skipped_no_render(entries_by_source, "platfor2.wmb", 1), "Inactive platform conversion should skip its WMB no-render face.")
+    _expect(_gate_manifest_skipped_no_render(entries_by_source, "platfor3.wmb", 1), "Alternate inactive platform conversion should skip its WMB no-render face.")
     _expect(_gate_manifest_has_texinfo(entries_by_source, "platfor1.wmb", 4), "Active platform conversion should use original WMB texinfo records.")
     _expect(_gate_manifest_has_texinfo(entries_by_source, "platfyel.wmb", 4), "Yellow platform conversion should use original WMB texinfo records.")
 
@@ -3194,6 +3390,7 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("GateTestGallery") != null, "Prototype gate test gallery should be editor-instanced.")
     _expect(world.get_node_or_null("Platforms/UnlockedMovingPlatform") != null, "Prototype unlocked moving platform should be editor-instanced.")
     _expect(world.get_node_or_null("Platforms/YellowKeyMovingPlatform") != null, "Prototype key-gated moving platform should be editor-instanced.")
+    _expect(world.get_node_or_null("Platforms/PlatformGallery") != null, "Prototype platform gallery should be editor-authored.")
     _expect(world.get_node_or_null("DebugOverlay") != null, "Prototype debug overlay should be editor-instanced.")
     var floor := world.get_node_or_null("PrototypeFloor") as StaticBody3D
     _expect(floor != null, "Prototype floor should be a StaticBody3D.")
@@ -3221,6 +3418,30 @@ func _test_prototype_world() -> void:
     if yellow_platform != null:
         _expect(int(yellow_platform.get("required_key_id")) == KEY_DIAMOND_YELLOW, "Prototype yellow key platform should use the original yellow key requirement.")
         _expect(int(yellow_platform.get("key_match_mode")) == PLATFORM_MATCH_EXACT, "Prototype yellow key platform should use exact WDL key matching.")
+    var gallery_platform_configs := [
+        ["ActivatedVisualPlatform", PLATFORM_VARIANT_UNLOCKED_ACTIVE, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT],
+        ["ColumnPlatform", PLATFORM_VARIANT_UNLOCKED_COLUMN, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT],
+        ["ColumnAltPlatform", PLATFORM_VARIANT_UNLOCKED_COLUMN_ALT, "platfor3.wmb", 0, PLATFORM_MATCH_COMPONENT],
+        ["RedKeyPlatform", PLATFORM_VARIANT_RED_KEY, "platfred.wmb", KEY_DIAMOND_RED, PLATFORM_MATCH_EXACT],
+        ["YellowKeyPlatform", PLATFORM_VARIANT_YELLOW_KEY, "platfyel.wmb", KEY_DIAMOND_YELLOW, PLATFORM_MATCH_EXACT],
+        ["BlueKeyPlatform", PLATFORM_VARIANT_BLUE_KEY, "platfblu.wmb", KEY_DIAMOND_BLUE, PLATFORM_MATCH_EXACT],
+        ["OrangeMixedKeyPlatform", PLATFORM_VARIANT_ORANGE_MIXED_KEY, "platfora.wmb", KEY_DIAMOND_ORANGE, PLATFORM_MATCH_COMPONENT],
+        ["MagentaMixedKeyPlatform", PLATFORM_VARIANT_MAGENTA_MIXED_KEY, "platfmag.wmb", KEY_DIAMOND_MAGENTA, PLATFORM_MATCH_COMPONENT],
+        ["GreenMixedKeyPlatform", PLATFORM_VARIANT_GREEN_MIXED_KEY, "platgree.wmb", KEY_DIAMOND_GREEN, PLATFORM_MATCH_COMPONENT],
+        ["InvisibleRedKeyPlatform", PLATFORM_VARIANT_INVISIBLE_RED_KEY, "platfred.wmb", KEY_DIAMOND_RED, PLATFORM_MATCH_EXACT],
+        ["LocalAxisPlatform", PLATFORM_VARIANT_UNLOCKED_COLUMN, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT],
+        ["VerticalPlatform", PLATFORM_VARIANT_UNLOCKED_COLUMN_ALT, "platfor3.wmb", 0, PLATFORM_MATCH_COMPONENT],
+        ["TurnaroundPlatform", PLATFORM_VARIANT_UNLOCKED_ACTIVE, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT]
+    ]
+    for gallery_platform_config in gallery_platform_configs:
+        var gallery_platform_name := String(gallery_platform_config[0])
+        var gallery_platform := world.get_node_or_null("Platforms/PlatformGallery/%s" % gallery_platform_name) as AnimatableBody3D
+        _expect(gallery_platform != null, "Prototype platform gallery should include %s." % gallery_platform_name)
+        if gallery_platform != null:
+            _expect(int(gallery_platform.get("platform_variant")) == int(gallery_platform_config[1]), "Gallery platform should use its expected preset: %s" % gallery_platform_name)
+            _expect(String(gallery_platform.get("source_wmb_name")) == String(gallery_platform_config[2]), "Gallery platform should expose its original source WMB: %s" % gallery_platform_name)
+            _expect(int(gallery_platform.get("required_key_id")) == int(gallery_platform_config[3]), "Gallery platform should use its expected original key: %s" % gallery_platform_name)
+            _expect(int(gallery_platform.get("key_match_mode")) == int(gallery_platform_config[4]), "Gallery platform should use its expected original key match mode: %s" % gallery_platform_name)
     var enemies := world.get_node_or_null("Enemies")
     _expect(enemies != null, "Prototype scene should expose a designer-editable Enemies container.")
     for enemy_path in ["Enemies/model_rasta_animated", "Enemies/model_punk_animated"]:
@@ -3238,6 +3459,30 @@ func _test_prototype_world() -> void:
     if yellow_platform != null:
         _expect(not bool(yellow_platform.call("is_active")), "Prototype yellow key platform should wait for the matching key.")
         _expect(String(yellow_platform.call("get_visual_source_path")) == "res://assets/models/platforms/platfyel/platfyel.gltf", "Prototype yellow key platform should expose the yellow lock WMB visual before activation.")
+    var gallery_visuals := [
+        ["ActivatedVisualPlatform", "platfor1.wmb"],
+        ["ColumnPlatform", "platfor2.wmb"],
+        ["ColumnAltPlatform", "platfor3.wmb"],
+        ["RedKeyPlatform", "platfred.wmb"],
+        ["YellowKeyPlatform", "platfyel.wmb"],
+        ["BlueKeyPlatform", "platfblu.wmb"],
+        ["OrangeMixedKeyPlatform", "platfora.wmb"],
+        ["MagentaMixedKeyPlatform", "platfmag.wmb"],
+        ["GreenMixedKeyPlatform", "platgree.wmb"],
+        ["LocalAxisPlatform", "platfor2.wmb"],
+        ["VerticalPlatform", "platfor3.wmb"],
+        ["TurnaroundPlatform", "platfor1.wmb"]
+    ]
+    for gallery_visual in gallery_visuals:
+        var gallery_platform_name := String(gallery_visual[0])
+        var gallery_platform := world.get_node_or_null("Platforms/PlatformGallery/%s" % gallery_platform_name) as AnimatableBody3D
+        if gallery_platform != null:
+            _expect(String(gallery_platform.call("get_visual_source_path")) == _platform_visual_path(String(gallery_visual[1])), "Gallery platform should load its original visual model: %s" % gallery_platform_name)
+    var invisible_gallery_platform := world.get_node_or_null("Platforms/PlatformGallery/InvisibleRedKeyPlatform") as AnimatableBody3D
+    if invisible_gallery_platform != null:
+        var invisible_gallery_root := invisible_gallery_platform.get_node_or_null("VisualRoot") as Node3D
+        _expect(String(invisible_gallery_platform.call("get_visual_source_path")).is_empty(), "Invisible gallery platform should hide its source visual until activation.")
+        _expect(invisible_gallery_root != null and not invisible_gallery_root.visible, "Invisible gallery platform VisualRoot should be hidden until activation.")
     for _settle_step in 10:
         await physics_frame
     _expect(world.get_node_or_null("Player") != null, "Prototype world is missing its editor-instanced player.")

@@ -18,6 +18,7 @@ roughness = 0.75
 [node name="MovingPlatform" type="AnimatableBody3D"]
 collision_layer = 1
 collision_mask = 2
+sync_to_physics = false
 script = ExtResource("1_platform")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

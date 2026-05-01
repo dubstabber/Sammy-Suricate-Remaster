@@ -13,7 +13,35 @@ const VISUAL_MODEL_ROOT_NAME := "PlatformModelRoot"
 const MATCH_COMPONENT_OR_EXACT := 0
 const MATCH_EXACT_ONLY := 1
 
+const VARIANT_CUSTOM := 0
+const VARIANT_UNLOCKED_ACTIVE := 1
+const VARIANT_UNLOCKED_COLUMN := 2
+const VARIANT_UNLOCKED_COLUMN_ALT := 3
+const VARIANT_RED_KEY := 4
+const VARIANT_YELLOW_KEY := 5
+const VARIANT_BLUE_KEY := 6
+const VARIANT_ORANGE_MIXED_KEY := 7
+const VARIANT_MAGENTA_MIXED_KEY := 8
+const VARIANT_GREEN_MIXED_KEY := 9
+const VARIANT_INVISIBLE_RED_KEY := 10
+
 @export var platform_id: int = 8465
+@export_enum(
+        "Custom",
+        "Unlocked Active",
+        "Unlocked Column",
+        "Unlocked Column Alt",
+        "Red Key",
+        "Yellow Key",
+        "Blue Key",
+        "Orange Mixed Key",
+        "Magenta Mixed Key",
+        "Green Mixed Key",
+        "Invisible Red Key")
+var platform_variant: int = VARIANT_CUSTOM:
+    set(value):
+        platform_variant = value
+        _apply_platform_variant(value)
 @export var source_wmb_name: String = "platfor2.wmb":
     set(value):
         source_wmb_name = value
@@ -49,6 +77,7 @@ var _active_rider: Node = null
 
 func _ready() -> void:
     add_to_group("moving_platform")
+    sync_to_physics = false
     _start_position = global_position
     _path_basis = global_transform.basis
     _end_position = _start_position + _path_basis * end_offset
@@ -136,6 +165,49 @@ func get_effective_source_wmb_name() -> String:
     if _active and morph_to_active_visual and not active_wmb_name.is_empty():
         return active_wmb_name.get_file().to_lower()
     return source_wmb_name.get_file().to_lower()
+
+
+func _apply_platform_variant(variant: int) -> void:
+    match variant:
+        VARIANT_UNLOCKED_ACTIVE:
+            _configure_platform_visual("platfor2.wmb", "platfor1.wmb", KEY_RULES.KEY_NONE, MATCH_COMPONENT_OR_EXACT, false, true)
+        VARIANT_UNLOCKED_COLUMN:
+            _configure_platform_visual("platfor2.wmb", "platfor2.wmb", KEY_RULES.KEY_NONE, MATCH_COMPONENT_OR_EXACT, false, false)
+        VARIANT_UNLOCKED_COLUMN_ALT:
+            _configure_platform_visual("platfor3.wmb", "platfor3.wmb", KEY_RULES.KEY_NONE, MATCH_COMPONENT_OR_EXACT, false, false)
+        VARIANT_RED_KEY:
+            _configure_platform_visual("platfred.wmb", "platfor1.wmb", KEY_RULES.KEY_RED, MATCH_EXACT_ONLY, false, true)
+        VARIANT_YELLOW_KEY:
+            _configure_platform_visual("platfyel.wmb", "platfor1.wmb", KEY_RULES.KEY_YELLOW, MATCH_EXACT_ONLY, false, true)
+        VARIANT_BLUE_KEY:
+            _configure_platform_visual("platfblu.wmb", "platfor1.wmb", KEY_RULES.KEY_BLUE, MATCH_EXACT_ONLY, false, true)
+        VARIANT_ORANGE_MIXED_KEY:
+            _configure_platform_visual("platfora.wmb", "platfor1.wmb", KEY_RULES.KEY_ORANGE, MATCH_COMPONENT_OR_EXACT, false, true)
+        VARIANT_MAGENTA_MIXED_KEY:
+            _configure_platform_visual("platfmag.wmb", "platfor1.wmb", KEY_RULES.KEY_MAGENTA, MATCH_COMPONENT_OR_EXACT, false, true)
+        VARIANT_GREEN_MIXED_KEY:
+            _configure_platform_visual("platgree.wmb", "platfor1.wmb", KEY_RULES.KEY_GREEN, MATCH_COMPONENT_OR_EXACT, false, true)
+        VARIANT_INVISIBLE_RED_KEY:
+            _configure_platform_visual("platfred.wmb", "platfor1.wmb", KEY_RULES.KEY_RED, MATCH_EXACT_ONLY, true, true)
+        _:
+            return
+
+
+func _configure_platform_visual(
+        source: String,
+        active_source: String,
+        required_key: int,
+        match_mode: int,
+        hide_until_active: bool,
+        morph_on_activate: bool) -> void:
+    source_wmb_name = source
+    active_wmb_name = active_source
+    required_key_id = required_key
+    key_match_mode = match_mode
+    invisible_until_active = hide_until_active
+    morph_to_active_visual = morph_on_activate
+    if is_inside_tree():
+        _rebuild_visual()
 
 
 func _effective_speed(delta: float) -> float:

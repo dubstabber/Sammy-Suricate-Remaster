@@ -86,6 +86,42 @@ const CATALOG := {
         "kind": "model",
         "description": "Original yellow key moving platform WMB"
     },
+    "model.platform.red": {
+        "path": "res://assets/models/platforms/platfred/platfred.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/platfred.wmb",
+        "kind": "model",
+        "description": "Original red key moving platform WMB"
+    },
+    "model.platform.orange": {
+        "path": "res://assets/models/platforms/platfora/platfora.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/platfora.wmb",
+        "kind": "model",
+        "description": "Original orange key moving platform WMB"
+    },
+    "model.platform.blue": {
+        "path": "res://assets/models/platforms/platfblu/platfblu.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/platfblu.wmb",
+        "kind": "model",
+        "description": "Original blue key moving platform WMB"
+    },
+    "model.platform.magenta": {
+        "path": "res://assets/models/platforms/platfmag/platfmag.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/platfmag.wmb",
+        "kind": "model",
+        "description": "Original magenta key moving platform WMB"
+    },
+    "model.platform.green": {
+        "path": "res://assets/models/platforms/platgree/platgree.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/platgree.wmb",
+        "kind": "model",
+        "description": "Original green key moving platform WMB"
+    },
+    "model.platform.column_alt": {
+        "path": "res://assets/models/platforms/platfor3/platfor3.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/platfor3.wmb",
+        "kind": "model",
+        "description": "Original alternate inactive moving platform WMB"
+    },
     "model.enemy_visibility_range": {
         "path": "res://assets/models/circl100/circl100_animated.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/circl100/circl100_animated.gltf",

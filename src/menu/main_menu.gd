@@ -4,6 +4,7 @@ signal menu_action_selected(action_id: int, action_key: StringName)
 
 const Menu3DItemScript := preload("res://src/menu/menu_3d_item.gd")
 const MenuOptionsOverlayScript := preload("res://src/menu/menu_options_overlay.gd")
+const MenuLevelSelectOverlayScript := preload("res://src/menu/menu_level_select_overlay.gd")
 const MenuMetadata := preload("res://src/menu/menu_wmb_metadata.gd")
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
 const CAMERA_TWEEN_SECONDS := 0.55
@@ -27,6 +28,7 @@ var _camera_tween: Tween
 var _back_item: Area3D
 var _overlay: Node
 var _branch_overlay: CanvasLayer
+var _level_select_overlay: Control
 var _debug_overlay: CanvasLayer
 var _debug_prototype_button: BaseButton
 
@@ -39,6 +41,7 @@ func _ready() -> void:
 	_ensure_debug_overlay()
 	_wire_menu_items()
 	_wire_overlay()
+	_wire_branch_overlay()
 	_wire_debug_overlay()
 	_apply_camera_view(MenuMetadata.HUB_VIEW_MAIN, false)
 	_update_branch_state()
@@ -79,6 +82,22 @@ func is_options_visible() -> bool:
 
 func is_quit_confirm_visible() -> bool:
 	return _overlay != null and _overlay.has_method("is_quit_confirm_visible") and bool(_overlay.call("is_quit_confirm_visible"))
+
+
+func is_level_select_visible() -> bool:
+	return _level_select_overlay != null and _level_select_overlay.visible
+
+
+func get_level_select_category() -> StringName:
+	if _level_select_overlay != null and _level_select_overlay.has_method("get_current_category"):
+		return StringName(_level_select_overlay.call("get_current_category"))
+	return &""
+
+
+func get_visible_level_count() -> int:
+	if _level_select_overlay != null and _level_select_overlay.has_method("get_visible_level_count"):
+		return int(_level_select_overlay.call("get_visible_level_count"))
+	return 0
 
 
 func request_play() -> Error:
@@ -415,11 +434,16 @@ func _create_texture_button(
 
 func _ensure_branch_overlay() -> void:
 	_branch_overlay = get_node_or_null(branch_overlay_path) as CanvasLayer
-	if _branch_overlay != null:
-		return
-	_branch_overlay = CanvasLayer.new()
-	_branch_overlay.name = String(branch_overlay_path)
-	add_child(_branch_overlay)
+	if _branch_overlay == null:
+		_branch_overlay = CanvasLayer.new()
+		_branch_overlay.name = String(branch_overlay_path)
+		_branch_overlay.layer = 5
+		add_child(_branch_overlay)
+	_level_select_overlay = _branch_overlay.get_node_or_null("LevelSelectPanel") as Control
+	if _level_select_overlay == null:
+		_level_select_overlay = MenuLevelSelectOverlayScript.new() as Control
+		_level_select_overlay.name = "LevelSelectPanel"
+		_branch_overlay.add_child(_level_select_overlay)
 
 
 func _ensure_debug_overlay() -> void:
@@ -457,6 +481,15 @@ func _wire_overlay() -> void:
 		_overlay.connect("quit_cancelled", _on_quit_cancelled)
 
 
+func _wire_branch_overlay() -> void:
+	if _level_select_overlay == null:
+		return
+	if _level_select_overlay.has_signal("level_selected") and not _level_select_overlay.is_connected("level_selected", _on_level_selected):
+		_level_select_overlay.connect("level_selected", _on_level_selected)
+	if _level_select_overlay.has_signal("back_requested") and not _level_select_overlay.is_connected("back_requested", _on_branch_back_requested):
+		_level_select_overlay.connect("back_requested", _on_branch_back_requested)
+
+
 func _wire_debug_overlay() -> void:
 	if _debug_overlay == null:
 		return
@@ -488,8 +521,11 @@ func _on_debug_prototype_pressed() -> void:
 
 func _show_hub_view(view_key: StringName) -> void:
 	_current_hub_view = view_key
-	_apply_camera_view(view_key, true)
 	_update_branch_state()
+	if view_key == MenuMetadata.HUB_VIEW_MAIN:
+		_hide_level_select()
+	else:
+		_show_level_select(view_key)
 
 
 func _apply_camera_view(view_key: StringName, animated: bool) -> void:
@@ -525,6 +561,16 @@ func _update_branch_state() -> void:
 		_branch_overlay.visible = in_branch
 
 
+func _show_level_select(view_key: StringName) -> void:
+	if _level_select_overlay != null and _level_select_overlay.has_method("show_category"):
+		_level_select_overlay.call("show_category", view_key)
+
+
+func _hide_level_select() -> void:
+	if _level_select_overlay != null and _level_select_overlay.has_method("hide_category"):
+		_level_select_overlay.call("hide_category")
+
+
 func _show_options() -> void:
 	if _overlay != null and _overlay.has_method("show_options"):
 		_overlay.call("show_options")
@@ -553,6 +599,29 @@ func _on_quit_confirmed() -> void:
 
 func _on_quit_cancelled() -> void:
 	_hide_quit_confirm()
+
+
+func _on_branch_back_requested() -> void:
+	_show_hub_view(MenuMetadata.HUB_VIEW_MAIN)
+
+
+func _on_level_selected(level_data: Dictionary) -> void:
+	var level_number := int(level_data.get("level_number", 0))
+	if level_number <= 0:
+		return
+	last_selected_action_id = int(level_data.get("action_id", 100 + level_number))
+	last_selected_action_key = StringName("level_%d" % level_number)
+	menu_action_selected.emit(last_selected_action_id, last_selected_action_key)
+
+	var game := get_node_or_null("/root/Game")
+	if game != null and game.has_method("select_menu_level"):
+		game.call(
+				"select_menu_level",
+				level_number,
+				String(level_data.get("source_wmb", "")),
+				StringName(level_data.get("category", &""))
+		)
+	_route_to_prototype_world()
 
 
 func _start_menu_music() -> void:

@@ -8,6 +8,7 @@ const DEFAULT_EYE_OF_TRUTH_SECONDS := 256.0 / 16.0
 const SCORE_GOAL_REACH_SOUND_ASSET_ID := "sfx.score_reach"
 
 signal eye_of_truth_changed(active: bool, remaining_seconds: float)
+signal menu_level_selected(level_number: int, source_wmb: String, category_key: StringName)
 signal score_changed(total_points: int, delta_points: int)
 signal score_goal_changed(goal_points: int, start_points: int)
 signal score_goal_reached(total_points: int, goal_points: int)
@@ -20,6 +21,9 @@ var _last_score_delta := 0
 var _score_goal_points := 0
 var _score_start_points := 0
 var _score_goal_reward_granted := false
+var _selected_menu_level_number := 0
+var _selected_menu_level_source_wmb := ""
+var _selected_menu_level_category: StringName = &""
 
 
 func _process(delta: float) -> void:
@@ -59,6 +63,39 @@ func show_prototype_world() -> Error:
 
 func reload_prototype() -> Error:
     return show_prototype_world()
+
+
+func select_menu_level(level_number: int, source_wmb: String, category_key: StringName) -> void:
+    _selected_menu_level_number = maxi(0, level_number)
+    _selected_menu_level_source_wmb = source_wmb
+    _selected_menu_level_category = category_key
+    menu_level_selected.emit(_selected_menu_level_number, _selected_menu_level_source_wmb, _selected_menu_level_category)
+
+
+func clear_selected_menu_level() -> void:
+    _selected_menu_level_number = 0
+    _selected_menu_level_source_wmb = ""
+    _selected_menu_level_category = &""
+
+
+func get_selected_menu_level_number() -> int:
+    return _selected_menu_level_number
+
+
+func get_selected_menu_level_source_wmb() -> String:
+    return _selected_menu_level_source_wmb
+
+
+func get_selected_menu_level_category() -> StringName:
+    return _selected_menu_level_category
+
+
+func get_selected_menu_level() -> Dictionary:
+    return {
+        "level_number": _selected_menu_level_number,
+        "source_wmb": _selected_menu_level_source_wmb,
+        "category": _selected_menu_level_category
+    }
 
 
 func _try_scene_router(method_name: StringName) -> Error:

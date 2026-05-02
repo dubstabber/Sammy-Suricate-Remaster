@@ -1567,19 +1567,94 @@ func _test_main_menu_scene() -> void:
     _expect(bonus_item != null and not bonus_item.visible, "Bonus 3D item should be hidden by default until original bonus gating unlocks it.")
 
     var tutorial_item := menu.get_node_or_null("World/MenuItems/TutorialItem")
+    var jump_item := menu.get_node_or_null("World/MenuItems/JumpItem")
+    var think_item := menu.get_node_or_null("World/MenuItems/ThinkItem")
     var back_item := menu.get_node_or_null("World/MenuItems/BackItem")
+    var level_overlay := menu.get_node_or_null("BranchOverlay/LevelSelectPanel")
+    var game := root.get_node_or_null("Game")
+    var menu_camera := menu.get_node_or_null("World/Camera3D") as Camera3D
+    var menu_camera_position := Vector3.ZERO
+    var menu_camera_rotation := Vector3.ZERO
+    var menu_camera_fov := 0.0
+    if menu_camera != null:
+        menu_camera_position = menu_camera.position
+        menu_camera_rotation = menu_camera.rotation_degrees
+        menu_camera_fov = menu_camera.fov
     _expect(tutorial_item != null and tutorial_item.has_method("select"), "Main menu should include the original Tutorial 3D item.")
+    _expect(jump_item != null and jump_item.has_method("select"), "Main menu should include the original Jump 3D item.")
+    _expect(think_item != null and think_item.has_method("select"), "Main menu should include the original Think 3D item.")
     _expect(back_item != null and back_item.has_method("select"), "Main menu should include a Back selector for submenu camera views.")
+    _expect(level_overlay != null, "Main menu should create a native Godot level-selection overlay.")
+    if game != null and game.has_method("clear_selected_menu_level"):
+        game.call("clear_selected_menu_level")
     if tutorial_item != null and tutorial_item.has_method("select"):
         tutorial_item.call("select")
         await process_frame
-        _expect(StringName(menu.call("get_current_hub_view")) == &"tutorial", "Tutorial item should move the 3D menu hub into the original tutorial camera branch.")
+        _expect(StringName(menu.call("get_current_hub_view")) == &"tutorial", "Tutorial item should change menu state without moving the 3D camera.")
+        if menu_camera != null:
+            _expect(menu_camera.position.is_equal_approx(menu_camera_position), "Tutorial selection should not change the menu camera position.")
+            _expect(menu_camera.rotation_degrees.is_equal_approx(menu_camera_rotation), "Tutorial selection should not change the menu camera rotation.")
+            _expect(is_equal_approx(menu_camera.fov, menu_camera_fov), "Tutorial selection should not change the menu camera FOV.")
         _expect(back_item != null and back_item.visible, "Back item should appear after entering a menu branch.")
+        _expect(bool(menu.call("is_level_select_visible")), "Tutorial branch should show the native level-selection grid.")
+        _expect(StringName(menu.call("get_level_select_category")) == &"tutorial", "Tutorial branch should expose the tutorial level-selection category.")
+        _expect(int(menu.call("get_visible_level_count")) == 12, "Tutorial branch should expose the original 12 tutorial levels.")
+        if level_overlay != null and level_overlay.has_method("get_level_data_for_number"):
+            var tutorial_level_data: Dictionary = level_overlay.call("get_level_data_for_number", 1)
+            _expect(String(tutorial_level_data.get("source_wmb", "")) == "10001.WMB", "Tutorial level 1 should map to the original 10001.WMB loader.")
+        if level_overlay != null and level_overlay.has_method("get_level_button"):
+            var level_1_button := level_overlay.call("get_level_button", 1) as BaseButton
+            _expect(level_1_button != null, "Tutorial level grid should expose a button for level 1.")
+            if level_1_button != null:
+                level_1_button.pressed.emit()
+                await process_frame
+                _expect(game != null and int(game.call("get_selected_menu_level_number")) == 1, "Selecting tutorial level 1 should store the original level number on Game.")
+                _expect(game != null and String(game.call("get_selected_menu_level_source_wmb")) == "10001.WMB", "Selecting tutorial level 1 should store the original WMB source.")
+                _expect(game != null and StringName(game.call("get_selected_menu_level_category")) == &"tutorial", "Selecting tutorial level 1 should store the tutorial category.")
     if back_item != null and back_item.has_method("select"):
         back_item.call("select")
         await process_frame
-        _expect(StringName(menu.call("get_current_hub_view")) == &"main", "Back item should return the 3D menu hub to the main camera.")
+        _expect(StringName(menu.call("get_current_hub_view")) == &"main", "Back item should return the menu state to the main hub.")
+        if menu_camera != null:
+            _expect(menu_camera.position.is_equal_approx(menu_camera_position), "Back item should not change the menu camera position.")
+            _expect(menu_camera.rotation_degrees.is_equal_approx(menu_camera_rotation), "Back item should not change the menu camera rotation.")
+            _expect(is_equal_approx(menu_camera.fov, menu_camera_fov), "Back item should not change the menu camera FOV.")
         _expect(not back_item.visible, "Back item should hide on the main menu hub.")
+        _expect(not bool(menu.call("is_level_select_visible")), "Back item should hide the level-selection grid.")
+    if jump_item != null and jump_item.has_method("select"):
+        jump_item.call("select")
+        await process_frame
+        if menu_camera != null:
+            _expect(menu_camera.position.is_equal_approx(menu_camera_position), "Jump selection should not change the menu camera position.")
+            _expect(menu_camera.rotation_degrees.is_equal_approx(menu_camera_rotation), "Jump selection should not change the menu camera rotation.")
+            _expect(is_equal_approx(menu_camera.fov, menu_camera_fov), "Jump selection should not change the menu camera FOV.")
+        _expect(StringName(menu.call("get_level_select_category")) == &"jump", "Jump item should open the original jump level category.")
+        _expect(int(menu.call("get_visible_level_count")) == 12, "Jump branch should expose the original 12 jump levels.")
+        if level_overlay != null and level_overlay.has_method("get_level_data_for_number"):
+            var jump_level_data: Dictionary = level_overlay.call("get_level_data_for_number", 17)
+            var jump_last_data: Dictionary = level_overlay.call("get_level_data_for_number", 28)
+            _expect(String(jump_level_data.get("source_wmb", "")) == "101o_j.WMB", "Jump level 17 should map to the original 101o_j.WMB loader.")
+            _expect(String(jump_last_data.get("source_wmb", "")) == "179f_t.WMB", "Jump level 28 should map to the original 179f_t.WMB loader.")
+    if back_item != null and back_item.has_method("select"):
+        back_item.call("select")
+        await process_frame
+    if think_item != null and think_item.has_method("select"):
+        think_item.call("select")
+        await process_frame
+        if menu_camera != null:
+            _expect(menu_camera.position.is_equal_approx(menu_camera_position), "Think selection should not change the menu camera position.")
+            _expect(menu_camera.rotation_degrees.is_equal_approx(menu_camera_rotation), "Think selection should not change the menu camera rotation.")
+            _expect(is_equal_approx(menu_camera.fov, menu_camera_fov), "Think selection should not change the menu camera FOV.")
+        _expect(StringName(menu.call("get_level_select_category")) == &"think", "Think item should open the original think level category.")
+        _expect(int(menu.call("get_visible_level_count")) == 12, "Think branch should expose the original 12 think levels.")
+        if level_overlay != null and level_overlay.has_method("get_level_data_for_number"):
+            var think_level_data: Dictionary = level_overlay.call("get_level_data_for_number", 33)
+            var think_last_data: Dictionary = level_overlay.call("get_level_data_for_number", 44)
+            _expect(String(think_level_data.get("source_wmb", "")) == "106g_t.WMB", "Think level 33 should map to the original 106g_t.WMB loader.")
+            _expect(String(think_last_data.get("source_wmb", "")) == "109o_t.WMB", "Think level 44 should map to the original 109o_t.WMB loader.")
+    if back_item != null and back_item.has_method("select"):
+        back_item.call("select")
+        await process_frame
 
     var options_item := menu.get_node_or_null("World/MenuItems/OptionsItem")
     _expect(options_item != null and options_item.has_method("select"), "Main menu should include the original Options 3D item.")

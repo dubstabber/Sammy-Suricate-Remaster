@@ -449,6 +449,11 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.get_model_default_animation("model.rasta.animated") == "stand", "Rasta should expose a default stand animation.")
     _expect(assets.get_model_default_animation("model.scorpion.animated") == "stand", "Scorpion should expose a default stand animation.")
     _expect(assets.has_asset("music.sammy01"), "Asset catalog is missing copied music resource.")
+    var menu_music := assets.load_asset("music.sammy01") as AudioStream
+    _expect(menu_music != null, "Unable to load original main-menu MIDI render.")
+    if menu_music != null:
+        var menu_music_length := menu_music.get_length()
+        _expect(menu_music_length > 227.5 and menu_music_length < 228.5, "Main menu music should use the TiMidity GM render, not the old libmodplug MIDI approximation.")
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
     _expect(assets.load_asset("sfx.diamond") != null, "Unable to load original Diam_son score pickup sound.")
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")

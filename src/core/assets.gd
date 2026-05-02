@@ -837,9 +837,9 @@ const CATALOG := {
     },
     "music.sammy01": {
         "path": "res://assets/audio/sammy01.ogg",
-        "source": "extract-sammy-assets/extracted/godot/audio/sammy01.ogg",
+        "source": "extract-sammy-assets/extracted/wrs/sounds/sammy01.mid",
         "kind": "music",
-        "description": "Rendered original MIDI track"
+        "description": "Original sammy01.mid rendered through a Roland GS-compatible MIDI bank"
     },
     "sfx.collect": {
         "path": "res://assets/audio/gemding2.wav",

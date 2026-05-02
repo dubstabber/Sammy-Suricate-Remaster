@@ -74,6 +74,7 @@ const KEY_DIAMOND_ORANGE := 3
 const KEY_DIAMOND_BLUE := 4
 const KEY_DIAMOND_MAGENTA := 5
 const KEY_DIAMOND_GREEN := 6
+const KEY_DIAMOND_ALL := 255
 const PLATFORM_MATCH_COMPONENT := 0
 const PLATFORM_MATCH_EXACT := 1
 const PLATFORM_VARIANT_UNLOCKED_ACTIVE := 1
@@ -389,6 +390,7 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")
     _expect(assets.load_asset("sfx.get_life") != null, "Unable to load original GetLife_son pickup sound.")
     _expect(assets.load_asset("sfx.gagne1") != null, "Unable to load original Gagne1 heart pickup sound.")
+    _expect(assets.load_asset("sfx.score_reach") != null, "Unable to load original ScoreReach_son applause sound.")
     _expect(assets.load_asset("sfx.platform_activate") != null, "Unable to load original moving-platform activation sound.")
     _expect(assets.load_asset("sfx.eye_truth") != null, "Unable to load original EyeTruth sound.")
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
@@ -457,9 +459,15 @@ func _test_score_state(game: Node) -> void:
     _expect(game.has_method("get_score_points"), "Game should expose current score points.")
     _expect(game.has_method("get_last_score_delta"), "Game should expose the last pickup score delta.")
     _expect(game.has_method("clear_score"), "Game should expose score reset for restarts/tests.")
+    _expect(game.has_method("configure_score_goal"), "Game should expose original ScoreGoal configuration.")
+    _expect(game.has_method("clear_score_goal"), "Game should expose ScoreGoal reset for restarts/tests.")
+    _expect(game.has_method("get_score_goal_points"), "Game should expose current ScoreGoal.")
+    _expect(game.has_method("is_score_goal_reached"), "Game should expose whether ScoreGoal has been reached.")
     if not game.has_method("add_points") or not game.has_method("get_score_points"):
         return
 
+    if game.has_method("clear_score_goal"):
+        game.call("clear_score_goal")
     game.call("clear_score")
     _expect(int(game.call("get_score_points")) == 0, "Score should reset to zero.")
     _expect(int(game.call("get_last_score_delta")) == 0, "Score reset should clear the last pickup delta.")
@@ -469,6 +477,46 @@ func _test_score_state(game: Node) -> void:
     _expect(int(game.call("add_points", -80)) == -50, "Negative score changes should clamp at zero and report the actual delta.")
     _expect(int(game.call("get_score_points")) == 0, "Score should not go below zero.")
     _expect(int(game.call("get_last_score_delta")) == -50, "Last score delta should report the clamped negative change.")
+
+    var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
+    var player: Node = player_scene.instantiate()
+    player.set("key_mix_sound_asset_id", "")
+    player.set("key_mix_end_sound_asset_id", "")
+    root.add_child(player)
+    _expect(player.has_method("grant_score_goal_key"), "Player should expose the ScoreGoal all-key grant.")
+    _expect(player.has_method("is_current_key_infinite"), "Player should expose whether the current all-key is infinite.")
+
+    var goal_signals := {"count": 0, "total": 0, "goal": 0}
+    game.connect("score_goal_reached", func(total_points: int, goal_points: int) -> void:
+        goal_signals["count"] = int(goal_signals["count"]) + 1
+        goal_signals["total"] = total_points
+        goal_signals["goal"] = goal_points)
+
+    game.call("configure_score_goal", 150, 0)
+    _expect(int(game.call("get_score_goal_points")) == 150, "ScoreGoal should preserve the configured original threshold.")
+    _expect(int(game.call("get_score_points")) == 0, "Configuring ScoreGoal should reset to the configured ScoreStart.")
+    _expect(int(game.call("add_points", 50)) == 50, "Points below ScoreGoal should still report the normal delta.")
+    _expect(not bool(game.call("is_score_goal_reached")), "ScoreGoal should stay unreached below the threshold.")
+    _expect(int(player.call("get_current_key_id")) == 0, "Score below ScoreGoal should not grant the all-key diamond.")
+    _expect(int(goal_signals["count"]) == 0, "ScoreGoal signal should not emit below threshold.")
+    _expect(int(game.call("add_points", 100)) == 100, "Crossing ScoreGoal should preserve the pickup delta.")
+    _expect(bool(game.call("is_score_goal_reached")), "ScoreGoal should report reached after crossing the threshold.")
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_ALL, "Crossing ScoreGoal should grant the WDL all-key diamond.")
+    _expect(bool(player.call("is_current_key_infinite")), "Crossing ScoreGoal should mark the all-key diamond as infinite.")
+    _expect(int(goal_signals["count"]) == 1 and int(goal_signals["total"]) == 150 and int(goal_signals["goal"]) == 150, "ScoreGoal should emit exactly once on first crossing.")
+    _expect(int(game.call("add_points", 50)) == 50, "Extra points after ScoreGoal should still accumulate.")
+    _expect(int(goal_signals["count"]) == 1, "ScoreGoal should not emit twice after later point gains.")
+
+    game.call("clear_score")
+    player.call("clear_current_key")
+    _expect(not bool(game.call("is_score_goal_reached")), "Score reset should clear reached state.")
+    _expect(int(game.call("add_points", 150)) == 150, "Score reset should allow ScoreGoal to be reached again.")
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_ALL, "ScoreGoal should grant all-key again after a score reset.")
+    _expect(bool(player.call("is_current_key_infinite")), "ScoreGoal all-key should remain infinite after reset and recrossing.")
+    _expect(int(goal_signals["count"]) == 2, "ScoreGoal should emit again after reset and recrossing.")
+
+    player.queue_free()
+    game.call("clear_score_goal")
     game.call("clear_score")
 
 
@@ -1450,6 +1498,8 @@ func _test_key_diamond_system(assets: Node) -> void:
     _expect(player.has_method("collect_key_diamond"), "Player should expose key-diamond collection.")
     _expect(player.has_method("can_open_key_gate"), "Player should expose key-gate matching.")
     _expect(player.has_method("consume_key_for_gate"), "Player should expose key consumption for permanent gates.")
+    _expect(player.has_method("grant_score_goal_key"), "Player should expose the ScoreGoal all-key grant.")
+    _expect(player.has_method("is_current_key_infinite"), "Player should expose whether its all-key is infinite.")
     _expect(int(player.call("get_current_key_id")) == 0, "Player should start without a key diamond.")
 
     var panel_scene := load(KEY_DIAMOND_PANEL_SCENE_PATH) as PackedScene
@@ -1526,12 +1576,37 @@ func _test_key_diamond_system(assets: Node) -> void:
         _expect(ejected_key.has_method("is_collectable"), "Ejected key gems should expose delayed collectability.")
         _expect(not bool(ejected_key.call("is_collectable")), "Ejected key gems should not be immediately collectable before their WDL bounce gate.")
 
+    player.call("clear_current_key")
+    var map_all_pickup := pickup_scene.instantiate() as Area3D
+    map_all_pickup.set("key_type", all_key_type)
+    map_all_pickup.set("collect_sound_asset_id", "")
+    root.add_child(map_all_pickup)
+    await process_frame
+    _expect(bool(map_all_pickup.call("collect", player)), "Map-placed all-key diamond should be collectable as an item.")
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_ALL, "Map-placed all-key diamond should set PlayerKey to 255.")
+    _expect(not bool(player.call("is_current_key_infinite")), "Map-placed all-key diamond should not be marked infinite.")
+    _expect(int(player.call("consume_key_for_gate", KEY_DIAMOND_GREEN, true)) == KEY_DIAMOND_ALL, "Map-placed all-key should be consumable by permanent gate logic.")
+    _expect(int(player.call("get_current_key_id")) == 0, "Consuming a map-placed all-key should clear the held key.")
+
+    _expect(bool(player.call("grant_score_goal_key")), "ScoreGoal grant should set the all-key diamond.")
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_ALL, "ScoreGoal grant should set PlayerKey to 255.")
+    _expect(bool(player.call("is_current_key_infinite")), "ScoreGoal grant should mark the all-key diamond as infinite.")
+    panel.call("_process", 0.0)
+    _expect(int(panel.call("get_displayed_panel_slot")) == 7, "Key panel should show original slot 7 for all-key.")
+    var rejected_red_pickup := pickup_scene.instantiate() as Area3D
+    rejected_red_pickup.set("collect_sound_asset_id", "")
+    root.add_child(rejected_red_pickup)
+    await process_frame
+    _expect(not bool(rejected_red_pickup.call("collect", player)), "Normal key pickups should not replace the ScoreGoal all-key.")
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_ALL, "Rejected normal pickup should leave all-key active.")
+    _expect(not bool(rejected_red_pickup.call("was_collected")), "Rejected normal pickup should remain uncollected while all-key is active.")
+
     var gate_scene := load(KEY_GATE_SCENE_PATH) as PackedScene
     var gate := gate_scene.instantiate() as StaticBody3D
     gate.set("open_sound_asset_id", "")
+    _expect(bool(player.call("set_current_key_id", 4)), "Test should hold blue before checking strict gate rejection.")
     root.add_child(gate)
     await process_frame
-    _expect(bool(player.call("set_current_key_id", 4)), "Test should hold blue before checking strict gate rejection.")
     _expect(gate.collision_layer == WORLD_LAYER, "Key gate should start as a world collision body.")
     _expect(gate.collision_mask == CHARACTER_LAYER, "Key gate should block solid characters.")
     _expect(int(gate.call("get_required_key_id")) == 3, "Prototype key gate should default to orange.")
@@ -1767,9 +1842,10 @@ func _test_key_diamond_system(assets: Node) -> void:
     all_consume_multi_gate.set_process(false)
     root.add_child(all_consume_multi_gate)
     await process_frame
-    _expect(bool(player.call("set_current_key_id", 255)), "Test should set all-key before checking dfixall multi-key consumption.")
-    _expect(bool(all_consume_multi_gate.call("try_open", player)), "Source dfixall gate should open with the all-key diamond.")
-    _expect(int(player.call("get_current_key_id")) == 0, "Source dfixall gate should consume the all-key diamond too.")
+    _expect(bool(player.call("set_current_key_id", 255)), "Test should set map all-key before checking dfixall multi-key consumption.")
+    _expect(not bool(player.call("is_current_key_infinite")), "set_current_key_id should create an ordinary map-style all-key.")
+    _expect(bool(all_consume_multi_gate.call("try_open", player)), "Source dfixall gate should open with the map all-key diamond.")
+    _expect(int(player.call("get_current_key_id")) == 0, "Source dfixall gate should consume a map-placed all-key diamond.")
     var multi_all_consume_flight_effect := root.get_node_or_null("GateKeyFlightEffect")
     if multi_all_consume_flight_effect != null:
         _expect(int(multi_all_consume_flight_effect.call("get_key_id")) == 255, "Source dfixall key-flight effect should use the consumed all-key diamond.")
@@ -1936,9 +2012,10 @@ func _test_key_diamond_system(assets: Node) -> void:
     wdl_all_key_gate.set("open_sound_asset_id", "")
     root.add_child(wdl_all_key_gate)
     await process_frame
-    _expect(bool(player.call("set_current_key_id", 255)), "Test should set all-key before checking WDL permanent bypass.")
+    _expect(bool(player.call("grant_score_goal_key")), "Test should grant ScoreGoal all-key before checking WDL permanent bypass.")
     _expect(bool(wdl_all_key_gate.call("try_open", player)), "All-key state should open WDL permanent strict gates.")
-    _expect(int(player.call("get_current_key_id")) == 0, "WDL permanent gate should consume all-key state.")
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_ALL, "WDL permanent gate should keep ScoreGoal all-key state active.")
+    _expect(bool(player.call("is_current_key_infinite")), "WDL permanent gate should preserve the infinite all-key flag.")
     var wdl_all_flight_effect := root.get_node_or_null("GateKeyFlightEffect")
     if wdl_all_flight_effect != null:
         _expect(int(wdl_all_flight_effect.call("get_key_id")) == 255, "WDL permanent gate should animate the consumed all-key diamond.")
@@ -1955,9 +2032,10 @@ func _test_key_diamond_system(assets: Node) -> void:
     all_key_gate.set("open_sound_asset_id", "")
     root.add_child(all_key_gate)
     await process_frame
-    _expect(bool(player.call("set_current_key_id", 255)), "Test should set all-key before checking strict gate bypass.")
+    _expect(bool(player.call("grant_score_goal_key")), "Test should grant ScoreGoal all-key before checking strict gate bypass.")
     _expect(bool(all_key_gate.call("try_open", player)), "All-key state should open strict permanent gates.")
-    _expect(int(player.call("get_current_key_id")) == 0, "Permanent gates should consume the all-key diamond they animate into the door.")
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_ALL, "Permanent gates should keep the infinite all-key diamond active.")
+    _expect(bool(player.call("is_current_key_infinite")), "Permanent gates should preserve the infinite all-key flag.")
     var all_key_flight_effect := root.get_node_or_null("GateKeyFlightEffect")
     if all_key_flight_effect != null:
         _expect(int(all_key_flight_effect.call("get_key_id")) == 255, "Permanent gate key-flight should use the consumed all-key diamond.")
@@ -4704,6 +4782,7 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("GemSpawners/PersistentGemSpawner") != null, "Prototype should include a persistent gem spawner.")
     _expect(world.get_node_or_null("GemSpawners/DecorativeGemSpawner") != null, "Prototype should include a decorative gem spawner.")
     _expect(world.get_node_or_null("OrangeKeyGate") != null, "Prototype orange key gate should be editor-instanced.")
+    _expect(world.get_node_or_null("ScoreGoalExitGate") != null, "Prototype ScoreGoal exit gate should be editor-instanced.")
     _expect(world.get_node_or_null("KeyDiamondPanel") != null, "Prototype key-diamond panel should be editor-instanced.")
     _expect(world.get_node_or_null("GateTestGallery") != null, "Prototype gate test gallery should be editor-instanced.")
     _expect(world.get_node_or_null("Platforms/UnlockedMovingPlatform") != null, "Prototype unlocked moving platform should be editor-instanced.")
@@ -4788,6 +4867,8 @@ func _test_prototype_world() -> void:
     root.add_child(world)
     await process_frame
     await process_frame
+    if game != null and game.has_method("get_score_goal_points"):
+        _expect(int(game.call("get_score_goal_points")) == 150, "Prototype world should configure a ScoreGoal that existing diamonds can reach.")
     if unlocked_platform != null:
         _expect(bool(unlocked_platform.call("is_active")), "Prototype unlocked platform should start moving.")
         _expect(String(unlocked_platform.call("get_visual_source_path")) == "res://assets/models/platforms/platfor2/platfor2.gltf", "Prototype unlocked platform should use the original platform WMB visual.")
@@ -4844,6 +4925,7 @@ func _test_prototype_world() -> void:
             debug_label = debug_overlay.get_child(0) as Label
         _expect(debug_label != null and debug_label.text.contains("Wasps: 0"), "Prototype debug overlay should show zero wasps before pickup collection.")
         _expect(debug_label != null and debug_label.text.contains("Score: 0"), "Prototype debug overlay should show zero score before diamond collection.")
+        _expect(debug_label != null and debug_label.text.contains("Score goal: 150"), "Prototype debug overlay should show the configured ScoreGoal amount.")
         _expect(debug_label != null and debug_label.text.contains("Last pickup: +0"), "Prototype debug overlay should show no pickup score delta before diamond collection.")
         _expect(debug_label != null and debug_label.text.contains("Health: 48 / 48"), "Prototype debug overlay should show the original WindowHearts readout at full hp.")
         _expect(debug_label != null and debug_label.text.contains("Lives: 3 / 19"), "Prototype debug overlay should show the original-style BallesJoueur1 lives readout.")
@@ -5023,6 +5105,33 @@ func _test_prototype_world() -> void:
         _expect(hundred_diamond != null, "Prototype world should expose a +100 score diamond for playtesting.")
         if hundred_diamond != null:
             _expect(int(hundred_diamond.call("get_points")) == 100, "Prototype +100 diamond should preserve its configured point value.")
+            var player_for_score_goal := world.get_node_or_null("Player")
+            if player_for_score_goal != null and game != null and game.has_method("get_score_points"):
+                hundred_diamond.set("collect_sound_asset_id", "")
+                _expect(bool(hundred_diamond.call("collect", player_for_score_goal)), "Prototype +100 diamond should collect when given the player.")
+                _expect(int(game.call("get_score_points")) == 150, "Prototype score should reach the configured ScoreGoal after +50 and +100 diamonds.")
+                _expect(int(player_for_score_goal.call("get_current_key_id")) == KEY_DIAMOND_ALL, "Prototype ScoreGoal should grant the all-key diamond.")
+                var score_key_panel := world.get_node_or_null("KeyDiamondPanel")
+                if score_key_panel != null:
+                    score_key_panel.call("_process", 0.0)
+                    _expect(bool(score_key_panel.call("is_showing_key")), "Prototype key panel should appear after ScoreGoal grants all-key.")
+                    _expect(int(score_key_panel.call("get_displayed_panel_slot")) == 7, "Prototype key panel should show original all-key slot 7.")
+                if debug_overlay != null and debug_label != null:
+                    debug_overlay.call("_physics_process", 0.0)
+                    _expect(debug_label.text.contains("Score: 150"), "Prototype debug overlay should show the reached ScoreGoal value.")
+                    _expect(debug_label.text.contains("Score goal: 150"), "Prototype debug overlay should keep showing the ScoreGoal amount after it is reached.")
+                    _expect(debug_label.text.contains("Key: All"), "Prototype debug overlay should show the all-key diamond after ScoreGoal.")
+                var score_goal_exit_gate := world.get_node_or_null("ScoreGoalExitGate") as StaticBody3D
+                _expect(score_goal_exit_gate != null, "Prototype ScoreGoal exit gate should be present for all-key validation.")
+                if score_goal_exit_gate != null:
+                    _expect(int(score_goal_exit_gate.call("get_required_key_id")) == KEY_DIAMOND_ALL, "Prototype ScoreGoal exit gate should require all-key.")
+                    _expect(String(score_goal_exit_gate.call("get_source_wmb_name")) == "doorexit.wmb", "Prototype ScoreGoal exit gate should use the original exit-door WMB.")
+                    _expect(bool(score_goal_exit_gate.call("can_player_open", player_for_score_goal)), "Prototype all-key should open the exit gate.")
+                    score_goal_exit_gate.set("open_sound_asset_id", "")
+                    _expect(bool(score_goal_exit_gate.call("try_open", player_for_score_goal)), "Prototype exit gate should open once ScoreGoal grants all-key.")
+                    score_goal_exit_gate.call("_process", 1.0)
+                    await process_frame
+                    _expect(bool(score_goal_exit_gate.call("is_open")), "Prototype exit gate should report open after all-key validation.")
         var small_heart := world.get_node_or_null("SmallHeartPickup") as Area3D
         _expect(small_heart != null, "Prototype world should expose a SmallHeart health pickup for playtesting.")
         if small_heart != null:
@@ -5047,7 +5156,8 @@ func _test_prototype_world() -> void:
         var key_panel := world.get_node_or_null("KeyDiamondPanel")
         _expect(key_panel != null, "Prototype world should expose the key-diamond panel.")
         if key_panel != null:
-            _expect(not bool(key_panel.call("is_showing_key")), "Prototype key panel should start hidden before a key is held.")
+            _expect(bool(key_panel.call("is_showing_key")), "Prototype key panel should show the ScoreGoal all-key before the key-pickup reset.")
+            _expect(int(key_panel.call("get_displayed_panel_slot")) == 7, "Prototype key panel should keep showing original all-key slot 7.")
         var auto_gem_spawner := world.get_node_or_null("GemSpawners/AutoRandomGemSpawner") as Area3D
         var impact_gem_spawner := world.get_node_or_null("GemSpawners/ImpactOnlyGemSpawner") as Area3D
         var timed_gem_spawner := world.get_node_or_null("GemSpawners/TimedGemSpawner") as Area3D
@@ -5168,6 +5278,7 @@ func _test_prototype_world() -> void:
             if player_for_key != null and player_for_key.has_method("collect_key_diamond"):
                 player_for_key.set("key_mix_sound_asset_id", "")
                 player_for_key.set("key_mix_end_sound_asset_id", "")
+                player_for_key.call("clear_current_key")
                 _expect(not bool(orange_gate.call("can_player_open", player_for_key)), "Prototype orange gate should reject an empty key state.")
                 red_key_pickup.set("collect_sound_asset_id", "")
                 yellow_key_pickup.set("collect_sound_asset_id", "")

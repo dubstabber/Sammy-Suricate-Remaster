@@ -76,6 +76,10 @@ func _append_score_lines(lines: Array[String]) -> void:
     if game == null or not game.has_method("get_score_points") or not game.has_method("get_last_score_delta"):
         return
     lines.append("Score: %d" % int(game.call("get_score_points")))
+    if game.has_method("get_score_goal_points"):
+        var goal_points := int(game.call("get_score_goal_points"))
+        if goal_points > 0:
+            lines.append("Score goal: %d" % goal_points)
     var last_delta := int(game.call("get_last_score_delta"))
     var sign := "+" if last_delta >= 0 else ""
     lines.append("Last pickup: %s%d" % [sign, last_delta])

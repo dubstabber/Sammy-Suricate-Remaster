@@ -690,6 +690,12 @@ const CATALOG := {
         "kind": "audio",
         "description": "Original Gagne1 used by InitSmallHeart"
     },
+    "sfx.score_reach": {
+        "path": "res://assets/audio/applause.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/applause.wav",
+        "kind": "audio",
+        "description": "Original ScoreReach_son played when Sammy reaches ScoreGoal"
+    },
     "sfx.eye_truth": {
         "path": "res://assets/audio/EyeTruth.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/EyeTruth.wav",

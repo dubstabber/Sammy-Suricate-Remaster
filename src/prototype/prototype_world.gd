@@ -6,6 +6,8 @@ const WMB_MANIFEST_PATH := "res://assets/metadata/wmb_manifest.json"
 @export var player_path: NodePath = ^"Player"
 @export var camera_path: NodePath = ^"PrototypeCamera"
 @export var debug_overlay_path: NodePath = ^"DebugOverlay"
+@export var score_goal_points: int = 150
+@export var score_start_points: int = 0
 
 var player: CharacterBody3D
 var camera: Camera3D
@@ -13,6 +15,7 @@ var camera: Camera3D
 
 func _ready() -> void:
 	_resolve_scene_nodes()
+	_configure_score_goal()
 	_configure_camera()
 	_configure_debug_overlay()
 	_load_level_manifest()
@@ -32,6 +35,12 @@ func _configure_camera() -> void:
 	camera.set("target_path", camera.get_path_to(player))
 	if camera.has_method("reset_to_target"):
 		camera.call("reset_to_target")
+
+
+func _configure_score_goal() -> void:
+	var game := get_node_or_null("/root/Game")
+	if game != null and game.has_method("configure_score_goal"):
+		game.call("configure_score_goal", score_goal_points, score_start_points)
 
 
 func _configure_debug_overlay() -> void:

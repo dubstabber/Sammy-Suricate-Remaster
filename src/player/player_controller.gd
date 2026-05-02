@@ -102,6 +102,7 @@ var _death_timer: float = 0.0
 var _respawn_transform: Transform3D
 var _has_respawn_transform: bool = false
 var _current_key_id: int = KEY_DIAMOND_RULES_SCRIPT.KEY_NONE
+var _current_key_is_infinite := false
 var _last_ejected_key: Node = null
 var _teleporting := false
 var _teleport_phase := TELEPORT_PHASE_PRE_FADE
@@ -327,6 +328,8 @@ func collect_key_diamond(key_type: Resource, _source: Node = null) -> bool:
         return false
 
     var previous_key_id := _current_key_id
+    if _current_key_is_infinite:
+        return false
     var mixed_key_id := KEY_DIAMOND_RULES_SCRIPT.mix_keys(previous_key_id, incoming_key_id)
     if previous_key_id == KEY_DIAMOND_RULES_SCRIPT.KEY_NONE:
         _set_current_key_id(incoming_key_id)
@@ -347,12 +350,21 @@ func set_current_key_id(key_id: int) -> bool:
     return true
 
 
+func grant_score_goal_key() -> bool:
+    _set_current_key_id(KEY_DIAMOND_RULES_SCRIPT.KEY_ALL, true)
+    return true
+
+
 func clear_current_key() -> void:
     _set_current_key_id(KEY_DIAMOND_RULES_SCRIPT.KEY_NONE)
 
 
 func get_current_key_id() -> int:
     return _current_key_id
+
+
+func is_current_key_infinite() -> bool:
+    return _current_key_is_infinite
 
 
 func get_current_key_name() -> String:
@@ -371,7 +383,7 @@ func consume_key_for_gate(required_key_id: int, strict_match: bool = false) -> i
     if not can_open_key_gate(required_key_id, strict_match):
         return KEY_DIAMOND_RULES_SCRIPT.KEY_NONE
     var consumed_key_id := _current_key_id
-    if consumed_key_id != KEY_DIAMOND_RULES_SCRIPT.KEY_ALL:
+    if not _current_key_is_infinite:
         _set_current_key_id(KEY_DIAMOND_RULES_SCRIPT.KEY_NONE)
     return consumed_key_id
 
@@ -1104,11 +1116,13 @@ func _play_quick_turn_sound() -> void:
         audio.call("play_sfx", quick_turn_sound_asset_id)
 
 
-func _set_current_key_id(key_id: int) -> void:
-    if _current_key_id == key_id:
+func _set_current_key_id(key_id: int, infinite: bool = false) -> void:
+    var safe_infinite := infinite and key_id == KEY_DIAMOND_RULES_SCRIPT.KEY_ALL
+    if _current_key_id == key_id and _current_key_is_infinite == safe_infinite:
         return
     var previous_key_id := _current_key_id
     _current_key_id = key_id
+    _current_key_is_infinite = safe_infinite
     key_diamond_changed.emit(_current_key_id, previous_key_id)
 
 

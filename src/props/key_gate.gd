@@ -777,7 +777,8 @@ func _consume_player_key(player: Node) -> int:
 		var current_key_id := int(player.call("get_current_key_id"))
 		if current_key_id == KEY_RULES.KEY_NONE or not _can_key_open(current_key_id):
 			return KEY_RULES.KEY_NONE
-		if player.has_method("set_current_key_id"):
+		var keep_infinite_key := current_key_id == KEY_RULES.KEY_ALL and player.has_method("is_current_key_infinite") and bool(player.call("is_current_key_infinite"))
+		if not keep_infinite_key and player.has_method("set_current_key_id"):
 			player.call("set_current_key_id", KEY_RULES.KEY_NONE)
 		return current_key_id
 	if player.has_method("consume_key_for_gate"):

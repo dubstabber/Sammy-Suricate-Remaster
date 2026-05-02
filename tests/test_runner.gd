@@ -4,6 +4,7 @@ const ASSETS_SCRIPT_PATH := "res://src/core/assets.gd"
 const GAME_SCRIPT_PATH := "res://src/core/game.gd"
 const WMB_MANIFEST_SCRIPT_PATH := "res://src/levels/wmb_manifest.gd"
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
+const MAIN_MENU_SCENE_PATH := "res://scenes/menu/main_menu.tscn"
 const PLAYER_SCENE_PATH := "res://scenes/player/player.tscn"
 const SCORPION_SCENE_PATH := "res://scenes/enemies/scorpion_enemy.tscn"
 const EDITOR_PREVIEW_SCRIPT_PATH := "res://src/editor/sammy_editor_model_preview.gd"
@@ -104,6 +105,7 @@ func _run() -> void:
     _test_display_settings()
     _test_collision_layer_names()
     _test_asset_catalog(assets)
+    await _test_main_menu_scene()
     _test_eye_of_truth_state(game)
     _test_score_state(game)
     await _test_editor_model_previews(assets)
@@ -244,6 +246,12 @@ func _test_collision_layer_names() -> void:
 func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.has_asset("model.sammy.animated"), "Asset catalog is missing Sammy animated model.")
     _expect(assets.has_asset("metadata.wmb_manifest"), "Asset catalog is missing WMB manifest metadata.")
+    _expect(assets.has_asset("model.menu.floor"), "Asset catalog is missing the original main menu floor model.")
+    _expect(assets.has_asset("model.menu.title"), "Asset catalog is missing the original main menu title model.")
+    _expect(assets.has_asset("model.menu.item.play"), "Asset catalog is missing the original 3D Play menu WMB.")
+    _expect(assets.has_asset("model.menu.item.options"), "Asset catalog is missing the original 3D Options menu WMB.")
+    _expect(assets.has_asset("model.menu.item.quit"), "Asset catalog is missing the original 3D Quit menu WMB.")
+    _expect(assets.has_asset("metadata.menu_wmb_manifest"), "Asset catalog is missing the converted 3D menu WMB manifest.")
     var missing: Array[String] = assets.verify_required_assets()
     _expect(missing.is_empty(), "Missing catalog files: %s" % [", ".join(missing)])
     _expect(assets.load_asset("model.sammy.animated") != null, "Unable to load Sammy animated model resource.")
@@ -367,6 +375,42 @@ func _test_asset_catalog(assets: Node) -> void:
         _expect(assets.load_asset(key_asset_id) != null, "Unable to load original key diamond texture: %s" % key_asset_id)
     _expect(assets.load_asset("texture.ui.gem_panel_bar") != null, "Unable to load original key panel strip.")
     _expect(assets.load_asset("texture.ui.gem_panel_background") != null, "Unable to load original key panel background.")
+    _expect(assets.load_asset("model.menu.floor") != null, "Unable to load original main menu floor model.")
+    _expect(assets.load_asset("model.menu.title") != null, "Unable to load original main menu title model.")
+    for menu_texture_id in [
+        "texture.menu.play",
+        "texture.menu.options",
+        "texture.menu.options_hover",
+        "texture.menu.quit",
+        "texture.menu.quit_hover",
+        "texture.menu.options.background",
+        "texture.menu.options.audio",
+        "texture.menu.options.resume",
+        "texture.menu.options.back",
+        "texture.menu.options.quit",
+        "texture.menu.options.no",
+        "texture.menu.options.quit_prompt",
+        "texture.menu.back_arrow"
+    ]:
+        _expect(assets.load_asset(menu_texture_id) != null, "Unable to load original menu texture: %s" % menu_texture_id)
+    for menu_model_id in [
+        "model.menu.item.play",
+        "model.menu.item.play_gem_1",
+        "model.menu.item.play_gem_2",
+        "model.menu.item.tutorial",
+        "model.menu.item.tutorial_gem",
+        "model.menu.item.jump",
+        "model.menu.item.jump_gem",
+        "model.menu.item.think",
+        "model.menu.item.think_gem",
+        "model.menu.item.bonus",
+        "model.menu.item.bonus_gem",
+        "model.menu.item.options",
+        "model.menu.item.quit"
+    ]:
+        _expect(assets.load_asset(menu_model_id) != null, "Unable to load original 3D menu WMB model: %s" % menu_model_id)
+    for menu_sound_id in ["sfx.menu_hover", "sfx.menu_select", "sfx.menu_option_select"]:
+        _expect(assets.load_asset(menu_sound_id) != null, "Unable to load original WDL menu sound: %s" % menu_sound_id)
     _expect(assets.get_model_scale("model.sammy.animated").is_equal_approx(Vector3(0.08, 0.08, 0.08)), "Sammy model scale should include original WDL scale 8.")
     _expect(assets.get_model_scale("model.rasta.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Rasta model should use default Acknex entity scale.")
     _expect(assets.get_model_scale("model.scorpion.animated").is_equal_approx(Vector3(0.01, 0.01, 0.01)), "Scorpion model should use default Acknex entity scale.")
@@ -1357,11 +1401,150 @@ func _test_main_scene() -> void:
         return
 
     var main: Node = main_scene.instantiate()
-    _expect(main.get_node_or_null("PrototypeWorld") != null, "Main scene should instance PrototypeWorld in the editor.")
+    _expect(main.get_node_or_null("SceneRoot") != null, "Main scene should expose a scene-router root.")
     root.add_child(main)
     await process_frame
+    var scene_root := main.get_node_or_null("SceneRoot")
+    _expect(scene_root != null and scene_root.get_node_or_null("MainMenu") != null, "Main scene should boot into MainMenu.")
+    var play_item: Node = null
+    var debug_button: BaseButton = null
+    if scene_root != null:
+        play_item = scene_root.get_node_or_null("MainMenu/World/MenuItems/PlayItem")
+        debug_button = scene_root.get_node_or_null("MainMenu/DebugOverlay/DebugPrototypeButton") as BaseButton
+    _expect(play_item != null and play_item.has_method("select"), "Main menu Play 3D item should be reachable from the main scene.")
+    _expect(debug_button != null, "Main menu should expose a top-left 2D debug button for prototype_world.")
+    if debug_button != null:
+        debug_button.pressed.emit()
+        await process_frame
+        await process_frame
+        _expect(scene_root != null and scene_root.get_node_or_null("PrototypeWorld") != null, "Main scene router should instance PrototypeWorld after pressing the 2D debug button.")
     main.queue_free()
     await process_frame
+
+
+func _test_main_menu_scene() -> void:
+    var menu_scene: PackedScene = load(MAIN_MENU_SCENE_PATH)
+    _expect(menu_scene != null, "Unable to load main menu scene.")
+    if menu_scene == null:
+        return
+
+    ProjectSettings.set_setting("sammy/test/skip_music", true)
+    ProjectSettings.set_setting("sammy/test/skip_menu_routes", true)
+    ProjectSettings.set_setting("sammy/test/skip_quit", true)
+    var menu: Node = menu_scene.instantiate()
+    root.add_child(menu)
+    await process_frame
+    _expect(menu.get_node_or_null("World/Camera3D") != null, "Main menu should include a 3D camera.")
+    _expect(menu.get_node_or_null("World/Sun") != null, "Main menu should include original-style lighting.")
+    _expect(menu.get_node_or_null("World/Sky") != null, "Main menu should include the original sky3 model.")
+    _expect(menu.get_node_or_null("World/MenuFloor") != null, "Main menu should include the original menu floor model.")
+    _expect(menu.get_node_or_null("World/GroundPlane") != null, "Main menu should include a visible original-textured ground plane.")
+    _expect(menu.get_node_or_null("World/Title") != null, "Main menu should include the original title model.")
+    _expect(menu.get_node_or_null("MenuOverlay/OptionsPanel") != null, "Main menu should include the original 2D options panel overlay.")
+    _expect(menu.get_node_or_null("MenuOverlay/QuitConfirm") != null, "Main menu should include the original 2D quit confirmation overlay.")
+    var debug_button := menu.get_node_or_null("DebugOverlay/DebugPrototypeButton") as BaseButton
+    _expect(debug_button != null, "Main menu should include a 2D debug button in the top-left corner.")
+    if debug_button != null:
+        _expect(debug_button.offset_left <= 16.0 and debug_button.offset_top <= 16.0, "Debug prototype button should be anchored near the top-left corner.")
+        debug_button.pressed.emit()
+        await process_frame
+        _expect(StringName(menu.call("get_last_selected_action_key")) == &"debug_prototype", "Debug prototype button should record a separate action from the 3D last-played-level item.")
+    _expect(menu.has_method("get_menu_item_count") and int(menu.call("get_menu_item_count")) >= 14, "Main menu should expose original 3D selectable menu items, animated companion parts, and Back.")
+
+    var play_item := menu.get_node_or_null("World/MenuItems/PlayItem")
+    _expect(play_item != null and play_item.has_method("get_original_source_name"), "Main menu Play item should expose original evidence metadata.")
+    if play_item != null and play_item.has_method("get_original_source_name"):
+        _expect(String(play_item.call("get_original_source_name")).contains("titplay.wmb"), "Play item should be tied to the original titplay WMB evidence.")
+    var play_top_part := menu.get_node_or_null("World/MenuItems/PlayTopPart")
+    var play_bottom_part := menu.get_node_or_null("World/MenuItems/PlayBottomPart")
+    _expect(play_top_part != null and play_top_part.has_method("get_original_source_name"), "Main menu should include the original animated Play top WMB part.")
+    _expect(play_bottom_part != null and play_bottom_part.has_method("get_original_source_name"), "Main menu should include the original animated Play bottom WMB part.")
+    if play_top_part != null and play_top_part.has_method("get_original_source_name"):
+        _expect(String(play_top_part.call("get_original_source_name")).contains("titplay3.wmb"), "Play top part should be tied to titplay3.wmb.")
+        _expect(play_top_part.has_method("is_animation_enabled") and bool(play_top_part.call("is_animation_enabled")), "Play top part should use the original menu animation fields.")
+    if play_bottom_part != null and play_bottom_part.has_method("get_original_source_name"):
+        _expect(String(play_bottom_part.call("get_original_source_name")).contains("titplay2.wmb"), "Play bottom part should be tied to titplay2.wmb.")
+        _expect(play_bottom_part.has_method("is_animation_enabled") and bool(play_bottom_part.call("is_animation_enabled")), "Play bottom part should use the original menu animation fields.")
+    if play_top_part != null:
+        var start_top_position: Vector3 = play_top_part.position
+        var start_top_rotation: Vector3 = play_top_part.rotation_degrees
+        var start_bottom_rotation := Vector3.ZERO
+        var start_top_offset := Vector3.ZERO
+        var start_bottom_offset := Vector3.ZERO
+        if play_item != null:
+            start_top_offset = play_top_part.position - play_item.position
+            if play_bottom_part != null:
+                start_bottom_offset = play_bottom_part.position - play_item.position
+                start_bottom_rotation = play_bottom_part.rotation_degrees
+        for frame in 6:
+            await process_frame
+        _expect(not play_top_part.position.is_equal_approx(start_top_position) or not play_top_part.rotation_degrees.is_equal_approx(start_top_rotation), "Animated Play top part should move or rotate over frames.")
+        _expect(not is_equal_approx(play_top_part.rotation_degrees.x, start_top_rotation.x), "Play top WMB Skill4/Roll animation should rotate around Godot X after Acknex axis conversion.")
+        _expect(is_equal_approx(play_top_part.rotation_degrees.z, start_top_rotation.z), "Play top WMB Skill4/Roll animation should not spin around Godot Z.")
+        if play_bottom_part != null:
+            _expect(not is_equal_approx(play_bottom_part.rotation_degrees.y, start_bottom_rotation.y), "Play bottom WMB Skill2/Pan animation should rotate around Godot Y.")
+        if play_item != null:
+            _expect((play_top_part.position - play_item.position).is_equal_approx(start_top_offset), "Animated Play top WMB part should stay phase-locked to the Play title body.")
+            if play_bottom_part != null:
+                _expect((play_bottom_part.position - play_item.position).is_equal_approx(start_bottom_offset), "Animated Play bottom WMB part should stay phase-locked to the Play title body.")
+    var bonus_item := menu.get_node_or_null("World/MenuItems/BonusItem")
+    _expect(bonus_item != null and not bonus_item.visible, "Bonus 3D item should be hidden by default until original bonus gating unlocks it.")
+
+    var tutorial_item := menu.get_node_or_null("World/MenuItems/TutorialItem")
+    var back_item := menu.get_node_or_null("World/MenuItems/BackItem")
+    _expect(tutorial_item != null and tutorial_item.has_method("select"), "Main menu should include the original Tutorial 3D item.")
+    _expect(back_item != null and back_item.has_method("select"), "Main menu should include a Back selector for submenu camera views.")
+    if tutorial_item != null and tutorial_item.has_method("select"):
+        tutorial_item.call("select")
+        await process_frame
+        _expect(StringName(menu.call("get_current_hub_view")) == &"tutorial", "Tutorial item should move the 3D menu hub into the original tutorial camera branch.")
+        _expect(back_item != null and back_item.visible, "Back item should appear after entering a menu branch.")
+    if back_item != null and back_item.has_method("select"):
+        back_item.call("select")
+        await process_frame
+        _expect(StringName(menu.call("get_current_hub_view")) == &"main", "Back item should return the 3D menu hub to the main camera.")
+        _expect(not back_item.visible, "Back item should hide on the main menu hub.")
+
+    var options_item := menu.get_node_or_null("World/MenuItems/OptionsItem")
+    _expect(options_item != null and options_item.has_method("select"), "Main menu should include the original Options 3D item.")
+    if options_item != null and options_item.has_method("select"):
+        options_item.call("select")
+        await process_frame
+        _expect(bool(menu.call("is_options_visible")), "Options item should open the 2D options overlay.")
+    var back_button := menu.get_node_or_null("MenuOverlay/OptionsPanel/BackButton") as BaseButton
+    if back_button != null:
+        back_button.pressed.emit()
+        await process_frame
+        _expect(not bool(menu.call("is_options_visible")), "Options Back button should close the 2D options overlay.")
+
+    var quit_item := menu.get_node_or_null("World/MenuItems/QuitItem")
+    _expect(quit_item != null and quit_item.has_method("select"), "Main menu should include the original Quit 3D item.")
+    if quit_item != null:
+        var quit_hover_light := quit_item.get_node_or_null("HoverLight") as Light3D
+        var quit_start_position: Vector3 = quit_item.position
+        var quit_start_scale: Vector3 = quit_item.scale
+        quit_item.call("_on_mouse_entered")
+        await process_frame
+        _expect(quit_item.position.is_equal_approx(quit_start_position), "Hovering a main menu 3D item should not lift it; the original menu enables entity light only.")
+        _expect(quit_item.scale.is_equal_approx(quit_start_scale), "Hovering a main menu 3D item should not scale it; the original scale branch is for level icons.")
+        _expect(quit_hover_light != null and quit_hover_light.visible, "Hovering a main menu 3D item should enable the original-style entity light.")
+        quit_item.call("_on_mouse_exited")
+        await process_frame
+        _expect(quit_hover_light != null and not quit_hover_light.visible, "Leaving a main menu 3D item should disable the hover light.")
+    if quit_item != null and quit_item.has_method("select"):
+        quit_item.call("select")
+        await process_frame
+        _expect(bool(menu.call("is_quit_confirm_visible")), "Quit item should open the 2D yes/no confirmation overlay.")
+    var no_button := menu.get_node_or_null("MenuOverlay/QuitConfirm/NoButton") as BaseButton
+    if no_button != null:
+        no_button.pressed.emit()
+        await process_frame
+        _expect(not bool(menu.call("is_quit_confirm_visible")), "Quit No button should close the confirmation overlay.")
+    menu.queue_free()
+    await process_frame
+    ProjectSettings.set_setting("sammy/test/skip_music", false)
+    ProjectSettings.set_setting("sammy/test/skip_menu_routes", false)
+    ProjectSettings.set_setting("sammy/test/skip_quit", false)
 
 
 func _test_wasp_resources(assets: Node) -> void:

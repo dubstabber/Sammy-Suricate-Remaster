@@ -1,6 +1,8 @@
 extends Node
 
 const KEY_DIAMOND_RULES_SCRIPT := preload("res://src/resources/key_diamond_rules.gd")
+const MAIN_SCENE_PATH := "res://scenes/main.tscn"
+const MAIN_MENU_SCENE_PATH := "res://scenes/menu/main_menu.tscn"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
 const DEFAULT_EYE_OF_TRUTH_SECONDS := 256.0 / 16.0
 const SCORE_GOAL_REACH_SOUND_ASSET_ID := "sfx.score_reach"
@@ -11,6 +13,7 @@ signal score_goal_changed(goal_points: int, start_points: int)
 signal score_goal_reached(total_points: int, goal_points: int)
 
 var current_scene: Node
+var scene_router: Node
 var _eye_of_truth_remaining_seconds := 0.0
 var _score_points := 0
 var _last_score_delta := 0
@@ -32,12 +35,42 @@ func set_current_scene(scene: Node) -> void:
     current_scene = scene
 
 
+func set_scene_router(router: Node) -> void:
+    scene_router = router
+
+
 func change_to_scene(scene_path: String) -> Error:
     return get_tree().change_scene_to_file(scene_path)
 
 
-func reload_prototype() -> Error:
+func show_main_menu() -> Error:
+    var route_err := _try_scene_router(&"show_main_menu")
+    if route_err != ERR_UNAVAILABLE:
+        return route_err
+    return change_to_scene(MAIN_SCENE_PATH)
+
+
+func show_prototype_world() -> Error:
+    var route_err := _try_scene_router(&"show_prototype_world")
+    if route_err != ERR_UNAVAILABLE:
+        return route_err
     return change_to_scene(PROTOTYPE_SCENE_PATH)
+
+
+func reload_prototype() -> Error:
+    return show_prototype_world()
+
+
+func _try_scene_router(method_name: StringName) -> Error:
+    if scene_router == null or not is_instance_valid(scene_router):
+        return ERR_UNAVAILABLE
+    if not scene_router.has_method(method_name):
+        return ERR_UNAVAILABLE
+
+    var result = scene_router.call(method_name)
+    if typeof(result) == TYPE_INT:
+        return int(result)
+    return OK
 
 
 func add_points(delta_points: int) -> int:

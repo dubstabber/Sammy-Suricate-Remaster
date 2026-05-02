@@ -62,6 +62,96 @@ const CATALOG := {
         "kind": "model",
         "description": "Original sky reference model"
     },
+    "model.menu.floor": {
+        "path": "res://assets/models/menu/solmenu5/solmenu5.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/solmenu5/solmenu5.gltf",
+        "kind": "model",
+        "description": "Original solmenu5 model used by menu_greenpepper.WMB"
+    },
+    "model.menu.title": {
+        "path": "res://assets/models/menu/titre/titre.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/titre/titre.gltf",
+        "kind": "model",
+        "description": "Original titre model used by menu_greenpepper.WMB"
+    },
+    "model.menu.item.play": {
+        "path": "res://assets/models/menu/items/titplay/titplay.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titplay.wmb",
+        "kind": "model",
+        "description": "Original Skill1=1 Play 3D menu WMB"
+    },
+    "model.menu.item.play_gem_1": {
+        "path": "res://assets/models/menu/items/titplay2/titplay2.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titplay2.wmb",
+        "kind": "model",
+        "description": "Original Play menu gem WMB"
+    },
+    "model.menu.item.play_gem_2": {
+        "path": "res://assets/models/menu/items/titplay3/titplay3.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titplay3.wmb",
+        "kind": "model",
+        "description": "Original Play menu gem WMB variant"
+    },
+    "model.menu.item.tutorial": {
+        "path": "res://assets/models/menu/items/tittutor/tittutor.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/tittutor.wmb",
+        "kind": "model",
+        "description": "Original Skill1=2 Tutorial 3D menu WMB"
+    },
+    "model.menu.item.tutorial_gem": {
+        "path": "res://assets/models/menu/items/tittuto2/tittuto2.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/tittuto2.wmb",
+        "kind": "model",
+        "description": "Original Tutorial menu gem WMB"
+    },
+    "model.menu.item.jump": {
+        "path": "res://assets/models/menu/items/titjump/titjump.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titjump.wmb",
+        "kind": "model",
+        "description": "Original Skill1=3 Jump 3D menu WMB"
+    },
+    "model.menu.item.jump_gem": {
+        "path": "res://assets/models/menu/items/titjum2/titjum2.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titjum2.wmb",
+        "kind": "model",
+        "description": "Original Jump menu animated companion WMB"
+    },
+    "model.menu.item.think": {
+        "path": "res://assets/models/menu/items/titpuzzl/titpuzzl.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titpuzzl.wmb",
+        "kind": "model",
+        "description": "Original Skill1=4 Think/Puzzle 3D menu WMB"
+    },
+    "model.menu.item.think_gem": {
+        "path": "res://assets/models/menu/items/titpuzz2/titpuzz2.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titpuzz2.wmb",
+        "kind": "model",
+        "description": "Original Think/Puzzle menu gem WMB"
+    },
+    "model.menu.item.bonus": {
+        "path": "res://assets/models/menu/items/titbonus/titbonus.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titbonus.wmb",
+        "kind": "model",
+        "description": "Original Skill1=50 Bonus 3D menu WMB"
+    },
+    "model.menu.item.bonus_gem": {
+        "path": "res://assets/models/menu/items/titbonu2/titbonu2.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titbonu2.wmb",
+        "kind": "model",
+        "description": "Original Bonus menu gem WMB"
+    },
+    "model.menu.item.options": {
+        "path": "res://assets/models/menu/items/titoptio/titoptio.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titoptio.wmb",
+        "kind": "model",
+        "description": "Original Skill1=5 Options 3D menu WMB"
+    },
+    "model.menu.item.quit": {
+        "path": "res://assets/models/menu/items/titquit/titquit.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/titquit.wmb",
+        "kind": "model",
+        "description": "Original Skill1=6 Quit 3D menu WMB"
+    },
     "model.cactus1": {
         "path": "res://assets/models/cactus1/cactus1_animated.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/cactus1/cactus1_animated.gltf",
@@ -612,6 +702,114 @@ const CATALOG := {
         "kind": "texture",
         "description": "Original key-diamond panel background"
     },
+    "texture.menu.play": {
+        "path": "res://assets/textures/menu/startpep.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/startpep.png",
+        "kind": "texture",
+        "description": "Original startpep menu texture"
+    },
+    "texture.menu.options": {
+        "path": "res://assets/textures/menu/butpad1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/butpad1.png",
+        "kind": "texture",
+        "description": "Original menu pad texture used as the first-pass options placeholder"
+    },
+    "texture.menu.options_hover": {
+        "path": "res://assets/textures/menu/butpad2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/butpad2.png",
+        "kind": "texture",
+        "description": "Original menu pad hover texture used as the first-pass options placeholder"
+    },
+    "texture.menu.quit": {
+        "path": "res://assets/textures/menu/quit1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/quit1.png",
+        "kind": "texture",
+        "description": "Original quit menu texture"
+    },
+    "texture.menu.quit_hover": {
+        "path": "res://assets/textures/menu/quit2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/quit2.png",
+        "kind": "texture",
+        "description": "Original quit menu hover texture"
+    },
+    "texture.menu.options.background": {
+        "path": "res://assets/textures/menu/options/fondopt1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fondopt1.png",
+        "kind": "texture",
+        "description": "Original options panel background"
+    },
+    "texture.menu.options.audio": {
+        "path": "res://assets/textures/menu/options/audio1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/audio1.png",
+        "kind": "texture",
+        "description": "Original options audio label"
+    },
+    "texture.menu.options.audio_hover": {
+        "path": "res://assets/textures/menu/options/audio2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/audio2.png",
+        "kind": "texture",
+        "description": "Original options audio hover label"
+    },
+    "texture.menu.options.resume": {
+        "path": "res://assets/textures/menu/options/resum1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/resum1.png",
+        "kind": "texture",
+        "description": "Original options resume button"
+    },
+    "texture.menu.options.resume_hover": {
+        "path": "res://assets/textures/menu/options/resum2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/resum2.png",
+        "kind": "texture",
+        "description": "Original options resume hover button"
+    },
+    "texture.menu.options.back": {
+        "path": "res://assets/textures/menu/options/back1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/back1.png",
+        "kind": "texture",
+        "description": "Original options back button"
+    },
+    "texture.menu.options.back_hover": {
+        "path": "res://assets/textures/menu/options/back2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/back2.png",
+        "kind": "texture",
+        "description": "Original options back hover button"
+    },
+    "texture.menu.options.quit": {
+        "path": "res://assets/textures/menu/options/oui1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/oui1.png",
+        "kind": "texture",
+        "description": "Original yes/quit confirmation button"
+    },
+    "texture.menu.options.quit_hover": {
+        "path": "res://assets/textures/menu/options/oui2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/oui2.png",
+        "kind": "texture",
+        "description": "Original yes/quit confirmation hover button"
+    },
+    "texture.menu.options.no": {
+        "path": "res://assets/textures/menu/options/non1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/non1.png",
+        "kind": "texture",
+        "description": "Original no/cancel confirmation button"
+    },
+    "texture.menu.options.no_hover": {
+        "path": "res://assets/textures/menu/options/non2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/non2.png",
+        "kind": "texture",
+        "description": "Original no/cancel confirmation hover button"
+    },
+    "texture.menu.options.quit_prompt": {
+        "path": "res://assets/textures/menu/options/fondyn.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/fondyn.png",
+        "kind": "texture",
+        "description": "Original quit confirmation prompt texture"
+    },
+    "texture.menu.back_arrow": {
+        "path": "res://assets/textures/menu/options/mflechA1.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/mflechA1.png",
+        "kind": "texture",
+        "description": "Original menu back arrow texture"
+    },
     "music.sammy01": {
         "path": "res://assets/audio/sammy01.ogg",
         "source": "extract-sammy-assets/extracted/godot/audio/sammy01.ogg",
@@ -641,6 +839,24 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/audio/Cligno1.wav",
         "kind": "audio",
         "description": "Original Cligno1_son used by temporary blinking gems"
+    },
+    "sfx.menu_hover": {
+        "path": "res://assets/audio/Cligno1.wav",
+        "source": "extract-sammy-assets/extracted/wrs/scripts/sons.wdl:Toc2=Cligno1.wav",
+        "kind": "audio",
+        "description": "Original Toc2 menu hover sound"
+    },
+    "sfx.menu_select": {
+        "path": "res://assets/audio/tocbois8.wav",
+        "source": "extract-sammy-assets/extracted/wrs/scripts/sons.wdl:Ding1=tocbois8.wav",
+        "kind": "audio",
+        "description": "Original Ding1 menu click sound"
+    },
+    "sfx.menu_option_select": {
+        "path": "res://assets/audio/tocbois6.wav",
+        "source": "extract-sammy-assets/extracted/wrs/scripts/sons.wdl:Ding2=tocbois6.wav",
+        "kind": "audio",
+        "description": "Original Ding2 secondary menu click sound"
     },
     "sfx.gem_break": {
         "path": "res://assets/audio/broken4.wav",
@@ -836,6 +1052,12 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/godot/levels/wmb_manifest.json",
         "kind": "metadata",
         "description": "WMB dependency manifest copied from extraction output"
+    },
+    "metadata.menu_wmb_manifest": {
+        "path": "res://assets/models/menu/items/menu_wmb_manifest.json",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels",
+        "kind": "metadata",
+        "description": "Converted original 3D main-menu item WMB manifest"
     },
     "metadata.platform_wmb_manifest": {
         "path": "res://assets/models/platforms/platform_wmb_manifest.json",

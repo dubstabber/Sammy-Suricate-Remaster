@@ -56,6 +56,9 @@ const DEATH_PAD_PHASE_FADE_IN := 1
 @export var teleport_fade_in_seconds: float = 10.0 / ACKNEX_TIME_UNITS_PER_SECOND
 @export var death_pad_fade_out_seconds: float = 100.0 / (2.0 * ACKNEX_TIME_UNITS_PER_SECOND)
 @export var death_pad_fade_in_seconds: float = 100.0 / (10.0 * ACKNEX_TIME_UNITS_PER_SECOND)
+@export var exit_pad_victory_spin_degrees_per_second: float = 12.0 * ACKNEX_TIME_UNITS_PER_SECOND
+@export var exit_pad_victory_animation_speed_scale: float = 1.0 / GODOT_PLAYBACK_SPEED_CORRECTION
+@export var exit_pad_victory_animation_delay_seconds: float = 8.0 / ACKNEX_TIME_UNITS_PER_SECOND
 
 signal damaged(amount: float, source: Node)
 signal death_started(source: Node)
@@ -114,6 +117,9 @@ var _teleport_particle_emit_remaining := 0.0
 var _death_pad_respawning := false
 var _death_pad_phase := DEATH_PAD_PHASE_FADE_OUT
 var _death_pad_phase_remaining := 0.0
+var _exit_pad_victory_active := false
+var _exit_pad_victory_animation_started := false
+var _exit_pad_victory_animation_delay_remaining := 0.0
 var _saved_collision_layer := 0
 var _saved_collision_mask := 0
 var _has_saved_collision_state := false
@@ -131,7 +137,7 @@ func _ready() -> void:
 
 
 func take_damage(amount: float, source: Node = null) -> bool:
-    if amount <= 0.0 or _health <= 0.0 or _dead or _game_over or _teleporting or _death_pad_respawning:
+    if amount <= 0.0 or _health <= 0.0 or _dead or _game_over or _teleporting or _death_pad_respawning or _exit_pad_victory_active:
         return false
     if is_in_invulnerability_window():
         return false
@@ -216,7 +222,7 @@ func is_in_invulnerability_window() -> bool:
 
 
 func begin_teleport(destination_transform: Transform3D, source: Node = null) -> bool:
-    if _dead or _game_over or _teleporting or _death_pad_respawning:
+    if _dead or _game_over or _teleporting or _death_pad_respawning or _exit_pad_victory_active:
         return false
 
     _teleporting = true
@@ -246,7 +252,7 @@ func get_teleport_alpha() -> float:
 
 
 func begin_death_pad_respawn(_source: Node = null) -> bool:
-    if _dead or _game_over or _teleporting or _death_pad_respawning:
+    if _dead or _game_over or _teleporting or _death_pad_respawning or _exit_pad_victory_active:
         return false
 
     _lives = maxi(0, _lives - 1)
@@ -278,8 +284,24 @@ func get_death_pad_respawn_alpha() -> float:
     return _teleport_alpha
 
 
+func begin_exit_pad_victory(_source: Node = null) -> bool:
+    if _dead or _game_over or _teleporting or _death_pad_respawning or _exit_pad_victory_active:
+        return false
+
+    _exit_pad_victory_active = true
+    _exit_pad_victory_animation_started = false
+    _exit_pad_victory_animation_delay_remaining = maxf(exit_pad_victory_animation_delay_seconds, 0.0)
+    _clear_action_state_for_victory()
+    _play_animation_action(&"stand", 1.0, false, false, 0.0)
+    return true
+
+
+func is_exit_pad_victory_active() -> bool:
+    return _exit_pad_victory_active
+
+
 func apply_enemy_push(source_velocity: Vector3, source_bounce_force: float = 1.0, _source: Node = null) -> void:
-    if _dead or _game_over or _death_pad_respawning:
+    if _dead or _game_over or _death_pad_respawning or _exit_pad_victory_active:
         return
 
     var horizontal_source := source_velocity
@@ -397,6 +419,9 @@ func _physics_process(delta: float) -> void:
         return
     if _teleporting:
         _update_teleport_state(delta)
+        return
+    if _exit_pad_victory_active:
+        _update_exit_pad_victory_state(delta)
         return
 
     var was_on_floor := is_on_floor()
@@ -681,7 +706,7 @@ func _clear_wasp_fire() -> void:
 
 
 func _is_movement_locked() -> bool:
-    return _dead or _game_over or _teleporting or _death_pad_respawning or _wasp_fire_active or is_landing_movement_locked()
+    return _dead or _game_over or _teleporting or _death_pad_respawning or _exit_pad_victory_active or _wasp_fire_active or is_landing_movement_locked()
 
 
 func _begin_landing_movement_lock(forward_input: float = 0.0, turn_input: float = 0.0, jump_pressed: bool = false) -> void:
@@ -749,6 +774,57 @@ func _update_death_pad_respawn_state(delta: float) -> void:
             _set_teleport_alpha(clampf(1.0 - (_death_pad_phase_remaining / fade_in_duration), 0.0, 1.0))
             if _death_pad_phase_remaining <= 0.0:
                 _finish_death_pad_respawn()
+
+
+func _update_exit_pad_victory_state(delta: float) -> void:
+    var safe_delta := maxf(delta, 0.0)
+    velocity.x = 0.0
+    velocity.z = 0.0
+    _input_horizontal_velocity = Vector3.ZERO
+    _enemy_push_velocity = Vector3.ZERO
+    _boosting = false
+    _quick_turn_active = false
+    _quick_turn_remaining_degrees = 0.0
+    _quick_turn_speed_degrees = 0.0
+    if not is_on_floor():
+        velocity.y -= movement_config.gravity * safe_delta
+    else:
+        velocity.y = 0.0
+    _update_exit_pad_victory_animation_delay(safe_delta)
+    if not _exit_pad_victory_animation_started:
+        move_and_slide()
+        return
+    if safe_delta > 0.0:
+        rotation.y = wrapf(rotation.y + deg_to_rad(exit_pad_victory_spin_degrees_per_second) * safe_delta, -PI, PI)
+    move_and_slide()
+    if _current_animation_action() != &"Iwin":
+        _play_animation_action(&"Iwin", exit_pad_victory_animation_speed_scale, false, true, 0.0)
+
+
+func _update_exit_pad_victory_animation_delay(delta: float) -> void:
+    if _exit_pad_victory_animation_started:
+        return
+    _exit_pad_victory_animation_delay_remaining = maxf(0.0, _exit_pad_victory_animation_delay_remaining - delta)
+    if _exit_pad_victory_animation_delay_remaining > 0.0:
+        if _current_animation_action() != &"stand":
+            _play_animation_action(&"stand", 1.0, false, false, 0.0)
+        return
+    _exit_pad_victory_animation_started = true
+    _play_animation_action(&"Iwin", exit_pad_victory_animation_speed_scale, false, true, 0.0)
+
+
+func _clear_action_state_for_victory() -> void:
+    _clear_wasp_fire()
+    _clear_animation_sequence()
+    _quick_turn_active = false
+    _quick_turn_remaining_degrees = 0.0
+    _quick_turn_speed_degrees = 0.0
+    _boosting = false
+    _jump_fire_blocked = false
+    _landing_movement_lock_remaining = 0.0
+    _enemy_push_velocity = Vector3.ZERO
+    _input_horizontal_velocity = Vector3.ZERO
+    velocity = Vector3.ZERO
 
 
 func _clear_motion_for_teleport() -> void:
@@ -1217,7 +1293,7 @@ func _configure_model_animation(assets: Node) -> void:
 func _update_model_animation(forward_input: float, turn_input: float, jumped: bool, was_on_floor: bool, on_floor: bool, horizontal_speed: float) -> void:
     if _animation_controller == null:
         return
-    if _dead or _game_over:
+    if _dead or _game_over or _exit_pad_victory_active:
         return
 
     if _quick_turn_active:
@@ -1318,6 +1394,9 @@ func _begin_death(source: Node = null) -> void:
 
 
 func _clear_action_state_for_death() -> void:
+    _exit_pad_victory_active = false
+    _exit_pad_victory_animation_started = false
+    _exit_pad_victory_animation_delay_remaining = 0.0
     _clear_wasp_fire()
     _clear_animation_sequence()
     _quick_turn_active = false

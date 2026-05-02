@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/props/exit_pad.gd" id="1_exit_pad"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_trigger"]
+height = 0.35
+radius = 0.85
+
+[node name="ExitPad" type="Area3D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_exit_pad")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.175, 0)
+shape = SubResource("CylinderShape3D_trigger")
+
+[node name="VisualRoot" type="Node3D" parent="."]

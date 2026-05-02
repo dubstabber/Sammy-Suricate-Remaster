@@ -14,7 +14,7 @@ const MODEL_CONFIGS := [
         "name": "suricat1",
         "gltf_path": "res://assets/models/suricat1/suricat1_animated.gltf",
         "output_path": "res://assets/animations/suricat1_clips.tres",
-        "looping": ["stand", "walkA", "walkB", "turn", "kaputt", "loopjambes", "finkaputt"],
+        "looping": ["stand", "walkA", "walkB", "turn", "kaputt", "finkaputt", "Iwin", "loopjambes"],
         "step_speeds": {
             "stand": 2.0,
             "sautA": 30.0,
@@ -25,7 +25,7 @@ const MODEL_CONFIGS := [
             "turn": 14.0,
             "kaputt": 3.0,
             "finkaputt": 3.0,
-            "Iwin": 3.0,
+            "Iwin": 6.0,
             "loopjambes": 2.0,
             "salut": 3.0
         },

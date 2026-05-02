@@ -28,6 +28,7 @@ const MOVING_PLATFORM_SCENE_PATH := "res://scenes/props/moving_platform.tscn"
 const PLATFORM_WMB_MANIFEST_PATH := "res://assets/models/platforms/platform_wmb_manifest.json"
 const TELEPORTER_SCENE_PATH := "res://scenes/props/teleporter.tscn"
 const DEATH_PAD_SCENE_PATH := "res://scenes/props/death_pad.tscn"
+const EXIT_PAD_SCENE_PATH := "res://scenes/props/exit_pad.tscn"
 const CHECKPOINT_SCENE_PATH := "res://scenes/props/checkpoint.tscn"
 const KEY_DIAMOND_PANEL_SCENE_PATH := "res://scenes/ui/key_diamond_panel.tscn"
 const WASP_PROJECTILE_SCENE_PATH := "res://scenes/weapons/wasp_projectile.tscn"
@@ -122,6 +123,7 @@ func _run() -> void:
     await _test_moving_platform_system(assets)
     await _test_teleporter_system(assets)
     await _test_death_pad_system(assets)
+    await _test_exit_pad_system(assets)
     await _test_checkpoint_system(assets)
     await _test_eye_of_truth_pickup(game, assets)
     await _test_wasp_projectile_damages_enemy()
@@ -295,6 +297,24 @@ func _test_asset_catalog(assets: Node) -> void:
         _expect(death_pad_tile != null and _model_uses_texture(death_pad_model_instance, death_pad_tile), "Converted TileDeath WMB should use the original tiledeath texture.")
         _expect(death_pad_tile_border != null and _model_uses_texture(death_pad_model_instance, death_pad_tile_border), "Converted TileDeath WMB should use the original tiledeath_bord texture.")
         death_pad_model_instance.queue_free()
+    var exit_pad_model := assets.load_asset("model.exit_pad.tile") as PackedScene
+    _expect(exit_pad_model != null, "Unable to load converted TileExit WMB model.")
+    var exit_pad_texture := assets.load_asset("texture.exit_pad.tile_nextlevel") as Texture2D
+    _expect(exit_pad_texture != null, "Unable to load original exit pad next-level texture.")
+    if exit_pad_model != null:
+        var exit_pad_model_instance := exit_pad_model.instantiate() as Node3D
+        root.add_child(exit_pad_model_instance)
+        _expect(exit_pad_texture != null and _model_uses_texture(exit_pad_model_instance, exit_pad_texture), "Converted TileExit WMB should use the original tile_nextlevel texture.")
+        exit_pad_model_instance.queue_free()
+    var win_model := assets.load_asset("model.win.title") as PackedScene
+    _expect(win_model != null, "Unable to load original win.mdl title model.")
+    var win_texture := assets.load_asset("texture.win.title") as Texture2D
+    _expect(win_texture != null, "Unable to load original win.mdl texture.")
+    if win_model != null:
+        var win_model_instance := win_model.instantiate() as Node3D
+        root.add_child(win_model_instance)
+        _expect(win_texture != null and _model_uses_texture(win_model_instance, win_texture), "Original win.mdl should use the converted Win_skin0 texture.")
+        win_model_instance.queue_free()
     var checkpoint_model := assets.load_asset("model.checkpoint.restart") as PackedScene
     _expect(checkpoint_model != null, "Unable to load converted restart checkpoint WMB model.")
     var checkpoint_texture := assets.load_asset("texture.checkpoint.green_grad") as Texture2D
@@ -435,6 +455,7 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.get_life") != null, "Unable to load original GetLife_son pickup sound.")
     _expect(assets.load_asset("sfx.gagne1") != null, "Unable to load original Gagne1 heart pickup sound.")
     _expect(assets.load_asset("sfx.score_reach") != null, "Unable to load original ScoreReach_son applause sound.")
+    _expect(assets.load_asset("sfx.win") != null, "Unable to load original Win_son exit-pad sound.")
     _expect(assets.load_asset("sfx.platform_activate") != null, "Unable to load original moving-platform activation sound.")
     _expect(assets.load_asset("sfx.eye_truth") != null, "Unable to load original EyeTruth sound.")
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
@@ -984,7 +1005,7 @@ func _test_animation_libraries() -> void:
     _expect_animation_library(
             "res://assets/animations/suricat1_clips.tres",
             ["stand", "walkA", "walkAB", "walkB", "sautA", "sautB", "sautC", "tirA", "tirB", "turn", "death", "kaputt", "finkaputt", "Iwin", "loopjambes", "salut"],
-            ["stand", "walkB", "turn"]
+            ["stand", "walkB", "turn", "Iwin"]
     )
     _expect_animation_library(
             "res://assets/animations/rasta_clips.tres",
@@ -1007,6 +1028,7 @@ func _test_animation_libraries() -> void:
     _expect_clip_length("res://assets/animations/suricat1_clips.tres", "sautA", 100.0 / (30.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/suricat1_clips.tres", "tirA", 100.0 / (20.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/suricat1_clips.tres", "turn", 100.0 / (14.0 * 16.0 * 1.12))
+    _expect_clip_length("res://assets/animations/suricat1_clips.tres", "Iwin", 100.0 / (6.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/rasta_clips.tres", "attack", 100.0 / (6.0 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/rasta_clips.tres", "walk", 100.0 / (0.82 * 16.0 * 1.12))
     _expect_clip_length("res://assets/animations/rasta_clips.tres", "run", 100.0 / (0.3 * 16.0 * 1.12))
@@ -3448,6 +3470,169 @@ func _test_death_pad_system(_assets: Node) -> void:
     await process_frame
 
 
+func _test_exit_pad_system(assets: Node) -> void:
+    var exit_pad_scene := load(EXIT_PAD_SCENE_PATH) as PackedScene
+    _expect(exit_pad_scene != null, "Exit pad scene should load.")
+    if exit_pad_scene == null:
+        return
+
+    var floor := StaticBody3D.new()
+    floor.name = "ExitPadTestFloor"
+    floor.collision_layer = WORLD_LAYER
+    floor.collision_mask = CHARACTER_LAYER
+    var floor_shape := CollisionShape3D.new()
+    var floor_box := BoxShape3D.new()
+    floor_box.size = Vector3(12.0, 1.0, 12.0)
+    floor_shape.position = Vector3(0.0, -0.5, 0.0)
+    floor_shape.shape = floor_box
+    floor.add_child(floor_shape)
+    root.add_child(floor)
+
+    var player_scene := load(PLAYER_SCENE_PATH) as PackedScene
+    var player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    player.global_position = Vector3.ZERO
+
+    var exit_pad := exit_pad_scene.instantiate() as Area3D
+    exit_pad.name = "ExitPadSource"
+    root.add_child(exit_pad)
+    exit_pad.global_position = Vector3(6.0, 0.0, 0.0)
+    await process_frame
+
+    _expect(exit_pad.collision_layer == PICKUP_SENSOR_LAYER, "Exit pad should live on the pickup sensor collision layer.")
+    _expect(exit_pad.collision_mask == CHARACTER_LAYER, "Exit pad should monitor solid characters without blocking them.")
+    _expect(exit_pad.has_method("try_trigger_body"), "Exit pad should expose a test/importer trigger hook.")
+    _expect(is_equal_approx(float(exit_pad.get("completion_delay_seconds")), 8.0 / 16.0), "Exit pad should preserve the original TileExit_Hit waitt 8 delay.")
+    _expect(String(exit_pad.get("win_sound_asset_id")) == "sfx.win", "Exit pad should use the original Win_son sound.")
+    _expect(bool(exit_pad.call("has_original_visual_model")), "Exit pad should load the original converted TileExit WMB visual.")
+    _expect(String(exit_pad.call("get_visual_source_path")) == "res://assets/models/exit_pads/tileexit/tileexit.gltf", "Exit pad should expose the original TileExit WMB visual path.")
+
+    var non_player := Node3D.new()
+    non_player.name = "ExitPadNonPlayer"
+    root.add_child(non_player)
+    _expect(not bool(exit_pad.call("try_trigger_body", non_player)), "Exit pad should ignore non-player bodies.")
+    non_player.queue_free()
+
+    var airborne_player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(airborne_player)
+    airborne_player.global_position = Vector3(0.0, 5.0, 0.0)
+    await process_frame
+    _expect(not bool(exit_pad.call("try_trigger_body", airborne_player)), "Exit pad should ignore Sammy while he is airborne.")
+    airborne_player.queue_free()
+
+    for _settle_frame in 8:
+        await physics_frame
+    _expect(player.is_on_floor(), "Exit pad setup should put Sammy on the test floor.")
+    _expect(is_equal_approx(float(player.get("exit_pad_victory_animation_delay_seconds")), 8.0 / 16.0), "Exit pad victory should preserve the original TileExit_Hit waitt 8 delay before Iwin starts.")
+    player.set("exit_pad_victory_animation_delay_seconds", 0.05)
+
+    var camera_script: GDScript = load(CAMERA_SCRIPT_PATH)
+    var camera := Camera3D.new()
+    camera.name = "ExitPadParityCamera"
+    camera.set_script(camera_script)
+    root.add_child(camera)
+    camera.target_path = camera.get_path_to(player)
+    camera.call("reset_to_target")
+
+    exit_pad.set("completion_delay_seconds", 0.01)
+    var route_spy := _make_exit_pad_route_spy()
+    root.add_child(route_spy)
+    route_spy.set("target", exit_pad)
+    var game := root.get_node_or_null("Game")
+    if game != null and game.has_method("set_scene_router"):
+        game.call("set_scene_router", route_spy)
+    var audio := root.get_node_or_null("Audio")
+    if audio != null and audio.has_method("stop_sfx"):
+        audio.call("stop_sfx")
+    _expect(bool(exit_pad.call("try_trigger_body", player)), "Grounded Sammy should trigger the exit pad.")
+    _expect(bool(exit_pad.call("is_activated")), "Exit pad should enter its one-shot activated state after Sammy reaches it.")
+    _expect(bool(player.call("is_exit_pad_victory_active")), "Exit pad should lock Sammy into the level-win state.")
+    var frozen_camera_position := camera.global_position
+    var frozen_camera_basis_z := camera.global_transform.basis.z
+    var frozen_camera_mode_index := int(camera.get("_camera_mode_index"))
+    var victory_start_facing := player.call("get_facing_direction") as Vector3
+    var victory_controller := player.call("get_animation_controller") as Node
+    if victory_controller != null:
+        _expect(String(victory_controller.call("get_current_action")) == "stand", "Exit pad should hold Sammy briefly before starting the original Iwin animation.")
+    _expect(not bool(player.call("fire_wasp")), "Exit pad victory state should lock wasp fire.")
+    _expect(not bool(player.call("take_damage", 1.0, null)), "Exit pad victory state should suppress damage interactions.")
+    _expect(not bool(exit_pad.call("has_completed")), "Exit pad should wait for player input before completing the level.")
+    _expect(float(exit_pad.call("get_completion_delay_remaining")) > 0.0, "Exit pad should expose its original TileExit_Hit delay before accepting completion.")
+    _expect(bool(exit_pad.call("has_win_visual")), "Exit pad should spawn the original win.mdl title visual.")
+    _expect(String(exit_pad.call("get_win_visual_source_path")) == "res://assets/models/win/Win/Win.gltf", "Exit pad win title should use the original converted win.mdl model.")
+    var win_title_root := exit_pad.call("get_win_visual_root") as Node3D
+    var win_title_model: Node3D = null
+    if win_title_root != null:
+        win_title_model = win_title_root.get_node_or_null("WinTitleModel") as Node3D
+    _expect(win_title_model != null and win_title_model.rotation_degrees.is_equal_approx(Vector3(0.0, -90.0, 0.0)), "Exit pad win title should face the camera without mirroring the source label.")
+    if audio != null:
+        _expect(_audio_service_has_stream(audio, assets.load_asset("sfx.win") as AudioStream), "Exit pad activation should play the original Win_son.")
+    _expect(not bool(exit_pad.call("try_trigger_body", player)), "Exit pad should not retrigger after the first activation.")
+    for _pre_win_frame in 2:
+        await physics_frame
+    if victory_controller != null:
+        _expect(String(victory_controller.call("get_current_action")) == "stand", "Exit pad should not start Iwin before the original waitt 8 delay elapses.")
+    _expect((player.call("get_facing_direction") as Vector3).distance_to(victory_start_facing) < 0.001, "Exit pad victory state should not spin Sammy before the Iwin delay elapses.")
+    for _wait_for_iwin_frame in 20:
+        if victory_controller != null and String(victory_controller.call("get_current_action")) == "Iwin":
+            break
+        await physics_frame
+    if victory_controller != null:
+        _expect(String(victory_controller.call("get_current_action")) == "Iwin", "Exit pad should start Sammy's original Iwin animation after the original delay.")
+        var victory_animation_player := victory_controller.get("animation_player") as AnimationPlayer
+        if victory_animation_player != null:
+            _expect(is_equal_approx(victory_animation_player.speed_scale, 1.0 / 1.12), "Exit pad should slow Iwin playback to the original observed cadence.")
+    var iwin_start_facing := player.call("get_facing_direction") as Vector3
+    for _victory_camera_frame in 8:
+        await physics_frame
+    _expect((player.call("get_facing_direction") as Vector3).distance_to(iwin_start_facing) > 0.01, "Exit pad victory state should keep Sammy's original spinning Iwin animation active.")
+    _expect(camera.global_position.distance_to(frozen_camera_position) < 0.001, "Exit pad victory state should freeze the follow camera like the original AnimGagnee flow.")
+    _expect(camera.global_transform.basis.z.distance_to(frozen_camera_basis_z) < 0.001, "Exit pad victory state should preserve the camera look direction while Sammy spins.")
+    var camera_change_event := InputEventAction.new()
+    camera_change_event.action = "camera_change"
+    camera_change_event.pressed = true
+    camera.call("_unhandled_input", camera_change_event)
+    _expect(int(camera.get("_camera_mode_index")) == frozen_camera_mode_index, "Exit pad victory state should ignore camera mode changes while waiting for input.")
+    _expect(camera.global_position.distance_to(frozen_camera_position) < 0.001, "Exit pad victory camera-change input should not snap the camera back to Sammy.")
+    await process_frame
+    _expect(not exit_pad.monitoring, "Exit pad should stop monitoring after activation.")
+    _expect(not exit_pad.monitorable, "Exit pad should stop being monitorable after activation.")
+    exit_pad.call("_process", 1.0)
+    _expect(not bool(exit_pad.call("has_completed")), "Exit pad should not complete from a timer alone.")
+    _expect(int(route_spy.get("show_main_menu_calls")) == 0, "Exit pad should not route before the player presses a key.")
+    var key_event := InputEventKey.new()
+    key_event.pressed = true
+    key_event.keycode = KEY_ENTER
+    exit_pad.call("_unhandled_input", key_event)
+    _expect(int(route_spy.get("show_main_menu_calls")) == 1, "Exit pad completion should route back to the main menu in the prototype.")
+
+    route_spy.queue_free()
+    if is_instance_valid(exit_pad):
+        exit_pad.queue_free()
+    camera.queue_free()
+    player.queue_free()
+    floor.queue_free()
+    await process_frame
+
+
+func _make_exit_pad_route_spy() -> Node:
+    var script := GDScript.new()
+    script.source_code = "extends Node\n" \
+            + "var target: Node = null\n" \
+            + "var show_main_menu_calls: int = 0\n" \
+            + "func show_main_menu() -> int:\n" \
+            + "    show_main_menu_calls += 1\n" \
+            + "    if target != null and is_instance_valid(target) and target.get_parent() != null:\n" \
+            + "        target.get_parent().remove_child(target)\n" \
+            + "    return OK\n"
+    var err := script.reload()
+    _expect(err == OK, "Exit pad route spy script should compile.")
+    var node := Node.new()
+    node.name = "ExitPadRouteSpy"
+    node.set_script(script)
+    return node
+
+
 func _test_checkpoint_system(assets: Node) -> void:
     var checkpoint_scene := load(CHECKPOINT_SCENE_PATH) as PackedScene
     _expect(checkpoint_scene != null, "Checkpoint scene should load.")
@@ -4687,9 +4872,9 @@ func _test_player_scene() -> void:
         _expect(player.has_method("is_quick_turning"), "Player controller should expose quick-turn state for parity validation.")
         _expect(bool(player.call("is_quick_turning")), "Quick turn should begin a staged original-style turn instead of snapping instantly.")
         var audio := root.get_node_or_null("Audio")
-        if audio != null:
-            var quick_turn_sfx_player := audio.get_node_or_null("SfxPlayer0") as AudioStreamPlayer
-            _expect(quick_turn_sfx_player != null and quick_turn_sfx_player.stream != null, "Quick turn should play the original Blouit_son through the audio service.")
+        var quick_turn_assets := root.get_node_or_null("Assets")
+        if audio != null and quick_turn_assets != null:
+            _expect(_audio_service_has_stream(audio, quick_turn_assets.load_asset("sfx.quick_turn") as AudioStream), "Quick turn should play the original Blouit_son through the audio service.")
         var quick_turn_controller := player.call("get_animation_controller") as Node
         if quick_turn_controller != null:
             _expect(String(quick_turn_controller.call("get_current_action")) == "turn", "Quick turn should restart Sammy's original turn animation.")
@@ -4966,6 +5151,7 @@ func _test_prototype_world() -> void:
     _expect(world.get_node_or_null("GemSpawners/DecorativeGemSpawner") != null, "Prototype should include a decorative gem spawner.")
     _expect(world.get_node_or_null("OrangeKeyGate") != null, "Prototype orange key gate should be editor-instanced.")
     _expect(world.get_node_or_null("ScoreGoalExitGate") != null, "Prototype ScoreGoal exit gate should be editor-instanced.")
+    _expect(world.get_node_or_null("ExitPads/ScoreGoalExitPad") != null, "Prototype ScoreGoal exit pad should be editor-instanced behind the exit gate.")
     _expect(world.get_node_or_null("KeyDiamondPanel") != null, "Prototype key-diamond panel should be editor-instanced.")
     _expect(world.get_node_or_null("GateTestGallery") != null, "Prototype gate test gallery should be editor-instanced.")
     _expect(world.get_node_or_null("Platforms/UnlockedMovingPlatform") != null, "Prototype unlocked moving platform should be editor-instanced.")
@@ -5092,6 +5278,15 @@ func _test_prototype_world() -> void:
     if death_pad != null:
         _expect(String(death_pad.call("get_visual_source_path")) == "res://assets/models/death_pads/tiledeat/tiledeat.gltf", "Prototype death pad should use the converted original TileDeath WMB visual.")
         _expect(death_pad.call("get_idle_particle_emitter") != null, "Prototype death pad should spawn idle original TileDeath smoke particles.")
+    var exit_pad := world.get_node_or_null("ExitPads/ScoreGoalExitPad") as Area3D
+    _expect(exit_pad != null, "Prototype world should spawn an editor-authored exit pad.")
+    if exit_pad != null:
+        _expect(String(exit_pad.call("get_visual_source_path")) == "res://assets/models/exit_pads/tileexit/tileexit.gltf", "Prototype exit pad should use the converted original TileExit WMB visual.")
+        _expect(String(exit_pad.get("win_sound_asset_id")) == "sfx.win", "Prototype exit pad should use the original Win_son sound.")
+        _expect(String(exit_pad.get("win_visual_asset_id")) == "model.win.title", "Prototype exit pad should show the original win.mdl title model.")
+        var exit_pad_gate := world.get_node_or_null("ScoreGoalExitGate") as StaticBody3D
+        if exit_pad_gate != null:
+            _expect(exit_pad.global_position.z < exit_pad_gate.global_position.z, "Prototype exit pad should sit behind the ScoreGoal exit gate.")
     var checkpoint := world.get_node_or_null("Checkpoints/CheckpointA") as Area3D
     _expect(checkpoint != null, "Prototype world should spawn an editor-authored restart checkpoint.")
     if checkpoint != null:

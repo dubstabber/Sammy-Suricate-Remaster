@@ -74,6 +74,13 @@ const CATALOG := {
         "kind": "model",
         "description": "Original titre model used by menu_greenpepper.WMB"
     },
+	"model.win.title": {
+		"path": "res://assets/models/win/Win/Win.gltf",
+		"source": "extract-sammy-assets/extracted/godot/models/Win/Win.gltf",
+		"kind": "model",
+		"description": "Original win.mdl end-level title model",
+		"acknex_entity_scale": Vector3(0.32, 0.32, 0.32)
+	},
     "model.menu.item.play": {
         "path": "res://assets/models/menu/items/titplay/titplay.gltf",
         "source": "extract-sammy-assets/extracted/godot/raw/levels/titplay.wmb",
@@ -246,6 +253,12 @@ const CATALOG := {
 		"kind": "model",
 		"description": "Original TileDeath WMB"
 	},
+	"model.exit_pad.tile": {
+		"path": "res://assets/models/exit_pads/tileexit/tileexit.gltf",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/tileexit.wmb",
+		"kind": "model",
+		"description": "Original TileExit WMB"
+	},
 	"model.gem_spawner.boulder3": {
 		"path": "res://assets/models/spawners/boulder3/boulder3.gltf",
 		"source": "extract-sammy-assets/extracted/godot/raw/levels/boulder3.wmb",
@@ -318,6 +331,18 @@ const CATALOG := {
         "kind": "texture",
         "description": "Original death pad border texture decoded from tiledeat.wmb"
     },
+	"texture.exit_pad.tile_nextlevel": {
+		"path": "res://assets/textures/exit_pads/tile_nextlevel.png",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/tileexit.wmb",
+		"kind": "texture",
+		"description": "Original exit pad next-level texture decoded from tileexit.wmb"
+	},
+	"texture.win.title": {
+		"path": "res://assets/models/win/Win/skins/Win_skin0.png",
+		"source": "extract-sammy-assets/extracted/godot/models/Win/skins/Win_skin0.png",
+		"kind": "texture",
+		"description": "Original win.mdl texture"
+	},
     "texture.checkpoint.green_grad": {
         "path": "res://assets/textures/checkpoints/green_grad1.png",
         "source": "extract-sammy-assets/extracted/godot/raw/levels/restart.wmb",
@@ -912,6 +937,12 @@ const CATALOG := {
         "kind": "audio",
         "description": "Original ScoreReach_son played when Sammy reaches ScoreGoal"
     },
+	"sfx.win": {
+		"path": "res://assets/audio/Iwin.wav",
+		"source": "extract-sammy-assets/extracted/godot/audio/Iwin.wav",
+		"kind": "audio",
+		"description": "Original Win_son played by TileExit_Hit"
+	},
     "sfx.eye_truth": {
         "path": "res://assets/audio/EyeTruth.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/EyeTruth.wav",
@@ -1070,6 +1101,12 @@ const CATALOG := {
 		"source": "extract-sammy-assets/extracted/godot/raw/levels/restart.wmb",
 		"kind": "metadata",
 		"description": "Converted original restart checkpoint WMB manifest"
+	},
+	"metadata.exit_pad_wmb_manifest": {
+		"path": "res://assets/models/exit_pads/exit_pad_wmb_manifest.json",
+		"source": "extract-sammy-assets/extracted/godot/raw/levels/tileexit.wmb",
+		"kind": "metadata",
+		"description": "Converted original TileExit WMB manifest"
 	},
 	"metadata.gem_spawner_wmb_manifest": {
 		"path": "res://assets/models/spawners/gem_spawner_wmb_manifest.json",

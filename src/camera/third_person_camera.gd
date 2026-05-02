@@ -23,6 +23,8 @@ func _physics_process(delta: float) -> void:
         _resolve_target()
     if _target == null:
         return
+    if _target_locks_camera_follow():
+        return
 
     var desired := _target.global_position + _get_follow_offset()
     global_position = global_position.lerp(desired, minf(1.0, smoothing * delta))
@@ -34,11 +36,17 @@ func reset_to_target() -> void:
         _resolve_target()
     if _target == null:
         return
+    if _target_locks_camera_follow():
+        return
     global_position = _target.global_position + _get_follow_offset()
     look_at(_target.global_position + Vector3(0.0, look_height, 0.0), Vector3.UP)
 
 
 func cycle_camera_mode() -> void:
+    if _target == null:
+        _resolve_target()
+    if _target_locks_camera_follow():
+        return
     _camera_mode_index = (_camera_mode_index + 1) % 4
     reset_to_target()
 
@@ -53,6 +61,10 @@ func _resolve_target() -> void:
         _target = get_node_or_null(target_path) as Node3D
     if _target == null:
         _target = get_tree().get_first_node_in_group("player") as Node3D
+
+
+func _target_locks_camera_follow() -> bool:
+    return _target != null and _target.has_method("is_exit_pad_victory_active") and bool(_target.call("is_exit_pad_victory_active"))
 
 
 func _get_follow_offset() -> Vector3:

@@ -285,6 +285,7 @@ func _test_asset_catalog(assets: Node) -> void:
         root.add_child(teleport_model_instance)
         _expect(teleport_tile != null and _model_uses_texture(teleport_model_instance, teleport_tile), "Converted teleport WMB should use the original tileteleport2 texture.")
         _expect(teleport_tile_side != null and _model_uses_texture(teleport_model_instance, teleport_tile_side), "Converted teleport WMB should use the original tileteleport2_b texture.")
+        _expect(teleport_tile_side != null and _model_surface_uv_span_for_texture_within(teleport_model_instance, teleport_tile_side, 1.01, 1.01), "Converted teleport side UVs should map tileteleport2_b once per side, not repeat it vertically.")
         teleport_model_instance.queue_free()
     var death_pad_model := assets.load_asset("model.death_pad.tile") as PackedScene
     _expect(death_pad_model != null, "Unable to load converted TileDeath WMB model.")
@@ -3279,7 +3280,7 @@ func _test_moving_platform_variants(platform_scene: PackedScene) -> void:
     await process_frame
 
 
-func _test_teleporter_system(_assets: Node) -> void:
+func _test_teleporter_system(assets: Node) -> void:
     var teleporter_scene := load(TELEPORTER_SCENE_PATH) as PackedScene
     _expect(teleporter_scene != null, "Teleporter scene should load.")
     if teleporter_scene == null:
@@ -3321,6 +3322,13 @@ func _test_teleporter_system(_assets: Node) -> void:
     _expect(teleporter.has_method("try_teleport_body"), "Teleporter should expose a test/importer trigger hook.")
     _expect(bool(teleporter.call("has_original_visual_model")), "Teleporter should load the original converted WMB visual.")
     _expect(String(teleporter.call("get_visual_source_path")) == "res://assets/models/teleports/teleport/teleport.gltf", "Teleporter should expose the original teleport WMB visual path.")
+    var visual_scale: Vector3 = teleporter.get("visual_scale")
+    _expect(visual_scale.is_equal_approx(Vector3(1.0, 0.5, 1.0)), "Teleporter should reduce the converted WMB pad height without making it too flat.")
+    var visual_root := teleporter.call("get_visual_model_root") as Node3D
+    _expect(visual_root != null, "Teleporter should expose its visual root for parity checks.")
+    if visual_root != null and assets.has_method("get_model_global_bounds"):
+        var visual_bounds: AABB = assets.call("get_model_global_bounds", visual_root)
+        _expect(visual_bounds.size.y >= 0.15 and visual_bounds.size.y <= 0.17, "Teleporter visual should keep a visible side wall while staying flatter than the full converted slab height.")
     var idle_emitter := teleporter.call("get_idle_particle_emitter") as Node
     _expect(idle_emitter != null, "Teleporter should spawn its idle StarHit particle emitter.")
     if idle_emitter != null:
@@ -5188,6 +5196,7 @@ func _test_player_scene() -> void:
 
 func _test_prototype_world() -> void:
     var game := root.get_node_or_null("Game")
+    var assets := root.get_node_or_null("Assets")
     if game != null and game.has_method("clear_score"):
         game.call("clear_score")
     var prototype_scene: PackedScene = load(PROTOTYPE_SCENE_PATH)
@@ -5253,6 +5262,8 @@ func _test_prototype_world() -> void:
             _expect(teleporter.collision_layer == PICKUP_SENSOR_LAYER, "Prototype teleporter should live on the pickup sensor layer: %s" % teleporter_path)
             _expect(teleporter.collision_mask == CHARACTER_LAYER, "Prototype teleporter should monitor character bodies: %s" % teleporter_path)
             _expect(not String(teleporter.get("destination_path")).is_empty(), "Prototype teleporter should point at its paired ExitMarker: %s" % teleporter_path)
+            var visual_scale: Vector3 = teleporter.get("visual_scale")
+            _expect(visual_scale.is_equal_approx(Vector3(1.0, 0.5, 1.0)), "Prototype teleporter should use the adjusted original pad visual scale: %s" % teleporter_path)
     var gallery_platform_configs := [
         ["ActivatedVisualPlatform", PLATFORM_VARIANT_UNLOCKED_ACTIVE, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT],
         ["ColumnPlatform", PLATFORM_VARIANT_UNLOCKED_COLUMN, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT],
@@ -5331,6 +5342,10 @@ func _test_prototype_world() -> void:
         var teleporter := world.get_node_or_null(teleporter_path) as Area3D
         if teleporter != null:
             _expect(String(teleporter.call("get_visual_source_path")) == "res://assets/models/teleports/teleport/teleport.gltf", "Prototype teleporter should use the converted original teleport WMB visual: %s" % teleporter_path)
+            var visual_root := teleporter.call("get_visual_model_root") as Node3D
+            if visual_root != null and assets.has_method("get_model_global_bounds"):
+                var visual_bounds: AABB = assets.call("get_model_global_bounds", visual_root)
+                _expect(visual_bounds.size.y >= 0.15 and visual_bounds.size.y <= 0.17, "Prototype teleporter visual should keep a visible side wall while staying flatter than the raw converted pad: %s" % teleporter_path)
             _expect(teleporter.call("get_idle_particle_emitter") != null, "Prototype teleporter should spawn idle original StarHit particles: %s" % teleporter_path)
     var death_pad := world.get_node_or_null("DeathPads/DeathPadA") as Area3D
     _expect(death_pad != null, "Prototype world should spawn an editor-authored death pad.")
@@ -5377,7 +5392,6 @@ func _test_prototype_world() -> void:
         _expect(not camera.global_position.is_equal_approx(camera_position), "Camera change should cycle the prototype camera offset.")
     _expect(world.get_node_or_null("Sun") != null, "Prototype world is missing editor-authored lighting.")
     _expect(world.has_meta("wmb_manifest_counts"), "Prototype world did not read WMB manifest metadata.")
-    var assets := root.get_node_or_null("Assets")
     if assets != null:
         for node_name in ["model_rasta_animated", "model_punk_animated", "model_scorpion_animated"]:
             var model := world.get_node_or_null("Enemies/%s" % node_name) as Node3D
@@ -5896,6 +5910,49 @@ func _model_uses_texture(node: Node, texture: Texture2D) -> bool:
         if _model_uses_texture(child, texture):
             return true
     return false
+
+
+func _model_surface_uv_span_for_texture_within(node: Node, texture: Texture2D, max_u_span: float, max_v_span: float) -> bool:
+    var state := _model_surface_uv_span_state(node, texture, max_u_span, max_v_span)
+    return bool(state[0]) and bool(state[1])
+
+
+func _model_surface_uv_span_state(node: Node, texture: Texture2D, max_u_span: float, max_v_span: float) -> Array:
+    var found_surface := false
+    var spans_are_valid := true
+    var mesh_instance := node as MeshInstance3D
+    if mesh_instance != null and mesh_instance.mesh != null:
+        var array_mesh := mesh_instance.mesh as ArrayMesh
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            var material := _surface_material(mesh_instance, surface_index) as StandardMaterial3D
+            if material == null or material.albedo_texture != texture:
+                continue
+            found_surface = true
+            if array_mesh == null:
+                spans_are_valid = false
+                continue
+            var arrays := array_mesh.surface_get_arrays(surface_index)
+            var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
+            if uvs.is_empty():
+                spans_are_valid = false
+                continue
+            var min_uv := uvs[0]
+            var max_uv := uvs[0]
+            for uv in uvs:
+                min_uv.x = minf(min_uv.x, uv.x)
+                min_uv.y = minf(min_uv.y, uv.y)
+                max_uv.x = maxf(max_uv.x, uv.x)
+                max_uv.y = maxf(max_uv.y, uv.y)
+            if max_uv.x - min_uv.x > max_u_span or max_uv.y - min_uv.y > max_v_span:
+                spans_are_valid = false
+
+    for child in node.get_children():
+        var child_state := _model_surface_uv_span_state(child, texture, max_u_span, max_v_span)
+        if bool(child_state[0]):
+            found_surface = true
+            if not bool(child_state[1]):
+                spans_are_valid = false
+    return [found_surface, spans_are_valid]
 
 
 func _model_surface_with_texture_uses_shading_mode(node: Node, texture: Texture2D, expected_shading_mode: int) -> bool:

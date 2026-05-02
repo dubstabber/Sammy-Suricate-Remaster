@@ -273,6 +273,18 @@ def mapped_uv(point: tuple[float, float, float], mapping: TextureMappingInfo, te
     return (s / max(texture.width, 1), t / max(texture.height, 1))
 
 
+def apply_source_uv_fixups(
+    source_name: str,
+    texture: TextureInfo,
+    polygon_uvs: list[tuple[float, float]],
+) -> list[tuple[float, float]]:
+    source_stem = clean_name(Path(source_name).stem)
+    if source_stem == "teleport" and clean_name(texture.name) == "tileteleport2_b":
+        texture_aspect = texture.height / max(texture.width, 1)
+        return [(uv[0], uv[1] * texture_aspect) for uv in polygon_uvs]
+    return polygon_uvs
+
+
 def read_vertices(data: bytes) -> list[tuple[float, float, float]]:
     words = struct.unpack_from("<32I", data, 0)
     vertex_offset = words[7]
@@ -565,6 +577,8 @@ def write_gltf(
         "bufferViews": buffer_views,
         "accessors": accessors,
     }
+    if stem == "teleport":
+        gltf["extras"] = {"uv_fixups": ["tileteleport2_b_single_vertical_repeat"]}
     gltf_path = output_dir / f"{stem}.gltf"
     gltf_path.write_text(json.dumps(gltf, indent=2), encoding="utf-8")
     return gltf_path
@@ -621,11 +635,16 @@ def convert_wmb(source_path: Path, model_root: Path, texture_root: Path, collidi
         texture = textures[material_index]
         normal = polygon_normal(godot_points)
         polygon_indices: list[int] = []
+        polygon_uvs = [
+            mapped_uv(acknex_points[point_index], texture_mapping, texture)
+            for point_index in range(len(godot_points))
+        ]
+        polygon_uvs = apply_source_uv_fixups(source_path.name.lower(), texture, polygon_uvs)
         for point_index, point in enumerate(godot_points):
             polygon_indices.append(len(positions))
             positions.append(point)
             normals.append(normal)
-            uvs.append(mapped_uv(acknex_points[point_index], texture_mapping, texture))
+            uvs.append(polygon_uvs[point_index])
         triangle_indices = polygon_triangle_indices(polygon_indices, godot_points)
         if triangle_indices:
             emitted_polygon_count += 1

@@ -12,6 +12,7 @@ const COOLDOWN_META := &"sammy_teleport_cooldown_until_msec"
 @export var require_grounded: bool = true
 @export var idle_particles_enabled: bool = true
 @export var transition_particles_enabled: bool = true
+@export var visual_scale: Vector3 = Vector3(1.0, 0.5, 1.0)
 
 var _visual_source_path := ""
 var _model_instance: Node3D = null
@@ -114,6 +115,7 @@ func _spawn_visual() -> void:
 		_spawn_fallback_visual()
 		return
 	_model_instance.name = "TeleportModel"
+	_model_instance.scale = visual_scale
 	_visual_root.add_child(_model_instance)
 	_visual_source_path = assets.get_asset_path(model_asset_id)
 

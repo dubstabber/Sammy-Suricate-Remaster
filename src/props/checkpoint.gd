@@ -5,6 +5,7 @@ const CHECKPOINT_PARTICLES_SCRIPT := preload("res://src/effects/checkpoint_parti
 const CHARACTER_LAYER := 2
 const PICKUP_SENSOR_LAYER := 4
 const ACKNEX_TICKS_PER_SECOND := 16.0
+const ACTIVATION_SOUND_WDL_RANGE_UNITS := 1500.0
 
 @export var model_asset_id: String = "model.checkpoint.restart"
 @export var activation_sound_asset_id: String = "sfx.checkpoint_restart"
@@ -142,7 +143,9 @@ func _play_activation_sound() -> void:
 	if activation_sound_asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", activation_sound_asset_id, self, ACTIVATION_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", activation_sound_asset_id)
 
 

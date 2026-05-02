@@ -6,6 +6,7 @@ const ACKNEX_TICKS_PER_SECOND := 16.0
 const PLAYER_BOUNCE_TICKS_PER_SECOND := ACKNEX_TICKS_PER_SECOND * 1.5
 const WDL_SPEED_UNITS_TO_METERS_PER_SECOND := ACKNEX_TO_GODOT_SCALE * ACKNEX_TICKS_PER_SECOND
 const MINIMUM_ANIMATION_SPEED_SCALE := 0.001
+const ENEMY_ENTITY_SOUND_WDL_RANGE_UNITS := 1000.0
 const ENEMY_VISIBILITY_RANGE_SCRIPT := preload("res://src/effects/enemy_visibility_range.gd")
 
 # WDL lion.wdl LionEtat parity. Numeric values match the original states so
@@ -968,5 +969,7 @@ func _play_sfx(asset_id: String) -> void:
 	if asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", asset_id, self, ENEMY_ENTITY_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", asset_id)

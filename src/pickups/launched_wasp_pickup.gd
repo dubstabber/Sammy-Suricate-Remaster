@@ -4,6 +4,7 @@ class_name LaunchedWaspPickup
 const HIVE_TIME_UNITS_PER_SECOND := 16.0
 const LIFETIME_DECORATIVE := 0.0
 const LIFETIME_STAY := 1000.0
+const BOUNCE_SOUND_WDL_RANGE_UNITS := 100.0
 
 @export var lifetime_ticks: float = LIFETIME_STAY
 @export var ground_y: float = 0.0
@@ -231,5 +232,7 @@ func _play_bounce_sound() -> void:
 	if bounce_sound_asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", bounce_sound_asset_id, self, BOUNCE_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", bounce_sound_asset_id)

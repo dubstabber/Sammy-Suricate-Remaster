@@ -9,6 +9,7 @@ const HEIGHT_OFFSET_METERS := 0.45
 const HEIGHT_RISE_METERS := 0.35
 const ROTATION_DEGREES_PER_SECOND := 360.0
 const FRAME_RATE := 48.0
+const END_SOUND_WDL_RANGE_UNITS := 2000.0
 
 var _target: Node3D = null
 var _sprites: Array[Sprite3D] = []
@@ -91,5 +92,7 @@ func _play_sfx(asset_id: String) -> void:
 	if asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", asset_id, self, END_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", asset_id)

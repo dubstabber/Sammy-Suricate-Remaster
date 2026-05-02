@@ -3,6 +3,7 @@ class_name BoostPickup
 
 const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
 const BOOST_PICKUP_EFFECT_SCRIPT := preload("res://src/effects/boost_pickup_effect.gd")
+const COLLECT_SOUND_WDL_RANGE_UNITS := 800.0
 
 @export var boost_amount: float = 150.0
 @export var model_asset_id: String = "model.boost"
@@ -124,7 +125,9 @@ func _play_collect_sound() -> void:
 		return
 
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", collect_sound_asset_id, self, COLLECT_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", collect_sound_asset_id)
 
 

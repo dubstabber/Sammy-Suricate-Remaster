@@ -6,6 +6,7 @@ const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_an
 const WALK_ACTION := &"walk"
 const DEATH_ACTION := &"death"
 const ORIGINAL_IDPLAYER := 9999
+const HIT_SOUND_WDL_RANGE_UNITS := 1500.0
 
 @export var model_asset_id: String = "model.wasp1"
 @export var hit_sound_asset_id: String = "sfx.wasp_kaput"
@@ -132,7 +133,9 @@ func _despawn(play_hit_sound: bool) -> void:
 	set_deferred("monitorable", false)
 	if play_hit_sound and not hit_sound_asset_id.is_empty():
 		var audio := get_node_or_null("/root/Audio")
-		if audio != null and audio.has_method("play_sfx"):
+		if audio != null and audio.has_method("play_spatial_sfx"):
+			audio.call("play_spatial_sfx", hit_sound_asset_id, self, HIT_SOUND_WDL_RANGE_UNITS)
+		elif audio != null and audio.has_method("play_sfx"):
 			audio.call("play_sfx", hit_sound_asset_id)
 	var cleanup_delay := _play_visual_action(DEATH_ACTION, 1.0, true)
 	_queue_cleanup_after_death(cleanup_delay)

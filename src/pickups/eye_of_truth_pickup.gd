@@ -7,6 +7,7 @@ const PANEL_TEXTURE_ASSET_ID := "texture.eye_truth.panel"
 # Paneye.gltf is a flat billboard panel with Y height 19.125 and Z width 56.4505.
 const EYE_VISUAL_SIZE := Vector2(56.450504 * ACKNEX_TO_GODOT_SCALE, 19.125001 * ACKNEX_TO_GODOT_SCALE)
 const ORIGINAL_SUSTENTATION_REACHED_DISTANCE := 8.0 * ACKNEX_TO_GODOT_SCALE
+const COLLECT_SOUND_WDL_RANGE_UNITS := 1000.0
 
 @export var effect_duration_seconds: float = DEFAULT_EFFECT_SECONDS
 @export var model_asset_id: String = "model.eye_of_truth"
@@ -141,5 +142,7 @@ func _play_collect_sound() -> void:
 	if collect_sound_asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", collect_sound_asset_id, self, COLLECT_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", collect_sound_asset_id)

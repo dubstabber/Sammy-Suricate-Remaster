@@ -4,6 +4,7 @@ class_name ExitPad
 const CHARACTER_LAYER := 2
 const PICKUP_SENSOR_LAYER := 4
 const ACKNEX_TICKS_PER_SECOND := 16.0
+const WIN_SOUND_WDL_RANGE_UNITS := 2000.0
 
 @export var model_asset_id: String = "model.exit_pad.tile"
 @export var win_sound_asset_id: String = "sfx.win"
@@ -178,7 +179,9 @@ func _play_win_sound() -> void:
 	if win_sound_asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", win_sound_asset_id, self, WIN_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", win_sound_asset_id)
 
 

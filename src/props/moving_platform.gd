@@ -9,6 +9,7 @@ const WORLD_LAYER := 1
 const CHARACTER_LAYER := 2
 const PLATFORM_MODEL_ROOT := "res://assets/models/platforms"
 const VISUAL_MODEL_ROOT_NAME := "PlatformModelRoot"
+const ACTIVATION_SOUND_WDL_RANGE_UNITS := 1000.0
 
 const MATCH_COMPONENT_OR_EXACT := 0
 const MATCH_EXACT_ONLY := 1
@@ -318,5 +319,7 @@ func _play_sfx(asset_id: String) -> void:
     if asset_id.is_empty():
         return
     var audio := get_node_or_null("/root/Audio")
-    if audio != null and audio.has_method("play_sfx"):
+    if audio != null and audio.has_method("play_spatial_sfx"):
+        audio.call("play_spatial_sfx", asset_id, self, ACTIVATION_SOUND_WDL_RANGE_UNITS)
+    elif audio != null and audio.has_method("play_sfx"):
         audio.call("play_sfx", asset_id)

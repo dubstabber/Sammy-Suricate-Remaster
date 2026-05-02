@@ -5,6 +5,7 @@ const KEY_RULES := preload("res://src/resources/key_diamond_rules.gd")
 const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
 const DEFAULT_FRAME_ADVANCE_PER_TIME_UNIT := 3.0
 const DEFAULT_HEIGHT_GEM := 25.0 * 0.01
+const COLLECT_SOUND_WDL_RANGE_UNITS := 2000.0
 
 @export var key_type: Resource = null
 @export var collect_sound_asset_id: String = "sfx.colored_gem"
@@ -164,5 +165,7 @@ func _play_collect_sound() -> void:
 	if collect_sound_asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", collect_sound_asset_id, self, COLLECT_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", collect_sound_asset_id)

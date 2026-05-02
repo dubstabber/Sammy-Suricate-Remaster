@@ -30,6 +30,8 @@ const TELEPORT_PHASE_FADE_OUT := 1
 const TELEPORT_PHASE_FADE_IN := 2
 const DEATH_PAD_PHASE_FADE_OUT := 0
 const DEATH_PAD_PHASE_FADE_IN := 1
+const PLAYER_ENTITY_SOUND_WDL_RANGE_UNITS := 1000.0
+const KEY_MIX_SOUND_WDL_RANGE_UNITS := 2000.0
 
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
@@ -960,7 +962,9 @@ func _play_fire_sound() -> void:
     if fire_sound_asset_id.is_empty():
         return
     var audio := get_node_or_null("/root/Audio")
-    if audio != null and audio.has_method("play_sfx"):
+    if audio != null and audio.has_method("play_spatial_sfx"):
+        audio.call("play_spatial_sfx", fire_sound_asset_id, self, PLAYER_ENTITY_SOUND_WDL_RANGE_UNITS)
+    elif audio != null and audio.has_method("play_sfx"):
         audio.call("play_sfx", fire_sound_asset_id)
 
 
@@ -1188,7 +1192,9 @@ func _play_quick_turn_sound() -> void:
         return
 
     var audio := get_node_or_null("/root/Audio")
-    if audio != null and audio.has_method("play_sfx"):
+    if audio != null and audio.has_method("play_spatial_sfx"):
+        audio.call("play_spatial_sfx", quick_turn_sound_asset_id, self, PLAYER_ENTITY_SOUND_WDL_RANGE_UNITS)
+    elif audio != null and audio.has_method("play_sfx"):
         audio.call("play_sfx", quick_turn_sound_asset_id)
 
 
@@ -1233,14 +1239,16 @@ func _spawn_key_mix_effect(first_key_id: int, second_key_id: int, _mixed_key_id:
 
 
 func _play_key_sfx(asset_id: String) -> void:
-    _play_sfx(asset_id)
+    _play_sfx(asset_id, KEY_MIX_SOUND_WDL_RANGE_UNITS)
 
 
-func _play_sfx(asset_id: String) -> void:
+func _play_sfx(asset_id: String, wdl_range_units: float = PLAYER_ENTITY_SOUND_WDL_RANGE_UNITS) -> void:
     if asset_id.is_empty():
         return
     var audio := get_node_or_null("/root/Audio")
-    if audio != null and audio.has_method("play_sfx"):
+    if audio != null and audio.has_method("play_spatial_sfx"):
+        audio.call("play_spatial_sfx", asset_id, self, wdl_range_units)
+    elif audio != null and audio.has_method("play_sfx"):
         audio.call("play_sfx", asset_id)
 
 

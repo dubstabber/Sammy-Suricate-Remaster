@@ -10,6 +10,10 @@ const DEFAULT_HEIGHT_GEM := 25.0 * ACKNEX_TO_GODOT_SCALE
 const LIFETIME_DECORATIVE := 0.0
 const LIFETIME_STAY := 1000.0
 const LIFETIME_PERSISTENT := 1001.0
+const COLLECT_SOUND_WDL_RANGE_UNITS := 2000.0
+const BLINK_SOUND_WDL_RANGE_UNITS := 150.0
+const EXPIRE_SOUND_WDL_RANGE_UNITS := 2000.0
+const BOUNCE_SOUND_WDL_RANGE_UNITS := 1000.0
 
 @export var key_type: Resource = null
 @export var collect_sound_asset_id: String = "sfx.colored_gem"
@@ -203,7 +207,7 @@ func _collect_from(player: Node) -> bool:
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
 	_emit_collect_effect()
-	_play_sfx(collect_sound_asset_id)
+	_play_sfx(collect_sound_asset_id, COLLECT_SOUND_WDL_RANGE_UNITS)
 	return true
 
 
@@ -316,7 +320,7 @@ func _update_blink() -> void:
 	var target_scale := 1.5 if large else 0.75
 	if not is_equal_approx(_visual_sprite.scale.x, target_scale):
 		_visual_sprite.scale = Vector3.ONE * target_scale
-		_play_sfx(blink_sound_asset_id)
+		_play_sfx(blink_sound_asset_id, BLINK_SOUND_WDL_RANGE_UNITS)
 
 
 func _update_idle_animation(delta: float) -> void:
@@ -353,7 +357,7 @@ func _expire() -> void:
 	visible = false
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
-	_play_sfx(expire_sound_asset_id)
+	_play_sfx(expire_sound_asset_id, EXPIRE_SOUND_WDL_RANGE_UNITS)
 
 
 func _emit_spawn_effect_once() -> void:
@@ -408,12 +412,14 @@ func _play_bounce_sound() -> void:
 	if bounce_sound_asset_ids.is_empty():
 		return
 	var index := mini(maxi(_bounce_count - 1, 0), bounce_sound_asset_ids.size() - 1)
-	_play_sfx(bounce_sound_asset_ids[index])
+	_play_sfx(bounce_sound_asset_ids[index], BOUNCE_SOUND_WDL_RANGE_UNITS)
 
 
-func _play_sfx(asset_id: String) -> void:
+func _play_sfx(asset_id: String, wdl_range_units: float) -> void:
 	if asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", asset_id, self, wdl_range_units)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", asset_id)

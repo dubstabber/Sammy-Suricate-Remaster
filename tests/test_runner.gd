@@ -106,6 +106,7 @@ func _run() -> void:
     _test_display_settings()
     _test_collision_layer_names()
     _test_asset_catalog(assets)
+    await _test_audio_service_spatial_sfx(assets)
     await _test_main_menu_scene()
     _test_eye_of_truth_state(game)
     _test_score_state(game)
@@ -497,6 +498,53 @@ func _test_asset_catalog(assets: Node) -> void:
         "model.weak_gate.plank3"
     ]:
         _expect(assets.load_asset(plank_asset_id) != null, "Unable to load original weak-door plank debris model: %s" % plank_asset_id)
+
+
+func _test_audio_service_spatial_sfx(assets: Node) -> void:
+    var audio := root.get_node_or_null("Audio")
+    _expect(audio != null, "Audio autoload should be available for spatial SFX.")
+    if audio == null:
+        return
+    _expect(audio.has_method("play_spatial_sfx"), "Audio service should expose a Godot 3D positional SFX API.")
+    _expect(audio.has_method("play_sfx_at"), "Audio service should expose a world-position positional SFX API.")
+    if not audio.has_method("play_spatial_sfx") or not audio.has_method("play_sfx_at"):
+        return
+
+    if audio.has_method("set_sfx_volume_percent"):
+        audio.call("set_sfx_volume_percent", 100.0)
+    if audio.has_method("stop_sfx"):
+        audio.call("stop_sfx")
+    var source := Node3D.new()
+    source.name = "SpatialAudioSource"
+    root.add_child(source)
+    source.global_position = Vector3(2.0, 0.5, -3.0)
+    var quick_turn_stream := assets.load_asset("sfx.quick_turn") as AudioStream
+    audio.call("play_spatial_sfx", "sfx.quick_turn", source, 1500.0)
+    var spatial_player := _audio_service_find_spatial_stream_player(audio, quick_turn_stream)
+    _expect(spatial_player != null, "play_spatial_sfx should create an AudioStreamPlayer3D for original entity sounds.")
+    if spatial_player != null:
+        _expect(spatial_player.global_position.distance_to(source.global_position) < 0.001, "Spatial SFX should play at the source node position.")
+        _expect(is_equal_approx(spatial_player.max_distance, 15.0), "Spatial SFX should convert WDL range units through the project 0.01 world scale.")
+        _expect(is_equal_approx(spatial_player.unit_size, 7.5), "Spatial SFX should use a gentler reference distance so original entity sounds remain audible within their WDL radius.")
+        _expect(is_equal_approx(spatial_player.volume_db, 6.0), "Spatial SFX should compensate for Godot 3D attenuation with a small original-style gain boost.")
+        _expect(is_equal_approx(spatial_player.max_db, 6.0), "Spatial SFX gain should be capped to the same original-style boost.")
+        _expect(spatial_player.attenuation_model == AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE, "Spatial SFX should use distance attenuation, not global playback.")
+        _expect(spatial_player.bus == "Master", "Spatial SFX should use the same audio bus as existing SFX.")
+    _expect(not _audio_service_has_global_stream(audio, quick_turn_stream), "Spatial SFX should not consume the global SFX pool.")
+
+    if audio.has_method("stop_sfx"):
+        audio.call("stop_sfx")
+    await process_frame
+    _expect(not _audio_service_has_spatial_stream(audio, quick_turn_stream), "stop_sfx should also clear positional SFX players.")
+
+    var menu_stream := assets.load_asset("sfx.menu_hover") as AudioStream
+    audio.call("play_sfx", "sfx.menu_hover")
+    _expect(_audio_service_has_global_stream(audio, menu_stream), "Plain play_sfx should remain global for UI/menu sounds.")
+    _expect(not _audio_service_has_spatial_stream(audio, menu_stream), "Plain play_sfx should not create positional players.")
+    if audio.has_method("stop_sfx"):
+        audio.call("stop_sfx")
+    source.queue_free()
+    await process_frame
 
 
 func _test_eye_of_truth_state(game: Node) -> void:
@@ -3571,7 +3619,7 @@ func _test_exit_pad_system(assets: Node) -> void:
         win_title_model = win_title_root.get_node_or_null("WinTitleModel") as Node3D
     _expect(win_title_model != null and win_title_model.rotation_degrees.is_equal_approx(Vector3(0.0, -90.0, 0.0)), "Exit pad win title should face the camera without mirroring the source label.")
     if audio != null:
-        _expect(_audio_service_has_stream(audio, assets.load_asset("sfx.win") as AudioStream), "Exit pad activation should play the original Win_son.")
+        _expect(_audio_service_has_spatial_stream(audio, assets.load_asset("sfx.win") as AudioStream), "Exit pad activation should play the original Win_son as positional TileExit audio.")
     _expect(not bool(exit_pad.call("try_trigger_body", player)), "Exit pad should not retrigger after the first activation.")
     for _pre_win_frame in 2:
         await physics_frame
@@ -3717,7 +3765,7 @@ func _test_checkpoint_system(assets: Node) -> void:
     _expect((-stored_respawn.basis.z).distance_to(Vector3.LEFT) < 0.05, "Checkpoint should store the marker yaw as Sammy's restart facing.")
     var audio := root.get_node_or_null("Audio")
     if audio != null:
-        _expect(_audio_service_has_stream(audio, assets.load_asset("sfx.checkpoint_restart") as AudioStream), "Checkpoint activation should play the original Restart_son.")
+        _expect(_audio_service_has_spatial_stream(audio, assets.load_asset("sfx.checkpoint_restart") as AudioStream), "Checkpoint activation should play the original Restart_son as positional restart audio.")
 
     _expect(bool(player.call("take_damage", 99.0, null)), "Checkpoint test should be able to kill Sammy after activation.")
     var death_duration := float(player.call("_get_death_duration_seconds"))
@@ -4873,13 +4921,15 @@ func _test_player_scene() -> void:
         parity_camera.call("reset_to_target")
         var initial_camera_offset := parity_camera.call("_get_follow_offset") as Vector3
         _expect(String(player.get("quick_turn_sound_asset_id")) == "sfx.quick_turn", "Quick turn should use the original Blouit_son asset.")
+        var audio := root.get_node_or_null("Audio")
+        if audio != null and audio.has_method("stop_sfx"):
+            audio.call("stop_sfx")
         player.call("apply_quick_turn")
         _expect(player.has_method("is_quick_turning"), "Player controller should expose quick-turn state for parity validation.")
         _expect(bool(player.call("is_quick_turning")), "Quick turn should begin a staged original-style turn instead of snapping instantly.")
-        var audio := root.get_node_or_null("Audio")
         var quick_turn_assets := root.get_node_or_null("Assets")
         if audio != null and quick_turn_assets != null:
-            _expect(_audio_service_has_stream(audio, quick_turn_assets.load_asset("sfx.quick_turn") as AudioStream), "Quick turn should play the original Blouit_son through the audio service.")
+            _expect(_audio_service_has_spatial_stream(audio, quick_turn_assets.load_asset("sfx.quick_turn") as AudioStream), "Quick turn should play the original Blouit_son positionally through the audio service.")
         var quick_turn_controller := player.call("get_animation_controller") as Node
         if quick_turn_controller != null:
             _expect(String(quick_turn_controller.call("get_current_action")) == "turn", "Quick turn should restart Sammy's original turn animation.")
@@ -4911,6 +4961,8 @@ func _test_player_scene() -> void:
         var controller := player.call("get_animation_controller") as Node
         var action_before_empty_fire := String(controller.call("get_current_action")) if controller != null else ""
         var children_before_empty_fire := root.get_child_count()
+        if audio != null and audio.has_method("stop_sfx"):
+            audio.call("stop_sfx")
         _expect(not bool(player.call("fire_wasp")), "Fire action should be rejected when Sammy has no wasp ammo.")
         _expect(int(player.call("get_fire_request_count")) == fire_requests, "Rejected no-ammo fire should not increment accepted fire count.")
         _expect(root.get_child_count() == children_before_empty_fire, "Rejected no-ammo fire should not spawn a wasp projectile.")
@@ -4918,7 +4970,9 @@ func _test_player_scene() -> void:
             _expect(String(controller.call("get_current_action")) == action_before_empty_fire, "Rejected no-ammo fire should not start Sammy's tirA animation.")
         var player_assets := root.get_node_or_null("Assets")
         if audio != null and player_assets != null:
-            _expect(_audio_service_has_stream(audio, player_assets.load_asset("sfx.error") as AudioStream), "Rejected no-ammo fire should play original Error1_son.")
+            var error_stream := player_assets.load_asset("sfx.error") as AudioStream
+            _expect(_audio_service_has_global_stream(audio, error_stream), "Rejected no-ammo fire should play original Error1_son globally like WDL Play_Sound.")
+            _expect(not _audio_service_has_spatial_stream(audio, error_stream), "Rejected no-ammo fire should not create positional audio.")
         _expect(player.has_method("get_wasp_inventory"), "Player controller should expose a wasp inventory accessor.")
         if player.has_method("get_wasp_inventory"):
             var inventory: Node = player.call("get_wasp_inventory")
@@ -4997,7 +5051,7 @@ func _test_player_scene() -> void:
                 _expect(int(inventory.call("get_ammo_count")) == 2, "Wasp spawn should consume one ammo after the original tirA delay.")
                 _expect(root.get_child_count() == children_before + 1, "Completing tirA should add a wasp projectile to the player's parent.")
                 if audio != null and player_assets != null:
-                    _expect(_audio_service_has_stream(audio, player_assets.load_asset("sfx.wasp") as AudioStream), "Accepted fire should play original Wasp_son.")
+                    _expect(_audio_service_has_spatial_stream(audio, player_assets.load_asset("sfx.wasp") as AudioStream), "Accepted fire should play original Wasp_son as positional player audio.")
                 var spawned_projectile := root.get_child(root.get_child_count() - 1)
                 _expect(spawned_projectile.has_method("get_wasp_type"), "Firing should spawn a wasp projectile node.")
                 if spawned_projectile.has_method("get_wasp_type"):
@@ -5960,13 +6014,35 @@ func _surface_material(mesh_instance: MeshInstance3D, surface_index: int) -> Mat
 
 
 func _audio_service_has_stream(audio: Node, stream: AudioStream) -> bool:
+    return _audio_service_has_global_stream(audio, stream) or _audio_service_has_spatial_stream(audio, stream)
+
+
+func _audio_service_has_global_stream(audio: Node, stream: AudioStream) -> bool:
+    return _audio_service_find_global_stream_player(audio, stream) != null
+
+
+func _audio_service_has_spatial_stream(audio: Node, stream: AudioStream) -> bool:
+    return _audio_service_find_spatial_stream_player(audio, stream) != null
+
+
+func _audio_service_find_global_stream_player(audio: Node, stream: AudioStream) -> AudioStreamPlayer:
     if stream == null:
-        return false
+        return null
     for child in audio.get_children():
         var player := child as AudioStreamPlayer
         if player != null and player.stream == stream:
-            return true
-    return false
+            return player
+    return null
+
+
+func _audio_service_find_spatial_stream_player(audio: Node, stream: AudioStream) -> AudioStreamPlayer3D:
+    if stream == null:
+        return null
+    for child in audio.get_children():
+        var player := child as AudioStreamPlayer3D
+        if player != null and player.stream == stream:
+            return player
+    return null
 
 
 func _expect(condition: bool, message: String) -> void:

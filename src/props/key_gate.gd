@@ -39,6 +39,7 @@ const SOURCE_MODEL_CLOSE_SPEED := 80.0
 const DEFAULT_KEY_FLIGHT_SPEED := 12.0 * 0.01 * 16.0
 const WASP_PROJECTILE_IDPLAYER := 9999
 const ACKNEX_TO_GODOT_SCALE := 0.01
+const DOOR_SOUND_WDL_RANGE_UNITS := 1000.0
 const WEAK_DEBRIS_LIFETIME_SECONDS := 1.0
 const WEAK_DEBRIS_LAUNCH_SECONDS := 0.55
 const WEAK_DEBRIS_MODEL_ASSET_IDS := [
@@ -814,7 +815,9 @@ func _play_sfx(asset_id: String) -> void:
 	if asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", asset_id, self, DOOR_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", asset_id)
 
 

@@ -2,12 +2,20 @@ extends Node
 
 const SFX_POOL_SIZE := 6
 const SILENT_VOLUME_DB := -80.0
+const ACKNEX_TO_GODOT_SCALE := 0.01
+const DEFAULT_SPATIAL_WDL_RANGE_UNITS := 1000.0
+const MIN_SPATIAL_MAX_DISTANCE := 0.01
+const SPATIAL_REFERENCE_DISTANCE_RATIO := 0.5
+const MIN_SPATIAL_UNIT_SIZE := 1.0
+const SPATIAL_VOLUME_BOOST_DB := 6.0
 
 var _music_player: AudioStreamPlayer
 var _sfx_players: Array[AudioStreamPlayer] = []
+var _spatial_sfx_players: Array[AudioStreamPlayer3D] = []
 var _next_sfx_index := 0
 var _music_volume := 1.0
 var _sfx_volume := 1.0
+var _next_spatial_sfx_id := 0
 
 
 func _ready() -> void:
@@ -46,6 +54,12 @@ func stop_sfx() -> void:
     for player in _sfx_players:
         player.stop()
         player.stream = null
+    for player in _spatial_sfx_players.duplicate():
+        if is_instance_valid(player):
+            player.stop()
+            player.stream = null
+            player.queue_free()
+    _spatial_sfx_players.clear()
 
 
 func set_music_volume_percent(value: float) -> void:
@@ -62,6 +76,9 @@ func set_sfx_volume_percent(value: float) -> void:
     _sfx_volume = clampf(value / 100.0, 0.0, 1.0)
     for player in _sfx_players:
         player.volume_db = _volume_to_db(_sfx_volume)
+    for player in _spatial_sfx_players:
+        if is_instance_valid(player):
+            player.volume_db = _spatial_volume_db()
 
 
 func get_sfx_volume_percent() -> float:
@@ -80,9 +97,44 @@ func play_sfx(asset_id: String) -> void:
     player.play()
 
 
+func play_spatial_sfx(asset_id: String, source: Node3D, wdl_range_units: float = DEFAULT_SPATIAL_WDL_RANGE_UNITS) -> void:
+    if source == null:
+        play_sfx(asset_id)
+        return
+    play_sfx_at(asset_id, source.global_position, wdl_range_units)
+
+
+func play_sfx_at(asset_id: String, world_position: Vector3, wdl_range_units: float = DEFAULT_SPATIAL_WDL_RANGE_UNITS) -> void:
+    var stream := _load_stream(asset_id)
+    if stream == null:
+        return
+
+    var player := AudioStreamPlayer3D.new()
+    player.name = "SpatialSfxPlayer%d" % _next_spatial_sfx_id
+    _next_spatial_sfx_id += 1
+    player.bus = "Master"
+    player.volume_db = _spatial_volume_db()
+    player.stream = stream
+    player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+    player.max_db = SPATIAL_VOLUME_BOOST_DB
+    player.max_distance = _spatial_max_distance(wdl_range_units)
+    player.unit_size = maxf(player.max_distance * SPATIAL_REFERENCE_DISTANCE_RATIO, MIN_SPATIAL_UNIT_SIZE)
+    add_child(player)
+    player.global_position = world_position
+    _spatial_sfx_players.append(player)
+    player.finished.connect(_on_spatial_sfx_finished.bind(player), CONNECT_ONE_SHOT)
+    player.play()
+
+
 func _exit_tree() -> void:
     stop_music()
     stop_sfx()
+
+
+func _on_spatial_sfx_finished(player: AudioStreamPlayer3D) -> void:
+    _spatial_sfx_players.erase(player)
+    if is_instance_valid(player):
+        player.queue_free()
 
 
 func _load_stream(asset_id: String) -> AudioStream:
@@ -101,3 +153,13 @@ func _volume_to_db(linear_volume: float) -> float:
     if linear_volume <= 0.0:
         return SILENT_VOLUME_DB
     return linear_to_db(clampf(linear_volume, 0.0, 1.0))
+
+
+func _spatial_max_distance(wdl_range_units: float) -> float:
+    return maxf(wdl_range_units * ACKNEX_TO_GODOT_SCALE, MIN_SPATIAL_MAX_DISTANCE)
+
+
+func _spatial_volume_db() -> float:
+    if _sfx_volume <= 0.0:
+        return SILENT_VOLUME_DB
+    return _volume_to_db(_sfx_volume) + SPATIAL_VOLUME_BOOST_DB

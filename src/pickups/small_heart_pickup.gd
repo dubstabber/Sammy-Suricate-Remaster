@@ -9,6 +9,8 @@ const REJECT_NONE := 0
 const REJECT_SHRINK := 1
 const REJECT_HIDDEN := 2
 const REJECT_GROW := 3
+const COLLECT_SOUND_WDL_RANGE_UNITS := 1500.0
+const SECONDARY_COLLECT_SOUND_WDL_RANGE_UNITS := 500.0
 
 @export var health_amount: float = DEFAULT_HEALTH_AMOUNT
 @export var texture_asset_id: String = "texture.small_heart"
@@ -240,13 +242,15 @@ func _update_particles(delta: float) -> void:
 
 
 func _play_collect_sounds() -> void:
-	_play_sound(collect_sound_asset_id)
-	_play_sound(secondary_collect_sound_asset_id)
+	_play_sound(collect_sound_asset_id, COLLECT_SOUND_WDL_RANGE_UNITS)
+	_play_sound(secondary_collect_sound_asset_id, SECONDARY_COLLECT_SOUND_WDL_RANGE_UNITS)
 
 
-func _play_sound(asset_id: String) -> void:
+func _play_sound(asset_id: String, wdl_range_units: float) -> void:
 	if asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", asset_id, self, wdl_range_units)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", asset_id)

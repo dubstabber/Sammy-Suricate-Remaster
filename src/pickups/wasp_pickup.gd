@@ -4,6 +4,7 @@ class_name WaspPickup
 const MODEL_ANIMATION_CONTROLLER_SCRIPT := preload("res://src/animation/model_animation_controller.gd")
 const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
 const IDLE_TURN_DEGREES_PER_TIME_UNIT := 1.0
+const COLLECT_SOUND_WDL_RANGE_UNITS := 2000.0
 
 @export var wasp_type: Resource = null
 @export var ammo_amount: int = 20
@@ -145,5 +146,7 @@ func _play_collect_sound() -> void:
 	if collect_sound_asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
-	if audio != null and audio.has_method("play_sfx"):
+	if audio != null and audio.has_method("play_spatial_sfx"):
+		audio.call("play_spatial_sfx", collect_sound_asset_id, self, COLLECT_SOUND_WDL_RANGE_UNITS)
+	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", collect_sound_asset_id)

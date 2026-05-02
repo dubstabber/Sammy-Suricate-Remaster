@@ -787,6 +787,18 @@ const CATALOG := {
         "kind": "texture",
         "description": "Original options resume hover button"
     },
+    "texture.menu.options.restart": {
+        "path": "res://assets/textures/menu/options/restart2.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/restart2.png",
+        "kind": "texture",
+        "description": "Original in-game options restart button"
+    },
+    "texture.menu.options.restart_hover": {
+        "path": "res://assets/textures/menu/options/restart3.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/restart3.png",
+        "kind": "texture",
+        "description": "Original in-game options restart hover button"
+    },
     "texture.menu.options.back": {
         "path": "res://assets/textures/menu/options/back1.png",
         "source": "extract-sammy-assets/extracted/godot/textures/back1.png",

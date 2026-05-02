@@ -408,6 +408,8 @@ func _test_asset_catalog(assets: Node) -> void:
         "texture.menu.options.background",
         "texture.menu.options.audio",
         "texture.menu.options.resume",
+        "texture.menu.options.restart",
+        "texture.menu.options.restart_hover",
         "texture.menu.options.back",
         "texture.menu.options.quit",
         "texture.menu.options.no",
@@ -3769,6 +3771,25 @@ func _make_exit_pad_route_spy() -> Node:
     return node
 
 
+func _make_pause_route_spy() -> Node:
+    var script := GDScript.new()
+    script.source_code = "extends Node\n" \
+            + "var show_main_menu_calls: int = 0\n" \
+            + "var show_prototype_world_calls: int = 0\n" \
+            + "func show_main_menu() -> int:\n" \
+            + "    show_main_menu_calls += 1\n" \
+            + "    return OK\n" \
+            + "func show_prototype_world() -> int:\n" \
+            + "    show_prototype_world_calls += 1\n" \
+            + "    return OK\n"
+    var err := script.reload()
+    _expect(err == OK, "Pause route spy script should compile.")
+    var node := Node.new()
+    node.name = "PauseRouteSpy"
+    node.set_script(script)
+    return node
+
+
 func _test_checkpoint_system(assets: Node) -> void:
     var checkpoint_scene := load(CHECKPOINT_SCENE_PATH) as PackedScene
     _expect(checkpoint_scene != null, "Checkpoint scene should load.")
@@ -5383,6 +5404,81 @@ func _test_prototype_world() -> void:
     await process_frame
     if game != null and game.has_method("get_score_goal_points"):
         _expect(int(game.call("get_score_goal_points")) == 150, "Prototype world should configure a ScoreGoal that existing diamonds can reach.")
+    var pause_overlay := world.get_node_or_null("PauseMenuOverlay") as CanvasLayer
+    _expect(pause_overlay != null, "Prototype world should create the original-style Escape pause submenu overlay.")
+    if pause_overlay != null:
+        _expect(pause_overlay.process_mode == Node.PROCESS_MODE_ALWAYS, "Pause submenu should keep handling input while gameplay is frozen.")
+        _expect(not bool(world.call("is_pause_menu_visible")), "Pause submenu should start hidden.")
+        _expect(pause_overlay.get_node_or_null("OptionsPanel/ResumeButton") != null, "Pause submenu should expose the original Resume button.")
+        _expect(pause_overlay.get_node_or_null("OptionsPanel/RestartButton") != null, "Pause submenu should expose the original Restart button.")
+        _expect(pause_overlay.get_node_or_null("OptionsPanel/BackButton") != null, "Pause submenu should expose the original Back button.")
+        _expect(pause_overlay.get_node_or_null("OptionsPanel/QuitButton") != null, "Pause submenu should expose the original Quit button.")
+        _expect(pause_overlay.get_node_or_null("ConfirmPanel/YesButton") != null, "Pause submenu should expose the original Yes confirmation button.")
+        _expect(pause_overlay.get_node_or_null("ConfirmPanel/NoButton") != null, "Pause submenu should expose the original No confirmation button.")
+        var restart_button := pause_overlay.get_node_or_null("OptionsPanel/RestartButton") as TextureButton
+        var quit_button := pause_overlay.get_node_or_null("OptionsPanel/QuitButton") as TextureButton
+        if restart_button != null:
+            _expect(restart_button.texture_normal != null and restart_button.texture_normal.get_size() == Vector2(204.0, 50.0), "Pause Restart button should use the original restart2.pcx dimensions.")
+        if quit_button != null:
+            _expect(quit_button.texture_normal != null and quit_button.texture_normal.get_size() == Vector2(306.0, 41.0), "Pause Quit button should use the long original quit1.pcx button, not the Yes confirmation art.")
+
+        var pause_event := InputEventAction.new()
+        pause_event.action = "menu_cancel"
+        pause_event.pressed = true
+        world.call("_unhandled_input", pause_event)
+        await process_frame
+        _expect(paused, "Escape should freeze gameplay while the pause submenu is open.")
+        _expect(bool(world.call("is_pause_menu_visible")), "Escape should show the in-game pause submenu.")
+
+        pause_overlay.call("_unhandled_input", pause_event)
+        await process_frame
+        _expect(not paused, "Escape inside the pause submenu should resume gameplay.")
+        _expect(not bool(world.call("is_pause_menu_visible")), "Resuming should hide the pause submenu.")
+
+        var pause_route_spy := _make_pause_route_spy()
+        root.add_child(pause_route_spy)
+        if game != null and game.has_method("set_scene_router"):
+            game.call("set_scene_router", pause_route_spy)
+
+        world.call("open_pause_menu")
+        await process_frame
+        var back_button := pause_overlay.get_node_or_null("OptionsPanel/BackButton") as BaseButton
+        if back_button != null:
+            back_button.pressed.emit()
+            await process_frame
+            _expect(not paused, "Back-to-menu should unfreeze gameplay before routing.")
+            _expect(int(pause_route_spy.get("show_main_menu_calls")) == 1, "Pause Back button should route through Game.show_main_menu.")
+
+        world.call("open_pause_menu")
+        await process_frame
+        if restart_button != null:
+            restart_button.pressed.emit()
+            await process_frame
+            _expect(paused and bool(world.call("is_pause_confirm_visible")), "Pause Restart should open the shared yes/no confirmation while staying frozen.")
+            var yes_button := pause_overlay.get_node_or_null("ConfirmPanel/YesButton") as BaseButton
+            if yes_button != null:
+                yes_button.pressed.emit()
+                await process_frame
+                _expect(not paused, "Confirmed Restart should unfreeze gameplay before routing.")
+                _expect(int(pause_route_spy.get("show_prototype_world_calls")) == 1, "Pause Restart confirmation should route through Game.reload_prototype.")
+
+        ProjectSettings.set_setting("sammy/test/skip_quit", true)
+        world.call("open_pause_menu")
+        await process_frame
+        if quit_button != null:
+            quit_button.pressed.emit()
+            await process_frame
+            _expect(paused and bool(world.call("is_pause_confirm_visible")), "Pause Quit should open the shared yes/no confirmation while staying frozen.")
+            var quit_yes_button := pause_overlay.get_node_or_null("ConfirmPanel/YesButton") as BaseButton
+            if quit_yes_button != null:
+                quit_yes_button.pressed.emit()
+                await process_frame
+                _expect(paused, "Test-skipped Quit should not tear down the tree or implicitly resume gameplay.")
+        world.call("close_pause_menu")
+        ProjectSettings.set_setting("sammy/test/skip_quit", false)
+        if game != null and game.has_method("set_scene_router"):
+            game.call("set_scene_router", null)
+        pause_route_spy.queue_free()
     if unlocked_platform != null:
         _expect(bool(unlocked_platform.call("is_active")), "Prototype unlocked platform should start moving.")
         _expect(String(unlocked_platform.call("get_visual_source_path")) == "res://assets/models/platforms/platfor2/platfor2.gltf", "Prototype unlocked platform should use the original platform WMB visual.")

@@ -32,6 +32,8 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if not monitoring:
+		return
 	for body in get_overlapping_bodies():
 		if try_trigger_body(body):
 			return

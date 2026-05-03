@@ -2,6 +2,7 @@ extends Area3D
 class_name Teleporter
 
 const TELEPORT_PARTICLES_SCRIPT := preload("res://src/effects/teleport_star_particles.gd")
+const WORLD_LAYER := 1
 const CHARACTER_LAYER := 2
 const PICKUP_SENSOR_LAYER := 4
 const COOLDOWN_META := &"sammy_teleport_cooldown_until_msec"
@@ -10,6 +11,9 @@ const COOLDOWN_META := &"sammy_teleport_cooldown_until_msec"
 @export var model_asset_id: String = "model.teleport.pad"
 @export var cooldown_seconds: float = 1.0
 @export var require_grounded: bool = true
+@export var trigger_radius: float = 0.64
+@export var solid_height: float = 0.16
+@export var solid_radius: float = 0.64
 @export var idle_particles_enabled: bool = true
 @export var transition_particles_enabled: bool = true
 @export var visual_scale: Vector3 = Vector3(1.0, 0.5, 1.0)
@@ -26,8 +30,17 @@ func _ready() -> void:
 	collision_layer = PICKUP_SENSOR_LAYER
 	collision_mask = CHARACTER_LAYER
 	body_entered.connect(_on_body_entered)
+	_configure_solid_body()
 	_spawn_visual()
 	_spawn_idle_particles()
+
+
+func _physics_process(_delta: float) -> void:
+	if not monitoring:
+		return
+	for body in get_overlapping_bodies():
+		if try_teleport_body(body):
+			return
 
 
 func try_teleport_body(body: Node) -> bool:
@@ -62,6 +75,18 @@ func get_idle_particle_emitter() -> Node:
 	return _idle_particle_emitter
 
 
+func get_trigger_radius() -> float:
+	return trigger_radius
+
+
+func get_solid_height() -> float:
+	return solid_height
+
+
+func get_solid_radius() -> float:
+	return solid_radius
+
+
 func _on_body_entered(body: Node3D) -> void:
 	try_teleport_body(body)
 
@@ -73,7 +98,27 @@ func _can_teleport_body(body: Node) -> bool:
 		return false
 	if require_grounded and body is CharacterBody3D and not (body as CharacterBody3D).is_on_floor():
 		return false
+	if not _is_body_over_pad_footprint(body):
+		return false
+	if _body_method_is_true(body, &"is_teleporting"):
+		return false
+	if _body_method_is_true(body, &"is_dead"):
+		return false
+	if _body_method_is_true(body, &"is_game_over"):
+		return false
 	return true
+
+
+func _is_body_over_pad_footprint(body: Node) -> bool:
+	var body_3d := body as Node3D
+	if body_3d == null:
+		return false
+	var local_position := global_transform.affine_inverse() * body_3d.global_position
+	return Vector2(local_position.x, local_position.z).length() <= trigger_radius
+
+
+func _body_method_is_true(body: Node, method_name: StringName) -> bool:
+	return body.has_method(method_name) and bool(body.call(method_name))
 
 
 func _resolve_destination() -> Node3D:
@@ -97,6 +142,28 @@ func _is_body_on_cooldown(body: Node) -> bool:
 		return true
 	body.remove_meta(COOLDOWN_META)
 	return false
+
+
+func _configure_solid_body() -> void:
+	var solid_body := get_node_or_null("SolidBody") as StaticBody3D
+	if solid_body == null:
+		return
+	solid_body.collision_layer = WORLD_LAYER
+	solid_body.collision_mask = CHARACTER_LAYER
+	var shape_node := solid_body.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if shape_node == null:
+		return
+	var configured_height := maxf(solid_height, 0.01)
+	var configured_radius := maxf(solid_radius, 0.01)
+	shape_node.position = Vector3(0.0, configured_height * 0.5, 0.0)
+	var cylinder := shape_node.shape as CylinderShape3D
+	if cylinder == null:
+		cylinder = CylinderShape3D.new()
+	else:
+		cylinder = cylinder.duplicate() as CylinderShape3D
+	cylinder.height = configured_height
+	cylinder.radius = configured_radius
+	shape_node.shape = cylinder
 
 
 func _spawn_visual() -> void:

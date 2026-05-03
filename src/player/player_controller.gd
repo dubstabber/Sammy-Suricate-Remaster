@@ -469,8 +469,11 @@ func _physics_process(delta: float) -> void:
     else:
         velocity.y -= movement_config.gravity * delta
 
+    var pre_move_transform := global_transform
+    var horizontal_motion := Vector3(horizontal_velocity.x, 0.0, horizontal_velocity.z) * delta
     var vertical_velocity_before_move := velocity.y
     move_and_slide()
+    _try_step_up_from_low_obstacle(pre_move_transform, horizontal_motion, was_on_floor, jumped)
     var enemy_top_bounced := _try_apply_enemy_top_bounce(vertical_velocity_before_move)
     if enemy_top_bounced:
         jumped = true
@@ -1082,6 +1085,46 @@ func _process_quick_turn(delta: float, was_on_floor: bool) -> void:
 func _set_horizontal_velocity(horizontal_velocity: Vector3) -> void:
     velocity.x = horizontal_velocity.x
     velocity.z = horizontal_velocity.z
+
+
+func _try_step_up_from_low_obstacle(pre_move_transform: Transform3D, horizontal_motion: Vector3, was_on_floor: bool, jumped: bool) -> bool:
+    if jumped or not was_on_floor:
+        return false
+    horizontal_motion.y = 0.0
+    var desired_distance := horizontal_motion.length()
+    if desired_distance <= 0.001:
+        return false
+    var move_direction := horizontal_motion / desired_distance
+    var actual_horizontal_motion := global_position - pre_move_transform.origin
+    actual_horizontal_motion.y = 0.0
+    if actual_horizontal_motion.dot(move_direction) >= desired_distance * 0.5:
+        return false
+    var step_height := maxf(float(movement_config.low_step_height), 0.0)
+    if step_height <= 0.0:
+        return false
+    if test_move(pre_move_transform, Vector3.UP * step_height):
+        return false
+
+    var raised_transform := pre_move_transform
+    raised_transform.origin += Vector3.UP * step_height
+    if test_move(raised_transform, horizontal_motion):
+        return false
+
+    var moved_transform := raised_transform
+    moved_transform.origin += horizontal_motion
+    var down_collision := KinematicCollision3D.new()
+    if not test_move(moved_transform, Vector3.DOWN * (step_height + 0.05), down_collision):
+        return false
+    if down_collision.get_normal().dot(Vector3.UP) < 0.7:
+        return false
+    var landed_transform := moved_transform
+    landed_transform.origin += down_collision.get_travel()
+    var vertical_gain := landed_transform.origin.y - pre_move_transform.origin.y
+    if vertical_gain < 0.01 or vertical_gain > step_height + 0.01:
+        return false
+    global_transform = landed_transform
+    velocity.y = 0.0
+    return true
 
 
 func _resolve_enemy_push_direction(horizontal_source: Vector3, source: Node) -> Vector3:

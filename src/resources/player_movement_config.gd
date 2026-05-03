@@ -24,3 +24,4 @@ class_name PlayerMovementConfig
 @export var walk_animation_speed_multiplier: float = 1.75
 @export var minimum_walk_animation_speed: float = 0.25
 @export var visual_scale_multiplier: float = 1.0
+@export var low_step_height: float = 0.22

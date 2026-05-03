@@ -3386,7 +3386,7 @@ func _test_teleporter_system(assets: Node) -> void:
     floor.collision_mask = CHARACTER_LAYER
     var floor_shape := CollisionShape3D.new()
     var floor_box := BoxShape3D.new()
-    floor_box.size = Vector3(12.0, 1.0, 12.0)
+    floor_box.size = Vector3(24.0, 1.0, 24.0)
     floor_shape.position = Vector3(0.0, -0.5, 0.0)
     floor_shape.shape = floor_box
     floor.add_child(floor_shape)
@@ -3423,11 +3423,61 @@ func _test_teleporter_system(assets: Node) -> void:
     if visual_root != null and assets.has_method("get_model_global_bounds"):
         var visual_bounds: AABB = assets.call("get_model_global_bounds", visual_root)
         _expect(visual_bounds.size.y >= 0.15 and visual_bounds.size.y <= 0.17, "Teleporter visual should keep a visible side wall while staying flatter than the full converted slab height.")
+    _expect(is_equal_approx(float(teleporter.call("get_trigger_radius")), 0.64), "Teleporter should trigger from the original pad footprint, not a wide invisible side margin.")
+    var trigger_shape_node := teleporter.get_node_or_null("CollisionShape3D") as CollisionShape3D
+    _expect(trigger_shape_node != null, "Teleporter should expose a trigger collision shape.")
+    if trigger_shape_node != null:
+        var trigger_cylinder := trigger_shape_node.shape as CylinderShape3D
+        _expect(trigger_cylinder != null, "Teleporter trigger should use a cylinder footprint.")
+        if trigger_cylinder != null:
+            _expect(trigger_cylinder.radius <= 0.65, "Teleporter trigger shape should stay within the original pad footprint.")
+    _expect(is_equal_approx(float(teleporter.call("get_solid_height")), 0.16), "Teleporter should expose a low solid pad height that Sammy can step onto.")
+    _expect(is_equal_approx(float(teleporter.call("get_solid_radius")), 0.64), "Teleporter solid pad should match the original visible footprint.")
+    var solid_body := teleporter.get_node_or_null("SolidBody") as StaticBody3D
+    _expect(solid_body != null, "Teleporter should expose a solid pad body so Sammy cannot move through it.")
+    if solid_body != null:
+        _expect(int(solid_body.collision_layer) == WORLD_LAYER, "Teleporter solid body should block as world geometry.")
+        _expect(int(solid_body.collision_mask) == CHARACTER_LAYER, "Teleporter solid body should collide with solid characters.")
+        var solid_shape_node := solid_body.get_node_or_null("CollisionShape3D") as CollisionShape3D
+        _expect(solid_shape_node != null, "Teleporter solid body should expose a collision shape.")
+        if solid_shape_node != null:
+            var solid_cylinder := solid_shape_node.shape as CylinderShape3D
+            _expect(solid_cylinder != null, "Teleporter solid body should use a cylinder footprint.")
+            if solid_cylinder != null:
+                _expect(is_equal_approx(solid_cylinder.height, 0.16), "Teleporter solid body should stay low enough to step onto without jumping.")
+                _expect(is_equal_approx(solid_cylinder.radius, 0.64), "Teleporter solid body should match the visible pad radius.")
     var idle_emitter := teleporter.call("get_idle_particle_emitter") as Node
     _expect(idle_emitter != null, "Teleporter should spawn its idle StarHit particle emitter.")
     if idle_emitter != null:
         _expect(int(idle_emitter.call("get_configured_texture_count")) == 5, "Teleporter idle particles should use all five original StarHit textures.")
         _expect(bool(idle_emitter.call("is_idle_enabled")), "Teleporter idle particles should emit while the pad is active.")
+
+    teleporter.monitoring = false
+    var solid_probe := player_scene.instantiate() as CharacterBody3D
+    root.add_child(solid_probe)
+    solid_probe.global_position = teleporter.global_position + Vector3(0.0, 0.8, 0.0)
+    for _solid_probe_frame in 45:
+        await physics_frame
+    _expect(solid_probe.is_on_floor(), "Teleporter solid pad should support Sammy as floor.")
+    _expect(absf(solid_probe.global_position.y - float(teleporter.call("get_solid_height"))) < 0.05, "Teleporter solid pad should hold Sammy on its raised top instead of letting him fall through.")
+    solid_probe.queue_free()
+
+    var step_probe := player_scene.instantiate() as CharacterBody3D
+    root.add_child(step_probe)
+    step_probe.global_position = teleporter.global_position + Vector3(-1.25, 0.0, 0.0)
+    step_probe.rotation.y = -PI / 2.0
+    for _step_probe_settle_frame in 8:
+        await physics_frame
+    Input.action_press("move_forward")
+    for _step_probe_walk_frame in 45:
+        await physics_frame
+    Input.action_release("move_forward")
+    _expect(step_probe.global_position.y > 0.08, "Sammy should step up onto the low teleporter pad instead of being blocked or moving through it.")
+    _expect(step_probe.global_position.x > teleporter.global_position.x - 0.3, "Sammy should be able to cross onto the teleporter pad surface from the ground.")
+    step_probe.queue_free()
+
+    teleporter.monitoring = true
+    await process_frame
 
     var non_player := Node3D.new()
     non_player.name = "TeleportNonPlayer"
@@ -3435,12 +3485,33 @@ func _test_teleporter_system(assets: Node) -> void:
     _expect(not bool(teleporter.call("try_teleport_body", non_player)), "Teleporter should ignore non-player bodies.")
     non_player.queue_free()
 
+    var side_player := player_scene.instantiate() as CharacterBody3D
+    root.add_child(side_player)
+    side_player.global_position = teleporter.global_position + Vector3(float(teleporter.call("get_trigger_radius")) + 0.3, 0.0, 0.0)
+    for _side_settle_frame in 8:
+        await physics_frame
+    _expect(side_player.is_on_floor(), "Teleporter side-contact setup should put Sammy on the test floor.")
+    _expect(not bool(teleporter.call("try_teleport_body", side_player)), "Standing beside the teleporter should not trigger from an oversized invisible side margin.")
+    side_player.queue_free()
+
     var airborne_player := player_scene.instantiate() as CharacterBody3D
     root.add_child(airborne_player)
-    airborne_player.global_position = Vector3(0.0, 5.0, 0.0)
+    airborne_player.global_position = teleporter.global_position + Vector3(0.0, 5.0, 0.0)
     await process_frame
-    _expect(not bool(teleporter.call("try_teleport_body", airborne_player)), "Teleporter should ignore Sammy while he is airborne.")
+    _expect(not bool(teleporter.call("try_teleport_body", airborne_player)), "Teleporter should wait until Sammy is grounded even if he enters the pad volume while airborne.")
     airborne_player.queue_free()
+
+    teleporter.monitoring = false
+    var grounded_probe := player_scene.instantiate() as CharacterBody3D
+    root.add_child(grounded_probe)
+    grounded_probe.global_position = teleporter.global_position
+    for _grounded_probe_frame in 8:
+        await physics_frame
+    _expect(grounded_probe.is_on_floor(), "Grounded teleporter setup should put Sammy on the test floor.")
+    _expect(bool(teleporter.call("try_teleport_body", grounded_probe)), "Grounded Sammy should trigger the teleporter without needing to jump onto it.")
+    grounded_probe.queue_free()
+    teleporter.monitoring = true
+    await process_frame
 
     var camera_script: GDScript = load(CAMERA_SCRIPT_PATH)
     var camera := Camera3D.new()
@@ -3450,10 +3521,13 @@ func _test_teleporter_system(assets: Node) -> void:
     camera.target_path = camera.get_path_to(player)
     camera.global_position = Vector3(-20.0, 12.0, -20.0)
 
-    for _settle_frame in 8:
+    player.global_position = teleporter.global_position + Vector3(0.0, 2.0, 0.0)
+    player.velocity = Vector3(0.0, -0.5, 0.0)
+    for _settle_frame in 180:
+        if bool(player.call("is_teleporting")):
+            break
         await physics_frame
-    _expect(player.is_on_floor(), "Teleport setup should put Sammy on the test floor.")
-    _expect(bool(teleporter.call("try_teleport_body", player)), "Grounded Sammy should trigger the teleporter.")
+    _expect(bool(player.call("is_teleporting")), "Landing inside the teleporter volume should trigger once Sammy is grounded.")
     _expect(bool(player.call("is_teleporting")), "Player should expose active teleport state after triggering.")
     _expect(int(player.collision_layer) == 0 and int(player.collision_mask) == 0, "Teleporting Sammy should temporarily stop colliding like the original passable/idplayer path.")
     player.call("apply_quick_turn")
@@ -3587,6 +3661,23 @@ func _test_death_pad_system(_assets: Node) -> void:
     _expect(not bool(death_pad.call("try_trigger_body", player)), "Ground-level side contact should not trigger the death pad.")
     _expect(not bool(player.call("is_death_pad_respawning")), "Side contact should leave Sammy out of the death-pad respawn state.")
     _expect(int(player.call("get_lives")) == 3, "Side contact should not consume a BallesJoueur1 life.")
+
+    death_pad.monitoring = false
+    var death_step_probe := player_scene.instantiate() as CharacterBody3D
+    root.add_child(death_step_probe)
+    death_step_probe.global_position = death_pad.global_position + Vector3(-1.25, 0.0, 0.0)
+    death_step_probe.rotation.y = -PI / 2.0
+    for _death_step_probe_settle_frame in 8:
+        await physics_frame
+    Input.action_press("move_forward")
+    for _death_step_probe_walk_frame in 45:
+        await physics_frame
+    Input.action_release("move_forward")
+    _expect(death_step_probe.global_position.y < 0.08, "Death pad should stay too tall for Sammy's low step helper and require a jump.")
+    _expect(death_step_probe.global_position.x < death_pad.global_position.x - 0.3, "Death pad should block ground-level walking instead of being crossed from the side.")
+    death_step_probe.queue_free()
+    death_pad.monitoring = true
+    await process_frame
 
     player.global_position = death_pad.global_position + Vector3(0.0, death_pad_top_y + 0.45, 0.0)
     player.velocity = Vector3(0.0, -0.5, 0.0)
@@ -5407,6 +5498,11 @@ func _test_prototype_world() -> void:
             _expect(not String(teleporter.get("destination_path")).is_empty(), "Prototype teleporter should point at its paired ExitMarker: %s" % teleporter_path)
             var visual_scale: Vector3 = teleporter.get("visual_scale")
             _expect(visual_scale.is_equal_approx(Vector3(1.0, 0.5, 1.0)), "Prototype teleporter should use the adjusted original pad visual scale: %s" % teleporter_path)
+            var solid_body := teleporter.get_node_or_null("SolidBody") as StaticBody3D
+            _expect(solid_body != null, "Prototype teleporter should include a solid raised pad body: %s" % teleporter_path)
+            if solid_body != null:
+                _expect(solid_body.collision_layer == WORLD_LAYER, "Prototype teleporter solid body should block as world geometry: %s" % teleporter_path)
+                _expect(solid_body.collision_mask == CHARACTER_LAYER, "Prototype teleporter solid body should collide with Sammy: %s" % teleporter_path)
     var gallery_platform_configs := [
         ["ActivatedVisualPlatform", PLATFORM_VARIANT_UNLOCKED_ACTIVE, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT],
         ["ColumnPlatform", PLATFORM_VARIANT_UNLOCKED_COLUMN, "platfor2.wmb", 0, PLATFORM_MATCH_COMPONENT],

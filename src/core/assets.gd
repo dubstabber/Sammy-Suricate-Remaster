@@ -1041,7 +1041,25 @@ const CATALOG := {
         "path": "res://assets/audio/Hit1.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/Hit1.wav",
         "kind": "audio",
-        "description": "Impact sound"
+        "description": "Original Hit1 impact sound compatibility alias"
+    },
+    "sfx.enemy_hit_1": {
+        "path": "res://assets/audio/Hit1.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/Hit1.wav",
+        "kind": "audio",
+        "description": "Original Hit1_Son player impact cue used by enemy attacks"
+    },
+    "sfx.enemy_hit_2": {
+        "path": "res://assets/audio/Hit2.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/Hit2.wav",
+        "kind": "audio",
+        "description": "Original Hit2_Son player impact cue used by enemy attacks"
+    },
+    "sfx.enemy_hit_3": {
+        "path": "res://assets/audio/Hit3.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/Hit3.wav",
+        "kind": "audio",
+        "description": "Original Hit3_Son player impact cue used by enemy attacks"
     },
     "sfx.wasp": {
         "path": "res://assets/audio/wasp.wav",

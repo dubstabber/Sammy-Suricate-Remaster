@@ -130,6 +130,7 @@ func _run() -> void:
     await _test_wasp_projectile_damages_enemy()
     await _test_wasp_projectile_behaviors()
     await _test_enemy_ai_behavior()
+    await _test_enemy_attack_hit_sfx()
     await _test_enemy_visibility_range(game)
     await _test_enemy_ignores_dead_player()
     await _test_enemy_blocked_roar()
@@ -472,6 +473,10 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("sfx.eye_truth") != null, "Unable to load original EyeTruth sound.")
     _expect(assets.load_asset("sfx.quick_turn") != null, "Unable to load original Blouit quick-turn sound.")
     _expect(assets.load_asset("sfx.checkpoint_restart") != null, "Unable to load original Restart_son checkpoint sound.")
+    _expect(assets.load_asset("sfx.hit") != null, "Unable to load original Hit1 compatibility sound.")
+    _expect(assets.load_asset("sfx.enemy_hit_1") != null, "Unable to load original Hit1 enemy attack sound.")
+    _expect(assets.load_asset("sfx.enemy_hit_2") != null, "Unable to load original Hit2 enemy attack sound.")
+    _expect(assets.load_asset("sfx.enemy_hit_3") != null, "Unable to load original Hit3 enemy attack sound.")
     _expect(assets.has_asset("model.wasp1"), "Asset catalog is missing wasp projectile model.")
     _expect(assets.load_asset("model.wasp1") != null, "Unable to load wasp projectile model.")
     _expect(assets.get_asset_path("model.wasp1") == "res://assets/models/wasp1/wasp1_animated.gltf", "Wasp runtime model should use the animated GLTF.")
@@ -4490,6 +4495,82 @@ func _test_enemy_ai_behavior() -> void:
     await process_frame
 
 
+func _test_enemy_attack_hit_sfx() -> void:
+    const STATE_ATTACK_SWING := 10
+
+    var audio := root.get_node_or_null("Audio")
+    var assets := root.get_node_or_null("Assets")
+    _expect(audio != null, "Enemy attack hit SFX test needs the Audio service.")
+    _expect(assets != null, "Enemy attack hit SFX test needs the Assets service.")
+    if audio == null or assets == null:
+        return
+
+    var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    enemy.set("affected_by_gravity", false)
+    enemy.set("max_health", 5.0)
+    enemy.set("enemy_resistance", 5.0)
+    enemy.set("react_range", 5.0)
+    enemy.set("attack_range", 1.2)
+    enemy.set("attack_strike_ratio", 0.95)
+    enemy.set("push_bounce_force", 0.0)
+    enemy.set("attack_hit_sound_asset_ids", PackedStringArray(["sfx.enemy_hit_2"]))
+    enemy.set("attack_hit_sound_wdl_range_units", 2000.0)
+    enemy.set("attack_cycle_hit_sound_asset_ids", PackedStringArray(["sfx.enemy_hit_2"]))
+    enemy.set("attack_cycle_hit_sound_wdl_range_units", 1000.0)
+    root.add_child(enemy)
+    enemy.global_position = Vector3.ZERO
+
+    var player_stub := _make_ai_test_player()
+    root.add_child(player_stub)
+    player_stub.global_position = Vector3(0.0, 0.0, -0.6)
+    await physics_frame
+    enemy.call("_refresh_target")
+
+    if audio.has_method("stop_sfx"):
+        audio.call("stop_sfx")
+    enemy.call("_enter_state", STATE_ATTACK_SWING)
+
+    var hit_stream := assets.load_asset("sfx.enemy_hit_2") as AudioStream
+    _expect(hit_stream != null, "Original Hit2 enemy attack sound should load for hit playback.")
+    _expect(not _audio_service_has_spatial_stream(audio, hit_stream), "LionEtat 2 contact damage should not play the random attack-hit cue.")
+    _expect(not _audio_service_has_global_stream(audio, hit_stream), "Enemy attack-hit cues should not use global SFX playback.")
+
+    var contact_damage_calls := int(player_stub.get("damage_calls"))
+    for _i in 3:
+        await physics_frame
+    _expect(int(player_stub.get("damage_calls")) == contact_damage_calls, "Enemy attack-hit damage should wait for the LionAnimStep > 60 attack window.")
+    _expect(not _audio_service_has_spatial_stream(audio, hit_stream), "Enemy attack-hit SFX should not fire before the attack animation window opens.")
+
+    enemy.set("attack_strike_ratio", 0.01)
+    var hit_wait_frames := 0
+    while hit_wait_frames < 20 and not _audio_service_has_spatial_stream(audio, hit_stream):
+        await physics_frame
+        hit_wait_frames += 1
+    _expect(int(player_stub.get("damage_calls")) > contact_damage_calls, "LionEtat 10 contact during the open attack window should damage the player.")
+
+    var spatial_player := _audio_service_find_spatial_stream_player(audio, hit_stream)
+    _expect(spatial_player != null, "LionEtat 10 contact during the open attack window should play one original Hit sound positionally.")
+    if spatial_player != null:
+        _expect(spatial_player.global_position.distance_to(player_stub.global_position) < 0.001, "Enemy attack-hit SFX should play from the hit player position.")
+        _expect(is_equal_approx(spatial_player.max_distance, 20.0), "Enemy attack-hit SFX should preserve the original 2000-unit WDL range.")
+        _expect(spatial_player.attenuation_model == AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE, "Enemy attack-hit SFX should use positional attenuation.")
+    _expect(not _audio_service_has_global_stream(audio, hit_stream), "Enemy attack-hit SFX should stay out of the global SFX pool.")
+
+    var contact_hit_sfx_count := _audio_service_count_spatial_stream_players(audio, hit_stream)
+    enemy.call("_on_animation_finished", StringName("actions/attack"))
+    _expect(
+            _audio_service_count_spatial_stream_players(audio, hit_stream) == contact_hit_sfx_count + 1,
+            "Original standard-enemy attack completion should add the second possible Hit cue after the contact hit."
+    )
+
+    if audio.has_method("stop_sfx"):
+        audio.call("stop_sfx")
+    enemy.queue_free()
+    player_stub.queue_free()
+    await process_frame
+
+
 func _test_enemy_visibility_range(game: Node) -> void:
     const STATE_CHASE := 2
     _expect(game != null, "Enemy visibility range test needs the Game service.")
@@ -6455,6 +6536,17 @@ func _audio_service_find_spatial_stream_player(audio: Node, stream: AudioStream)
         if player != null and player.stream == stream:
             return player
     return null
+
+
+func _audio_service_count_spatial_stream_players(audio: Node, stream: AudioStream) -> int:
+    if stream == null:
+        return 0
+    var count := 0
+    for child in audio.get_children():
+        var player := child as AudioStreamPlayer3D
+        if player != null and player.stream == stream:
+            count += 1
+    return count
 
 
 func _expect(condition: bool, message: String) -> void:

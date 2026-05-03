@@ -103,6 +103,11 @@ enum EnemyState {
 @export var player_top_bounce_velocity: float = 30.0 * ACKNEX_TO_GODOT_SCALE * PLAYER_BOUNCE_TICKS_PER_SECOND
 @export var attack_sound_asset_id: String = ""
 @export var walk_sound_asset_id: String = ""
+@export var attack_hit_sound_asset_ids: PackedStringArray = PackedStringArray(["sfx.enemy_hit_1", "sfx.enemy_hit_2", "sfx.enemy_hit_3"])
+@export var attack_hit_sound_wdl_range_units: float = 2000.0
+@export var attack_cycle_hit_sound_asset_ids: PackedStringArray = PackedStringArray(["sfx.enemy_hit_1", "sfx.enemy_hit_2", "sfx.enemy_hit_3"])
+@export var attack_cycle_hit_sound_wdl_range_units: float = 1000.0
+@export var attack_cycle_hit_sound_family_id: float = 1.0
 
 signal damaged(amount: float, source: Node)
 signal died(source: Node)
@@ -285,6 +290,7 @@ func _physics_process(delta: float) -> void:
 	_refresh_movement_animation_speed()
 	_apply_gravity(delta)
 	move_and_slide()
+	_try_resolve_attack_hit_from_current_contact()
 	if affected_by_gravity and is_on_floor() and velocity.y <= 0.0:
 		_fall_velocity_y = 0.0
 		velocity.y = 0.0
@@ -492,12 +498,6 @@ func _tick_attack_swing(delta: float) -> Vector3:
 		return Vector3.ZERO
 	if _target != null:
 		_turn_toward(_target_horizontal_offset(), delta)
-	if not _hit_resolved_this_swing and _animation_player != null and _animation_player.is_playing():
-		var length := _animation_player.current_animation_length
-		if length > 0.0:
-			var ratio := _animation_player.current_animation_position / length
-			if ratio >= attack_strike_ratio:
-				_resolve_attack_hit()
 	return _attack_lunge_velocity()
 
 
@@ -700,8 +700,7 @@ func _on_animation_finished(_anim_name: StringName) -> void:
 		EnemyState.ROAR:
 			_finish_roar()
 		EnemyState.ATTACK_SWING:
-			if not _hit_resolved_this_swing:
-				_resolve_attack_hit()
+			_play_attack_cycle_hit_sfx()
 			if _should_engage_target():
 				var dist := _target_horizontal_offset().length()
 				if dist <= attack_range:
@@ -848,19 +847,59 @@ func _has_line_of_sight_to(target: Node3D) -> bool:
 	return hit.is_empty()
 
 
-func _resolve_attack_hit() -> void:
-	_hit_resolved_this_swing = true
-	var hit_target := _attack_target if _attack_target != null and is_instance_valid(_attack_target) else _target
+func _try_resolve_attack_hit_from_current_contact() -> void:
+	if _state != EnemyState.ATTACK_SWING or _hit_resolved_this_swing:
+		return
+	if not _is_attack_hit_window_open():
+		return
+	var hit_target := _current_attack_hit_target()
 	if not _is_attackable_target(hit_target):
 		return
+	if not _has_current_slide_contact_with(hit_target):
+		return
+	if _resolve_attack_hit():
+		_play_random_sfx_at_node(attack_hit_sound_asset_ids, hit_target, attack_hit_sound_wdl_range_units)
+
+
+func _is_attack_hit_window_open() -> bool:
+	if _animation_player == null or not _animation_player.is_playing():
+		return false
+	var length := _animation_player.current_animation_length
+	if length <= 0.0:
+		return false
+	var ratio := _animation_player.current_animation_position / length
+	return ratio >= attack_strike_ratio
+
+
+func _current_attack_hit_target() -> Node3D:
+	var hit_target := _attack_target if _attack_target != null and is_instance_valid(_attack_target) else _target
+	return hit_target
+
+
+func _has_current_slide_contact_with(hit_target: Node3D) -> bool:
+	for index in get_slide_collision_count():
+		var collision := get_slide_collision(index)
+		if collision != null and collision.get_collider() == hit_target:
+			return true
+	return false
+
+
+func _resolve_attack_hit() -> bool:
+	var hit_target := _current_attack_hit_target()
+	if not _is_attackable_target(hit_target):
+		return false
 	if not _attack_started_in_range and _horizontal_offset_to(hit_target).length() > attack_range * 1.2:
-		return
+		return false
 	if not hit_target.has_method("take_damage"):
-		return
+		return false
 	var damage := get_attack_damage_amount()
-	hit_target.call("take_damage", damage, self)
+	var damage_result: Variant = hit_target.call("take_damage", damage, self)
+	if damage_result is bool and not damage_result:
+		return false
+	_hit_resolved_this_swing = true
 	_apply_attack_push_to_target(hit_target)
 	attack_landed.emit(hit_target, damage)
+	return true
 
 
 func _resolve_attack_contact(hit_target: Node3D) -> void:
@@ -965,11 +1004,32 @@ func _apply_asset_catalog_settings() -> void:
 		assets.align_model_instance_to_ground(visual, global_position.y)
 
 
-func _play_sfx(asset_id: String) -> void:
+func _play_attack_cycle_hit_sfx() -> void:
+	if not is_equal_approx(enemy_family_id, attack_cycle_hit_sound_family_id):
+		return
+	_play_random_sfx_at_node(attack_cycle_hit_sound_asset_ids, self, attack_cycle_hit_sound_wdl_range_units)
+
+
+func _play_random_sfx_at_node(asset_ids: PackedStringArray, source: Node3D, wdl_range_units: float) -> void:
+	if asset_ids.is_empty():
+		return
+	var start_index := randi() % asset_ids.size()
+	for offset in asset_ids.size():
+		var asset_id := asset_ids[(start_index + offset) % asset_ids.size()]
+		if not asset_id.is_empty():
+			_play_sfx_at_node(asset_id, source, wdl_range_units)
+			return
+
+
+func _play_sfx(asset_id: String, wdl_range_units: float = ENEMY_ENTITY_SOUND_WDL_RANGE_UNITS) -> void:
+	_play_sfx_at_node(asset_id, self, wdl_range_units)
+
+
+func _play_sfx_at_node(asset_id: String, source: Node3D, wdl_range_units: float = ENEMY_ENTITY_SOUND_WDL_RANGE_UNITS) -> void:
 	if asset_id.is_empty():
 		return
 	var audio := get_node_or_null("/root/Audio")
 	if audio != null and audio.has_method("play_spatial_sfx"):
-		audio.call("play_spatial_sfx", asset_id, self, ENEMY_ENTITY_SOUND_WDL_RANGE_UNITS)
+		audio.call("play_spatial_sfx", asset_id, source, wdl_range_units)
 	elif audio != null and audio.has_method("play_sfx"):
 		audio.call("play_sfx", asset_id)

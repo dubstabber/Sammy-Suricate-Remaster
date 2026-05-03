@@ -10,6 +10,7 @@ const CHARACTER_LAYER := 2
 const PLATFORM_MODEL_ROOT := "res://assets/models/platforms"
 const VISUAL_MODEL_ROOT_NAME := "PlatformModelRoot"
 const ACTIVATION_SOUND_WDL_RANGE_UNITS := 1000.0
+const ORIGINAL_PLATFORM_FOOTPRINT_SIZE := 1.28
 
 const MATCH_COMPONENT_OR_EXACT := 0
 const MATCH_EXACT_ONLY := 1
@@ -290,7 +291,7 @@ func _build_fallback_visual() -> void:
     var mesh_instance := MeshInstance3D.new()
     mesh_instance.name = VISUAL_MODEL_ROOT_NAME
     var mesh := BoxMesh.new()
-    mesh.size = Vector3(2.0, 0.3, 2.0)
+    mesh.size = Vector3(ORIGINAL_PLATFORM_FOOTPRINT_SIZE, 0.3, ORIGINAL_PLATFORM_FOOTPRINT_SIZE)
     mesh_instance.mesh = mesh
     var material := StandardMaterial3D.new()
     material.albedo_color = Color(0.45, 0.42, 0.32, 1.0)

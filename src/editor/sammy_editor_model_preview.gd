@@ -279,6 +279,13 @@ func _align_preview_to_ground(assets: Node) -> void:
 	var bounds := assets.call("get_model_global_bounds", _preview_instance) as AABB
 	if bounds.size == Vector3.ZERO:
 		return
+	var align_origin_to_ground := false
+	if assets.has_method("should_align_model_origin_to_ground"):
+		align_origin_to_ground = bool(assets.call("should_align_model_origin_to_ground", asset_id))
+	if align_origin_to_ground and assets.has_method("align_model_origin_to_ground"):
+		var origin_ground_height := float(assets.call("get_model_origin_ground_height", asset_id))
+		assets.call("align_model_origin_to_ground", _preview_instance, global_position, global_position.y + visual_ground_clearance, origin_ground_height)
+		return
 	var lift := (global_position.y + visual_ground_clearance) - bounds.position.y
 	if not is_zero_approx(lift):
 		_preview_instance.global_position.y += lift

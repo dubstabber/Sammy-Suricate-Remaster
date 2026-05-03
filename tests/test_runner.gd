@@ -448,6 +448,9 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.should_ground_model("model.punk.animated"), "Punk model should be grounded to the floor.")
     _expect(assets.should_ground_model("model.scorpion.animated"), "Scorpion model should be grounded to the floor.")
     _expect(not assets.should_ground_model("model.cactus1"), "Static props should not use character grounding.")
+    _expect(assets.should_align_model_origin_to_ground("model.sammy.animated"), "Sammy model should use the original entity-origin foot height instead of animated mesh bounds.")
+    _expect(is_equal_approx(assets.get_model_origin_ground_height("model.sammy.animated"), 4.4), "Sammy model should expose the original HeightFootPlayer value.")
+    _expect(not assets.should_align_model_origin_to_ground("model.rasta.animated"), "Enemy models should keep their existing bounds grounding unless explicitly corrected.")
     _expect(assets.get_model_animation_library_path("model.sammy.animated") == "res://assets/animations/suricat1_clips.tres", "Sammy should use the generated animation library.")
     _expect(assets.get_model_animation_library_path("model.scorpion.animated") == "res://assets/animations/scorpion_clips.tres", "Scorpion should use the generated animation library.")
     _expect(assets.get_model_default_animation("model.rasta.animated") == "stand", "Rasta should expose a default stand animation.")
@@ -3133,11 +3136,25 @@ func _test_moving_platform_system(_assets: Node) -> void:
     _expect(platform.collision_layer == WORLD_LAYER, "Moving platform should live on the world collision layer.")
     _expect(platform.collision_mask == CHARACTER_LAYER, "Moving platform should collide with solid characters.")
     _expect(not platform.sync_to_physics, "Moving platform should allow script-driven transform updates.")
+    var platform_shape_node := platform.get_node_or_null("CollisionShape3D") as CollisionShape3D
+    _expect(platform_shape_node != null, "Moving platform should expose a solid collision shape.")
+    if platform_shape_node != null:
+        var platform_box := platform_shape_node.shape as BoxShape3D
+        _expect(platform_box != null, "Moving platform solid collision should use a box shape.")
+        if platform_box != null:
+            _expect(platform_box.size.x <= 1.29 and platform_box.size.z <= 1.29, "Moving platform solid collision should match the original WMB footprint, not an oversized invisible ledge.")
     var sensor := platform.get_node_or_null("ActivationSensor") as Area3D
     _expect(sensor != null, "Moving platform should expose a top activation sensor.")
     if sensor != null:
         _expect(sensor.collision_layer == 0, "Moving platform sensor should not be a blocking body.")
         _expect(sensor.collision_mask == CHARACTER_LAYER, "Moving platform sensor should monitor characters.")
+        var sensor_shape_node := sensor.get_node_or_null("CollisionShape3D") as CollisionShape3D
+        _expect(sensor_shape_node != null, "Moving platform sensor should expose a collision shape.")
+        if sensor_shape_node != null:
+            var sensor_box := sensor_shape_node.shape as BoxShape3D
+            _expect(sensor_box != null, "Moving platform sensor should use a box shape.")
+            if sensor_box != null:
+                _expect(sensor_box.size.x <= 1.37 and sensor_box.size.z <= 1.37, "Moving platform sensor should only cover the platform top, not a broad invisible margin.")
     _expect(bool(platform.call("is_active")), "Unlocked moving platform should start active.")
     _expect(is_equal_approx(float(platform.call("get_base_speed")), 1.6), "WDL platform Skill2 speed should convert through 0.01 scale and 16 ticks/sec.")
     _expect(is_equal_approx(float(platform.call("get_endpoint_wait_seconds")), 0.5), "WDL platform wait ticks should convert through 16 ticks/sec.")
@@ -3499,10 +3516,17 @@ func _test_death_pad_system(_assets: Node) -> void:
     await process_frame
 
     _expect(death_pad.collision_layer == PICKUP_SENSOR_LAYER, "Death pad should live on the pickup sensor collision layer.")
-    _expect(death_pad.collision_mask == CHARACTER_LAYER, "Death pad should monitor solid characters without blocking them.")
+    _expect(death_pad.collision_mask == CHARACTER_LAYER, "Death pad sensor should monitor solid characters.")
+    var death_pad_solid_body := death_pad.get_node_or_null("SolidBody") as StaticBody3D
+    _expect(death_pad_solid_body != null, "Death pad should expose a solid TileDeath body so Sammy must jump onto its raised top.")
+    if death_pad_solid_body != null:
+        _expect(int(death_pad_solid_body.collision_layer) == WORLD_LAYER, "Death pad solid body should block as world geometry.")
+        _expect(int(death_pad_solid_body.collision_mask) == CHARACTER_LAYER, "Death pad solid body should collide with solid characters.")
     _expect(death_pad.has_method("try_trigger_body"), "Death pad should expose a test/importer trigger hook.")
     _expect(bool(death_pad.call("has_original_visual_model")), "Death pad should load the original converted TileDeath WMB visual.")
     _expect(String(death_pad.call("get_visual_source_path")) == "res://assets/models/death_pads/tiledeat/tiledeat.gltf", "Death pad should expose the original TileDeath WMB visual path.")
+    var death_pad_top_y := float(death_pad.call("get_solid_top_height"))
+    _expect(is_equal_approx(death_pad_top_y, 0.32), "Death pad solid height should follow the converted TileDeath WMB bounds.")
     var idle_emitter := death_pad.call("get_idle_particle_emitter") as Node
     _expect(idle_emitter != null, "Death pad should spawn its idle TileDeath smoke emitter.")
     if idle_emitter != null:
@@ -3517,9 +3541,9 @@ func _test_death_pad_system(_assets: Node) -> void:
 
     var airborne_player := player_scene.instantiate() as CharacterBody3D
     root.add_child(airborne_player)
-    airborne_player.global_position = Vector3(0.0, 5.0, 0.0)
+    airborne_player.global_position = death_pad.global_position + Vector3(0.0, death_pad_top_y + 0.8, 0.0)
     await process_frame
-    _expect(not bool(death_pad.call("try_trigger_body", airborne_player)), "Death pad should ignore Sammy while he is airborne.")
+    _expect(not bool(death_pad.call("try_trigger_body", airborne_player)), "Death pad should ignore Sammy before he lands on its raised top.")
     airborne_player.queue_free()
 
     var camera_script: GDScript = load(CAMERA_SCRIPT_PATH)
@@ -3555,8 +3579,22 @@ func _test_death_pad_system(_assets: Node) -> void:
     var inventory: Node = player.call("get_wasp_inventory")
     if inventory != null:
         inventory.call("add_ammo", load(WASP_TYPE_2_PATH), 1)
-    _expect(bool(death_pad.call("try_trigger_body", player)), "Grounded Sammy should trigger the death pad.")
-    _expect(bool(player.call("is_death_pad_respawning")), "Player should expose active death-pad respawn state after triggering.")
+
+    player.global_position = death_pad.global_position + Vector3(float(death_pad.call("get_top_trigger_radius")) + 0.25, 0.0, 0.0)
+    player.velocity = Vector3.ZERO
+    for _side_settle_frame in 4:
+        await physics_frame
+    _expect(not bool(death_pad.call("try_trigger_body", player)), "Ground-level side contact should not trigger the death pad.")
+    _expect(not bool(player.call("is_death_pad_respawning")), "Side contact should leave Sammy out of the death-pad respawn state.")
+    _expect(int(player.call("get_lives")) == 3, "Side contact should not consume a BallesJoueur1 life.")
+
+    player.global_position = death_pad.global_position + Vector3(0.0, death_pad_top_y + 0.45, 0.0)
+    player.velocity = Vector3(0.0, -0.5, 0.0)
+    for _death_pad_landing_frame in 180:
+        if bool(player.call("is_death_pad_respawning")):
+            break
+        await physics_frame
+    _expect(bool(player.call("is_death_pad_respawning")), "Landing on the raised death-pad top should trigger the original respawn flow.")
     _expect(not bool(player.call("is_dead")), "Death pad should not use the kaputt death state while lives remain.")
     _expect(not bool(player.call("is_game_over")), "Death pad should not game-over while lives remain.")
     _expect(int(player.call("get_lives")) == 2, "Death pad should consume one BallesJoueur1 life immediately.")
@@ -3589,12 +3627,14 @@ func _test_death_pad_system(_assets: Node) -> void:
 
     var final_player := player_scene.instantiate() as CharacterBody3D
     root.add_child(final_player)
-    final_player.global_position = Vector3.ZERO
+    final_player.global_position = death_pad.global_position + Vector3(0.0, death_pad_top_y + 0.45, 0.0)
+    final_player.velocity = Vector3(0.0, -0.5, 0.0)
     final_player.call("set_lives", 1)
-    for _final_settle_frame in 8:
+    for _final_landing_frame in 180:
+        if bool(final_player.call("is_game_over")):
+            break
         await physics_frame
-    _expect(bool(death_pad.call("try_trigger_body", final_player)), "Death pad should accept Sammy on his final life.")
-    _expect(bool(final_player.call("is_dead")), "Final death-pad life loss should keep Sammy in a dead state.")
+    _expect(bool(final_player.call("is_dead")), "Final death-pad top landing should keep Sammy in a dead state.")
     _expect(bool(final_player.call("is_game_over")), "Final death-pad life loss should enter game over.")
     _expect(not bool(final_player.call("is_death_pad_respawning")), "Final death-pad life loss should not start a respawn fade.")
     _expect(int(final_player.call("get_lives")) == 0, "Final death-pad life loss should consume the last life immediately.")
@@ -4945,8 +4985,15 @@ func _test_player_scene() -> void:
         _expect(sammy_model.rotation_degrees.is_equal_approx(Vector3(0.0, 90.0, 0.0)), "Player visual should apply the Acknex character forward correction.")
         var assets := root.get_node_or_null("Assets")
         if assets != null:
-            var bounds: AABB = assets.get_model_global_bounds(sammy_model)
-            _expect(absf(bounds.position.y - (player as Node3D).global_position.y) < 0.01, "Player visual should be grounded on the player floor.")
+            var player_3d := player as Node3D
+            var expected_origin_height := float(assets.get_model_origin_ground_height("model.sammy.animated")) * sammy_model.global_transform.basis.y.length()
+            _expect(absf(sammy_model.global_position.y - (player_3d.global_position.y + expected_origin_height)) < 0.01, "Player visual origin should use original HeightFootPlayer grounding.")
+            var visual_origin_offset := Vector2(sammy_model.global_position.x - player_3d.global_position.x, sammy_model.global_position.z - player_3d.global_position.z)
+            _expect(visual_origin_offset.length() < 0.001, "Player visual origin should stay on the gameplay pivot before rotation.")
+            player_3d.rotation.y = PI
+            var rotated_visual_origin_offset := Vector2(sammy_model.global_position.x - player_3d.global_position.x, sammy_model.global_position.z - player_3d.global_position.z)
+            _expect(rotated_visual_origin_offset.length() < 0.001, "Player visual should rotate in place around the original entity pivot.")
+            player_3d.rotation.y = 0.0
         var animation_controller := sammy_model.get_node_or_null("ModelAnimationController")
         _expect(animation_controller != null, "Player model should have a generated animation controller.")
         if animation_controller != null:

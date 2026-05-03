@@ -4,6 +4,8 @@ const AssetEntryScript := preload("res://src/resources/asset_entry.gd")
 
 const ACKNEX_TO_GODOT_SCALE := 0.01
 const ACKNEX_CHARACTER_FORWARD_ROTATION := Vector3(0.0, 90.0, 0.0)
+# WDL InitMarche uses HeightFootPlayer to place Sammy's entity origin above ground.
+const SAMMY_ORIGIN_GROUND_HEIGHT := 4.4
 
 const CATALOG := {
     "model.sammy.static": {
@@ -13,7 +15,8 @@ const CATALOG := {
         "description": "Sammy first-frame model",
         "acknex_entity_scale": Vector3(8.0, 8.0, 8.0),
         "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
-        "ground_to_floor": true
+        "ground_to_floor": true,
+        "origin_ground_height": SAMMY_ORIGIN_GROUND_HEIGHT
     },
     "model.sammy.animated": {
         "path": "res://assets/models/suricat1/suricat1_animated.gltf",
@@ -23,6 +26,7 @@ const CATALOG := {
         "acknex_entity_scale": Vector3(8.0, 8.0, 8.0),
         "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
         "ground_to_floor": true,
+        "origin_ground_height": SAMMY_ORIGIN_GROUND_HEIGHT,
         "animation_library": "res://assets/animations/suricat1_clips.tres",
         "default_animation": "stand"
     },
@@ -1154,6 +1158,7 @@ func rebuild() -> void:
                 raw.get("acknex_entity_scale", Vector3.ONE),
                 raw.get("rotation_degrees", Vector3.ZERO),
                 bool(raw.get("ground_to_floor", false)),
+                float(raw.get("origin_ground_height", 0.0)),
                 raw.get("animation_library", ""),
                 raw.get("default_animation", "")
         )
@@ -1203,6 +1208,17 @@ func should_ground_model(entry_id: String) -> bool:
     if entry == null:
         return false
     return bool(entry.ground_to_floor)
+
+
+func get_model_origin_ground_height(entry_id: String) -> float:
+    var entry := get_entry(entry_id)
+    if entry == null:
+        return 0.0
+    return float(entry.origin_ground_height)
+
+
+func should_align_model_origin_to_ground(entry_id: String) -> bool:
+    return get_model_origin_ground_height(entry_id) > 0.0
 
 
 func get_model_animation_library_path(entry_id: String) -> String:
@@ -1276,6 +1292,15 @@ func align_model_instance_to_ground(model_root: Node3D, ground_y: float = 0.0) -
     if is_zero_approx(lift):
         return
     model_root.global_position.y += lift
+
+
+func align_model_origin_to_ground(model_root: Node3D, pivot: Vector3, ground_y: float, origin_ground_height: float) -> void:
+    var y_scale := model_root.global_transform.basis.y.length()
+    model_root.global_position = Vector3(
+            pivot.x,
+            ground_y + origin_ground_height * y_scale,
+            pivot.z
+    )
 
 
 func get_model_global_bounds(model_root: Node3D) -> AABB:

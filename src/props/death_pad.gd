@@ -2,11 +2,16 @@ extends Area3D
 class_name DeathPad
 
 const TILE_DEATH_PARTICLES_SCRIPT := preload("res://src/effects/tile_death_particles.gd")
+const WORLD_LAYER := 1
 const CHARACTER_LAYER := 2
 const PICKUP_SENSOR_LAYER := 4
 
 @export var model_asset_id: String = "model.death_pad.tile"
 @export var require_grounded: bool = true
+@export var require_top_contact: bool = true
+@export var solid_top_height: float = 0.32
+@export var top_contact_y_tolerance: float = 0.12
+@export var top_trigger_radius: float = 0.72
 @export var idle_particles_enabled: bool = true
 
 var _visual_source_path := ""
@@ -21,8 +26,15 @@ func _ready() -> void:
 	collision_layer = PICKUP_SENSOR_LAYER
 	collision_mask = CHARACTER_LAYER
 	body_entered.connect(_on_body_entered)
+	_configure_solid_body()
 	_spawn_visual()
 	_spawn_idle_particles()
+
+
+func _physics_process(_delta: float) -> void:
+	for body in get_overlapping_bodies():
+		if try_trigger_body(body):
+			return
 
 
 func try_trigger_body(body: Node) -> bool:
@@ -49,6 +61,14 @@ func get_idle_particle_emitter() -> Node:
 	return _idle_particle_emitter
 
 
+func get_solid_top_height() -> float:
+	return solid_top_height
+
+
+func get_top_trigger_radius() -> float:
+	return top_trigger_radius
+
+
 func _on_body_entered(body: Node3D) -> void:
 	try_trigger_body(body)
 
@@ -58,7 +78,44 @@ func _can_trigger_body(body: Node) -> bool:
 		return false
 	if require_grounded and body is CharacterBody3D and not (body as CharacterBody3D).is_on_floor():
 		return false
+	if require_top_contact and not _is_body_on_trigger_top(body):
+		return false
+	if _body_method_is_true(body, &"is_dead"):
+		return false
+	if _body_method_is_true(body, &"is_game_over"):
+		return false
+	if _body_method_is_true(body, &"is_teleporting"):
+		return false
+	if _body_method_is_true(body, &"is_death_pad_respawning"):
+		return false
+	if _body_method_is_true(body, &"is_exit_pad_victory_active"):
+		return false
 	return true
+
+
+func _is_body_on_trigger_top(body: Node) -> bool:
+	var body_3d := body as Node3D
+	if body_3d == null:
+		return false
+	var local_position := global_transform.affine_inverse() * body_3d.global_position
+	var top_y := maxf(solid_top_height, 0.0)
+	if local_position.y < top_y - top_contact_y_tolerance:
+		return false
+	if local_position.y > top_y + top_contact_y_tolerance:
+		return false
+	return Vector2(local_position.x, local_position.z).length() <= top_trigger_radius
+
+
+func _body_method_is_true(body: Node, method_name: StringName) -> bool:
+	return body.has_method(method_name) and bool(body.call(method_name))
+
+
+func _configure_solid_body() -> void:
+	var solid_body := get_node_or_null("SolidBody") as StaticBody3D
+	if solid_body == null:
+		return
+	solid_body.collision_layer = WORLD_LAYER
+	solid_body.collision_mask = CHARACTER_LAYER
 
 
 func _spawn_visual() -> void:

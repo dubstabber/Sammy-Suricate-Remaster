@@ -508,7 +508,10 @@ func _spawn_model() -> void:
     _model_instance.rotation_degrees = model_rotation_degrees
     visual_pivot.add_child(_model_instance)
     if assets != null and assets.should_ground_model(model_asset_id):
-        assets.align_model_instance_to_ground(_model_instance, global_position.y)
+        if assets.has_method("should_align_model_origin_to_ground") and bool(assets.call("should_align_model_origin_to_ground", model_asset_id)):
+            assets.call("align_model_origin_to_ground", _model_instance, global_position, global_position.y, float(assets.call("get_model_origin_ground_height", model_asset_id)))
+        else:
+            assets.align_model_instance_to_ground(_model_instance, global_position.y)
     _configure_model_animation(assets)
 
 

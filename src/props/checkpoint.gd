@@ -2,6 +2,7 @@ extends Area3D
 class_name Checkpoint
 
 const CHECKPOINT_PARTICLES_SCRIPT := preload("res://src/effects/checkpoint_particles.gd")
+const WORLD_LAYER := 1
 const CHARACTER_LAYER := 2
 const PICKUP_SENSOR_LAYER := 4
 const ACKNEX_TICKS_PER_SECOND := 16.0
@@ -14,10 +15,14 @@ const ACTIVATION_SOUND_WDL_RANGE_UNITS := 1500.0
 @export var idle_particles_enabled: bool = true
 @export var activation_particles_enabled: bool = true
 @export var reactivation_delay_seconds: float = 4.0 / ACKNEX_TICKS_PER_SECOND
+@export var solid_height: float = 1.5
+@export var solid_radius: float = 0.36
 
 var _visual_source_path := ""
 var _model_instance: Node3D = null
 var _idle_particle_emitter: Node = null
+var _solid_body: StaticBody3D = null
+var _solid_shape: CollisionShape3D = null
 var _active := true
 var _reactivation_delay_remaining := 0.0
 
@@ -29,6 +34,7 @@ func _ready() -> void:
 	collision_layer = PICKUP_SENSOR_LAYER
 	collision_mask = CHARACTER_LAYER
 	body_entered.connect(_on_body_entered)
+	_configure_solid_body()
 	_spawn_visual()
 	_spawn_idle_particles()
 	_set_active(true)
@@ -79,6 +85,22 @@ func get_idle_particle_emitter() -> Node:
 	return _idle_particle_emitter
 
 
+func get_solid_body() -> StaticBody3D:
+	return _solid_body
+
+
+func get_solid_collision_shape() -> CollisionShape3D:
+	return _solid_shape
+
+
+func get_solid_height() -> float:
+	return solid_height
+
+
+func get_solid_radius() -> float:
+	return solid_radius
+
+
 func _on_body_entered(body: Node3D) -> void:
 	try_activate_body(body)
 
@@ -124,6 +146,7 @@ func _connect_respawn_reactivation(body: Node) -> void:
 
 
 func _on_player_respawned() -> void:
+	_set_solid_enabled(true)
 	_reactivation_delay_remaining = maxf(reactivation_delay_seconds, 0.0)
 	if _reactivation_delay_remaining <= 0.0:
 		_set_active(true)
@@ -137,6 +160,12 @@ func _set_active(active: bool) -> void:
 		_visual_root.visible = active
 	if _idle_particle_emitter != null and _idle_particle_emitter.has_method("set_idle_enabled"):
 		_idle_particle_emitter.call("set_idle_enabled", active and idle_particles_enabled)
+	_set_solid_enabled(active)
+
+
+func _set_solid_enabled(enabled: bool) -> void:
+	if _solid_shape != null:
+		_solid_shape.disabled = not enabled
 
 
 func _play_activation_sound() -> void:
@@ -158,6 +187,28 @@ func _emit_activation_particles() -> void:
 		_idle_particle_emitter.call("emit_activation_sequence", Vector3.ZERO)
 	elif _idle_particle_emitter.has_method("emit_burst"):
 		_idle_particle_emitter.call("emit_burst", 25, Vector3.ZERO)
+
+
+func _configure_solid_body() -> void:
+	_solid_body = get_node_or_null("SolidBody") as StaticBody3D
+	if _solid_body == null:
+		_solid_body = StaticBody3D.new()
+		_solid_body.name = "SolidBody"
+		add_child(_solid_body)
+	_solid_body.collision_layer = WORLD_LAYER
+	_solid_body.collision_mask = CHARACTER_LAYER
+	_solid_shape = _solid_body.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if _solid_shape == null:
+		_solid_shape = CollisionShape3D.new()
+		_solid_shape.name = "CollisionShape3D"
+		_solid_body.add_child(_solid_shape)
+	var cylinder := _solid_shape.shape as CylinderShape3D
+	if cylinder == null:
+		cylinder = CylinderShape3D.new()
+		_solid_shape.shape = cylinder
+	cylinder.height = maxf(solid_height, 0.01)
+	cylinder.radius = maxf(solid_radius, 0.01)
+	_solid_shape.position = Vector3(0.0, cylinder.height * 0.5, 0.0)
 
 
 func _spawn_visual() -> void:

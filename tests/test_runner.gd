@@ -4006,7 +4006,22 @@ func _test_checkpoint_system(assets: Node) -> void:
     await process_frame
 
     _expect(checkpoint.collision_layer == PICKUP_SENSOR_LAYER, "Checkpoint should live on the pickup sensor collision layer.")
-    _expect(checkpoint.collision_mask == CHARACTER_LAYER, "Checkpoint should monitor solid characters without blocking them.")
+    _expect(checkpoint.collision_mask == CHARACTER_LAYER, "Checkpoint trigger should monitor solid characters while a solid child handles blocking.")
+    var checkpoint_solid_body := checkpoint.call("get_solid_body") as StaticBody3D
+    _expect(checkpoint_solid_body != null, "Checkpoint should expose a solid restart body so Sammy can stand on the mark after respawn.")
+    if checkpoint_solid_body != null:
+        _expect(int(checkpoint_solid_body.collision_layer) == WORLD_LAYER, "Checkpoint solid body should block as world geometry.")
+        _expect(int(checkpoint_solid_body.collision_mask) == CHARACTER_LAYER, "Checkpoint solid body should collide with solid characters.")
+    _expect(is_equal_approx(float(checkpoint.call("get_solid_height")), CHECKPOINT_RESPAWN_HEIGHT_OFFSET), "Checkpoint solid body should support Sammy at the original +150 Acknex-unit restart height.")
+    _expect(is_equal_approx(float(checkpoint.call("get_solid_radius")), 0.36), "Checkpoint solid body should stay close to the converted restart WMB footprint.")
+    var checkpoint_solid_shape := checkpoint.call("get_solid_collision_shape") as CollisionShape3D
+    _expect(checkpoint_solid_shape != null, "Checkpoint solid body should expose a collision shape.")
+    if checkpoint_solid_shape != null:
+        var checkpoint_solid_cylinder := checkpoint_solid_shape.shape as CylinderShape3D
+        _expect(checkpoint_solid_cylinder != null, "Checkpoint solid body should use a cylinder footprint.")
+        if checkpoint_solid_cylinder != null:
+            _expect(is_equal_approx(checkpoint_solid_cylinder.height, CHECKPOINT_RESPAWN_HEIGHT_OFFSET), "Checkpoint solid collision should rise to the restart placement height.")
+            _expect(is_equal_approx(checkpoint_solid_cylinder.radius, 0.36), "Checkpoint solid collision radius should match the narrow restart mark.")
     _expect(checkpoint.has_method("try_activate_body"), "Checkpoint should expose a test/importer activation hook.")
     _expect(bool(checkpoint.call("has_original_visual_model")), "Checkpoint should load the original converted restart WMB visual.")
     _expect(String(checkpoint.call("get_visual_source_path")) == "res://assets/models/checkpoints/restart/restart.gltf", "Checkpoint should expose the original restart WMB visual path.")
@@ -4015,6 +4030,18 @@ func _test_checkpoint_system(assets: Node) -> void:
     if idle_emitter != null:
         _expect(int(idle_emitter.call("get_configured_texture_count")) == 2, "Checkpoint particles should use both original green particle sprites.")
         _expect(bool(idle_emitter.call("is_idle_enabled")), "Checkpoint idle particles should emit while the checkpoint is active.")
+
+    checkpoint.monitoring = false
+    var solid_probe := player_scene.instantiate() as CharacterBody3D
+    root.add_child(solid_probe)
+    solid_probe.global_position = checkpoint.global_position + Vector3(0.0, CHECKPOINT_RESPAWN_HEIGHT_OFFSET + 0.6, 0.0)
+    for _solid_probe_frame in 60:
+        await physics_frame
+    _expect(solid_probe.is_on_floor(), "Checkpoint restart mark should support Sammy as floor after respawn.")
+    _expect(absf(solid_probe.global_position.y - checkpoint.global_position.y - float(checkpoint.call("get_solid_height"))) < 0.05, "Checkpoint solid body should hold Sammy on the original restart height instead of letting him fall through.")
+    solid_probe.queue_free()
+    await process_frame
+    checkpoint.monitoring = true
 
     var non_player := Node3D.new()
     non_player.name = "CheckpointNonPlayer"
@@ -5802,6 +5829,11 @@ func _test_prototype_world() -> void:
     if checkpoint != null:
         _expect(String(checkpoint.call("get_visual_source_path")) == "res://assets/models/checkpoints/restart/restart.gltf", "Prototype checkpoint should use the converted original restart WMB visual.")
         _expect(checkpoint.call("get_idle_particle_emitter") != null, "Prototype checkpoint should spawn idle original GemRestart particles.")
+        var checkpoint_solid_body := checkpoint.get_node_or_null("SolidBody") as StaticBody3D
+        _expect(checkpoint_solid_body != null, "Prototype checkpoint should include a solid restart body so Sammy can stand on respawn.")
+        if checkpoint_solid_body != null:
+            _expect(checkpoint_solid_body.collision_layer == WORLD_LAYER, "Prototype checkpoint solid body should block as world geometry.")
+            _expect(checkpoint_solid_body.collision_mask == CHARACTER_LAYER, "Prototype checkpoint solid body should collide with Sammy.")
     for _settle_step in 10:
         await physics_frame
     _expect(world.get_node_or_null("Player") != null, "Prototype world is missing its editor-instanced player.")

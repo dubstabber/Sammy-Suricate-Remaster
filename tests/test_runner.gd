@@ -140,6 +140,7 @@ func _run() -> void:
     await _test_scorpion_aggression_tuning()
     await _test_player_real_push_integration()
     await _test_player_enemy_hit_push_integration()
+    await _test_player_jump_forward_momentum()
     await _test_player_death_lives_core()
     await _test_player_scene()
     await _test_small_heart_pickup(assets)
@@ -5043,6 +5044,51 @@ func _test_player_enemy_hit_push_integration() -> void:
     Input.action_release("move_back")
     enemy.queue_free()
     player.queue_free()
+    await process_frame
+
+
+func _test_player_jump_forward_momentum() -> void:
+    var floor := StaticBody3D.new()
+    floor.name = "PlayerJumpForwardFloor"
+    floor.collision_layer = WORLD_LAYER
+    floor.collision_mask = CHARACTER_LAYER
+    var floor_shape := CollisionShape3D.new()
+    var floor_box := BoxShape3D.new()
+    floor_box.size = Vector3(8.0, 1.0, 8.0)
+    floor_shape.position = Vector3(0.0, -0.5, 0.0)
+    floor_shape.shape = floor_box
+    floor.add_child(floor_shape)
+    root.add_child(floor)
+
+    var player_scene: PackedScene = load(PLAYER_SCENE_PATH)
+    var player: CharacterBody3D = player_scene.instantiate() as CharacterBody3D
+    root.add_child(player)
+    player.global_position = Vector3.ZERO
+    player.rotation = Vector3.ZERO
+
+    for _settle_frame in 8:
+        await physics_frame
+    _expect(player.is_on_floor(), "Jump-forward setup should put Sammy on the test floor.")
+
+    var movement_config: Resource = player.get("movement_config")
+    _expect(is_equal_approx(float(movement_config.get("jump_forward_speed")), 1.0), "Jump should expose the original small forward drift component.")
+    _expect(is_equal_approx(float(movement_config.get("jump_air_control_multiplier")), 0.75), "Jump air-control should use the original reduced PlayerIntention multiplier.")
+    var jump_target_velocity := player.call("_make_jump_horizontal_target_velocity", 0.0, false) as Vector3
+    _expect(jump_target_velocity.z < -0.9 and jump_target_velocity.z > -1.1, "Standing jump target should move slightly forward along Sammy's facing direction.")
+
+    var start_position := player.global_position
+    _expect(bool(player.call("_begin_jump", 0.0, false, 1.0 / 60.0)), "Jump helper should accept a grounded jump request.")
+    _expect(player.velocity.y > 0.0, "Grounded jump should launch Sammy upward.")
+    _expect(bool(player.call("is_jump_fire_blocked")), "Jump should enter the original jump state.")
+    _expect(player.velocity.z < -0.01, "Standing jump should seed a small forward horizontal velocity.")
+
+    for _air_frame in 12:
+        await physics_frame
+    _expect(player.global_position.y > start_position.y + 0.2, "Jump-forward probe should keep Sammy airborne during the drift check.")
+    _expect(player.global_position.z < start_position.z - 0.05, "Standing jump should drift slightly forward instead of rising in place.")
+
+    player.queue_free()
+    floor.queue_free()
     await process_frame
 
 

@@ -452,8 +452,9 @@ func _physics_process(delta: float) -> void:
     if not movement_locked:
         _apply_turn(delta, forward_input, turn_input)
 
-    var target_velocity: Vector3 = get_facing_direction() * forward_input * _current_walk_speed(_boosting)
-    var rate: float = movement_config.acceleration if absf(forward_input) > 0.0 else movement_config.deceleration
+    var jump_air_control_active := _is_jump_air_control_active()
+    var target_velocity: Vector3 = _make_horizontal_target_velocity(forward_input, _boosting, jump_air_control_active)
+    var rate: float = movement_config.acceleration if absf(forward_input) > 0.0 or jump_air_control_active else movement_config.deceleration
     _input_horizontal_velocity = _input_horizontal_velocity.move_toward(target_velocity, rate * delta)
 
     _set_horizontal_velocity(_input_horizontal_velocity)
@@ -463,9 +464,9 @@ func _physics_process(delta: float) -> void:
     var jumped := false
     if is_on_floor():
         if not movement_locked and Input.is_action_just_pressed("jump"):
-            velocity.y = movement_config.jump_velocity
-            jumped = true
-            _jump_fire_blocked = true
+            jumped = _begin_jump(forward_input, _boosting, delta)
+            if jumped:
+                horizontal_velocity = _input_horizontal_velocity
     else:
         velocity.y -= movement_config.gravity * delta
 
@@ -1085,6 +1086,37 @@ func _process_quick_turn(delta: float, was_on_floor: bool) -> void:
 func _set_horizontal_velocity(horizontal_velocity: Vector3) -> void:
     velocity.x = horizontal_velocity.x
     velocity.z = horizontal_velocity.z
+
+
+func _begin_jump(forward_input: float, boosting: bool, delta: float) -> bool:
+    if not is_on_floor():
+        return false
+    velocity.y = movement_config.jump_velocity
+    _jump_fire_blocked = true
+    _apply_jump_forward_velocity(forward_input, boosting, delta)
+    _set_horizontal_velocity(_input_horizontal_velocity)
+    return true
+
+
+func _is_jump_air_control_active() -> bool:
+    return _jump_fire_blocked and not is_on_floor()
+
+
+func _make_horizontal_target_velocity(forward_input: float, boosting: bool, jump_air_control_active: bool) -> Vector3:
+    if jump_air_control_active:
+        return _make_jump_horizontal_target_velocity(forward_input, boosting)
+    return get_facing_direction() * forward_input * _current_walk_speed(boosting)
+
+
+func _make_jump_horizontal_target_velocity(forward_input: float, boosting: bool) -> Vector3:
+    var jump_forward_speed := maxf(float(movement_config.jump_forward_speed), 0.0)
+    var input_speed := forward_input * _current_walk_speed(boosting) * maxf(float(movement_config.jump_air_control_multiplier), 0.0)
+    return get_facing_direction() * (jump_forward_speed + input_speed)
+
+
+func _apply_jump_forward_velocity(forward_input: float, boosting: bool, delta: float) -> void:
+    var jump_target_velocity := _make_jump_horizontal_target_velocity(forward_input, boosting)
+    _input_horizontal_velocity = _input_horizontal_velocity.move_toward(jump_target_velocity, movement_config.acceleration * maxf(delta, 0.0))
 
 
 func _try_step_up_from_low_obstacle(pre_move_transform: Transform3D, horizontal_motion: Vector3, was_on_floor: bool, jumped: bool) -> bool:

@@ -965,7 +965,10 @@ func _test_editor_model_previews(assets: Node) -> void:
     _expect_scene_editor_preview(WASP_PROJECTILE_SCENE_PATH, "EditorPreview", "model.wasp1", 0.0, WASP_TYPE_2_PATH)
     _expect_scene_editor_preview(BOOST_PICKUP_SCENE_PATH, "EditorPreview", "model.boost", 0.035, "")
     _expect_scene_editor_preview(EYE_OF_TRUTH_PICKUP_SCENE_PATH, "EditorPreview", "model.eye_of_truth", 0.05, "")
+    _expect_scene_editor_preview(TELEPORTER_SCENE_PATH, "VisualRoot/EditorPreview", "model.teleport.pad", 0.0, "", NodePath(""), 100.0, Vector3(1.0, 0.5, 1.0))
+    _expect_scene_editor_preview(DEATH_PAD_SCENE_PATH, "VisualRoot/EditorPreview", "model.death_pad.tile", 0.0, "", NodePath(""), 100.0)
     _expect_editor_preview_forces_double_sided_materials(assets)
+    _expect_editor_preview_disables_runtime_effects()
     await _expect_editor_preview_applies_static_pose(assets)
 
     await _expect_editor_preview_removed_at_runtime(PLAYER_SCENE_PATH, "VisualPivot/EditorPreview")
@@ -973,9 +976,11 @@ func _test_editor_model_previews(assets: Node) -> void:
     await _expect_editor_preview_removed_at_runtime(WASP_PROJECTILE_SCENE_PATH, "EditorPreview")
     await _expect_editor_preview_removed_at_runtime(BOOST_PICKUP_SCENE_PATH, "EditorPreview")
     await _expect_editor_preview_removed_at_runtime(EYE_OF_TRUTH_PICKUP_SCENE_PATH, "EditorPreview")
+    await _expect_editor_preview_removed_at_runtime(TELEPORTER_SCENE_PATH, "VisualRoot/EditorPreview")
+    await _expect_editor_preview_removed_at_runtime(DEATH_PAD_SCENE_PATH, "VisualRoot/EditorPreview")
 
 
-func _expect_scene_editor_preview(scene_path: String, preview_path: String, expected_asset_id: String, expected_ground_clearance: float, expected_wasp_type_path: String, expected_wasp_source_path: NodePath = NodePath("")) -> void:
+func _expect_scene_editor_preview(scene_path: String, preview_path: String, expected_asset_id: String, expected_ground_clearance: float, expected_wasp_type_path: String, expected_wasp_source_path: NodePath = NodePath(""), expected_visual_scale_multiplier: float = 1.0, expected_preview_node_scale: Vector3 = Vector3.ONE) -> void:
     var scene := load(scene_path) as PackedScene
     _expect(scene != null, "Scene with editor preview should load: %s" % scene_path)
     if scene == null:
@@ -989,6 +994,9 @@ func _expect_scene_editor_preview(scene_path: String, preview_path: String, expe
         _expect(preview_script != null and preview_script.resource_path == EDITOR_PREVIEW_SCRIPT_PATH, "Editor preview should use the shared preview helper: %s/%s" % [scene_path, preview_path])
         _expect(String(preview.get("asset_id")) == expected_asset_id, "Editor preview should target the expected asset: %s" % scene_path)
         _expect(is_equal_approx(float(preview.get("visual_ground_clearance")), expected_ground_clearance), "Editor preview should preserve its configured ground clearance: %s" % scene_path)
+        _expect(is_equal_approx(float(preview.get("visual_scale_multiplier")), expected_visual_scale_multiplier), "Editor preview should preserve its configured model scale: %s" % scene_path)
+        var preview_node_3d := preview as Node3D
+        _expect(preview_node_3d != null and preview_node_3d.scale.is_equal_approx(expected_preview_node_scale), "Editor preview node should preserve its configured visual scale: %s/%s" % [scene_path, preview_path])
         _expect(bool(preview.get("force_double_sided")), "Editor preview should render extracted one-sided meshes double-sided: %s" % scene_path)
         _expect(String(preview.get("static_pose_action")).is_empty(), "Editor preview should default to the asset catalog static pose action: %s" % scene_path)
         if not expected_wasp_type_path.is_empty():
@@ -1018,6 +1026,39 @@ func _expect_editor_preview_forces_double_sided_materials(assets: Node) -> void:
     preview_helper.call("_force_preview_materials_double_sided", model_root)
     _expect(_model_materials_use_cull_mode(model_root, BaseMaterial3D.CULL_DISABLED), "Editor previews should disable culling so flipped or one-sided extracted faces remain visible from above and below.")
     _expect(_model_uses_transparency_mode(model_root, BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS), "Editor previews should use alpha depth pre-pass for transparent imported skins so wasp bodies do not sort through themselves.")
+    model_root.queue_free()
+    preview_helper.queue_free()
+
+
+func _expect_editor_preview_disables_runtime_effects() -> void:
+    var preview_script: GDScript = load(EDITOR_PREVIEW_SCRIPT_PATH)
+    _expect(preview_script != null, "Editor runtime-effect test needs the preview helper.")
+    if preview_script == null:
+        return
+
+    var model_root := Node3D.new()
+    var animation_player := AnimationPlayer.new()
+    var library := AnimationLibrary.new()
+    var animation := Animation.new()
+    animation.length = 1.0
+    library.add_animation("idle", animation)
+    animation_player.add_animation_library("", library)
+    animation_player.play("idle")
+    model_root.add_child(animation_player)
+    var gpu_particles := GPUParticles3D.new()
+    gpu_particles.emitting = true
+    model_root.add_child(gpu_particles)
+    var cpu_particles := CPUParticles3D.new()
+    cpu_particles.emitting = true
+    model_root.add_child(cpu_particles)
+
+    var preview_helper: Node = preview_script.new()
+    preview_helper.call("_disable_runtime_effects", model_root)
+    _expect(not animation_player.is_playing(), "Editor previews should stop imported animations instead of playing them in the editor.")
+    _expect(is_equal_approx(animation_player.speed_scale, 0.0), "Editor previews should freeze imported AnimationPlayers.")
+    _expect(animation_player.process_mode == Node.PROCESS_MODE_DISABLED, "Editor previews should disable AnimationPlayer processing.")
+    _expect(not gpu_particles.emitting and gpu_particles.process_mode == Node.PROCESS_MODE_DISABLED, "Editor previews should disable GPU particles.")
+    _expect(not cpu_particles.emitting and cpu_particles.process_mode == Node.PROCESS_MODE_DISABLED, "Editor previews should disable CPU particles.")
     model_root.queue_free()
     preview_helper.queue_free()
 

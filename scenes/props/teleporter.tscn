@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/props/teleporter.gd" id="1_teleporter"]
+[ext_resource type="Script" path="res://src/editor/sammy_editor_model_preview.gd" id="2_preview"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_trigger"]
 height = 0.35
@@ -28,5 +29,11 @@ position = Vector3(0, 0.08, 0)
 shape = SubResource("CylinderShape3D_solid")
 
 [node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="EditorPreview" type="Node3D" parent="VisualRoot"]
+scale = Vector3(1, 0.5, 1)
+script = ExtResource("2_preview")
+asset_id = "model.teleport.pad"
+visual_scale_multiplier = 100.0
 
 [node name="ExitMarker" type="Marker3D" parent="."]

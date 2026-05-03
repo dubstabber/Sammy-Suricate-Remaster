@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/props/death_pad.gd" id="1_death_pad"]
+[ext_resource type="Script" path="res://src/editor/sammy_editor_model_preview.gd" id="2_preview"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_trigger"]
 height = 0.5
@@ -28,3 +29,8 @@ position = Vector3(0, 0.16, 0)
 shape = SubResource("CylinderShape3D_solid")
 
 [node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="EditorPreview" type="Node3D" parent="VisualRoot"]
+script = ExtResource("2_preview")
+asset_id = "model.death_pad.tile"
+visual_scale_multiplier = 100.0

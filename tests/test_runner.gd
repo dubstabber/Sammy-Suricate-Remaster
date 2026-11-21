@@ -169,6 +169,7 @@ func _run() -> void:
     await _test_life_heart_pickup(assets)
     await _test_diamond_pickup(game, assets)
     await _test_player_death_resets(game)
+    await _test_tutorial_title_flow()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
     await _test_prototype_world()
@@ -718,6 +719,52 @@ func _test_player_death_resets(game: Node) -> void:
     for node: Node in [player, level_key, caller, death_key]:
         if node != null and is_instance_valid(node):
             node.queue_free()
+    await process_frame
+
+
+## Intro2.wdl Title_Hit: radius trigger, fade in to Skill8 over Skill5 frames,
+## stay in range, hold Skill6 ticks, fade out over Skill7 frames, Flag5 once,
+## at most three titles at a time.
+func _test_tutorial_title_flow() -> void:
+    var title_script := load("res://src/props/tutorial_title.gd") as GDScript
+    var titles: Array[Sprite3D] = []
+    for index in 4:
+        var title := title_script.new() as Sprite3D
+        title.set("trigger_radius_units", 300.0)
+        title.set("fade_in_frames", 8.0)
+        title.set("hold_ticks", 8.0)
+        title.set("fade_out_frames", 8.0)
+        title.set("target_alpha", 0.9)
+        title.set("show_once", index == 0)
+        title.position = Vector3(500.0 + index * 0.1, 0.0, 0.0)
+        root.add_child(title)
+        titles.append(title)
+    var first := titles[0]
+    first.call("advance", 0.01, Vector3(504.0, 0.0, 0.0))
+    _expect(int(first.call("get_phase")) == 0 and not first.visible, "A title should stay hidden while Sammy is beyond its radius.")
+    first.call("advance", 0.01, Vector3(502.0, 0.0, 0.0))
+    _expect(int(first.call("get_phase")) == 1 and first.visible, "Sammy within the radius should start the title fade-in.")
+    first.call("advance", 0.04, Vector3(502.0, 0.0, 0.0))
+    _expect(absf(float(first.call("get_alpha")) - 0.45) < 0.01, "The fade-in should reach Skill8 over Skill5 frames (half after 4 frames).")
+    first.call("advance", 0.05, Vector3(502.0, 0.0, 0.0))
+    first.call("advance", 1.0, Vector3(502.0, 0.0, 0.0))
+    _expect(int(first.call("get_phase")) == 2 and is_equal_approx(float(first.call("get_alpha")), 0.9), "The title should stay at alpha Skill8 while Sammy is in range.")
+    for index in range(1, 4):
+        titles[index].call("advance", 0.01, Vector3(502.0, 0.0, 0.0))
+    _expect(int(titles[3].call("get_phase")) == 0, "A fourth title should wait while three are showing.")
+    first.call("advance", 0.01, Vector3(510.0, 0.0, 0.0))
+    _expect(int(first.call("get_phase")) == 3, "Leaving the radius should start the Skill6 hold.")
+    first.call("advance", 0.4, Vector3(510.0, 0.0, 0.0))
+    first.call("advance", 0.2, Vector3(510.0, 0.0, 0.0))
+    _expect(int(first.call("get_phase")) == 4, "After the hold the title should fade out.")
+    first.call("advance", 0.1, Vector3(510.0, 0.0, 0.0))
+    _expect(int(first.call("get_phase")) == 5 and not first.visible, "A Flag5 title should be done after one showing.")
+    first.call("advance", 0.01, Vector3(502.0, 0.0, 0.0))
+    _expect(int(first.call("get_phase")) == 5, "A Flag5 title should not show again.")
+    titles[1].call("advance", 0.01, Vector3(502.0, 0.0, 0.0), true)
+    _expect(int(titles[1].call("get_phase")) == 0 and not titles[1].visible, "Enter should dismiss a title and re-arm it.")
+    for title in titles:
+        title.queue_free()
     await process_frame
 
 
@@ -7757,7 +7804,14 @@ func _test_level_world_10001() -> void:
     if unmapped != null:
         for child in unmapped.get_children():
             unmapped_names.append(String(child.name))
-    _expect(unmapped_names == ["E022_inittitle"], "Only the 10001 tutorial title panel should remain unmapped.")
+    _expect(unmapped_names.is_empty(), "No 10001 entity should remain unmapped (got %s)." % [unmapped_names])
+    var title := world.get_node_or_null("Entities/Titles/E022_inittitle") as Sprite3D
+    _expect(title != null and title.texture != null and title.texture.resource_path.ends_with("tut01e5b.png"), "10001 should place its InitTitle as the Tut01E5b tutorial panel.")
+    if title != null:
+        _expect(int(title.get("title_id")) == 1 and is_equal_approx(float(title.get("trigger_radius_units")), 300.0), "InitTitle Skill1 1.0 should be title 1 with the default 300-quant radius.")
+        _expect((title.get("camera_offset_units") as Vector3).is_equal_approx(Vector3(215.0, 0.0, 50.0)), "InitTitle Skill2-4 should give the camera offset.")
+        _expect(is_equal_approx(float(title.get("target_alpha")), 0.9) and bool(title.get("show_once")), "InitTitle Skill8 90 and Flag5 should give alpha 0.9, shown once.")
+        _expect(is_equal_approx(title.pixel_size, 0.0038), "InitTitle scale 0.38 should size the panel at 0.38 quants per pixel.")
     _expect(world.call("get_sky") != null, "10001 should wire its InitSkyMenu sky model.")
 
     var player := world.get_node_or_null("Player") as CharacterBody3D

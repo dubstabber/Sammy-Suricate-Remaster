@@ -64,7 +64,7 @@ OPTIONAL_LEVEL_FILES = {"extro": POLISH_DIR / "extro.wmb"}
 # Entities the Godot builder renders as standalone sprites (WDL InitArbre/OnGround,
 # and action-less sprites).
 SPRITE_FILE_SUFFIX = ".pcx"
-SPRITE_ACTIONS = {"initarbre", "onground", ""}
+SPRITE_ACTIONS = {"initarbre", "onground", "inittitle", ""}
 # WDL traces ignore models/sprites/passable entities, so only level faces whose
 # front normal points up count as ground (Acknex z is up).
 GROUND_NORMAL_MIN_Z = 0.3

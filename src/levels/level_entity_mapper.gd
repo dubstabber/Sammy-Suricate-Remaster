@@ -36,6 +36,7 @@ const ROCKER_SCENE := preload("res://scenes/enemies/rocker_enemy.tscn")
 const HIPPIE_SCENE := preload("res://scenes/enemies/hippie_enemy.tscn")
 const MOVING_PLATFORM_SCENE := preload("res://scenes/props/moving_platform.tscn")
 const PlatformMotorScript := preload("res://src/props/platform_motor.gd")
+const TutorialTitleScript := preload("res://src/props/tutorial_title.gd")
 
 const SPRITE_TEXTURE_ROOT := "res://assets/textures/sprites"
 const WASP_TYPE_PATH_FORMAT := "res://assets/wasps/type_%d.tres"
@@ -177,6 +178,10 @@ static func map_entity(entity: Dictionary) -> Dictionary:
 			return {"kind": &"Enemies", "node": _make_enemy(entity)}
 		"initengineplatform":
 			return {"kind": KIND_PLATFORMS, "node": _make_platform_motor(entity)}
+		"inittitle":
+			var title := _make_title(entity)
+			if title != null:
+				return {"kind": &"Titles", "node": title}
 		"initplatform":
 			return {"kind": KIND_PLATFORMS, "node": _make_platform(entity)}
 		"initarbre", "onground":
@@ -395,6 +400,34 @@ static func _make_teleporter(entity: Dictionary) -> Dictionary:
 		AcknexCoordsScript.to_godot_position(acknex_destination)
 	)
 	return {"kind": &"Teleporters", "node": node, "destination": destination}
+
+
+## Intro2.wdl InitTitle: Skill1 = id + Frc*1000 trigger radius (default 300),
+## Skill2-4 = camera offset (forward, left, up), Skill5/7 fade frames, Skill6
+## hold ticks, Skill8 alpha; Flag5 shows once. The origin drops 100 quants.
+static func _make_title(entity: Dictionary) -> Node3D:
+	var texture_path := "%s/%s.png" % [SPRITE_TEXTURE_ROOT, _clean_name(_file(entity).get_basename())]
+	if not ResourceLoader.exists(texture_path):
+		return null
+	var title := TutorialTitleScript.new() as Sprite3D
+	title.name = node_name_for(entity)
+	title.texture = load(texture_path) as Texture2D
+	title.pixel_size = AcknexCoordsScript.SCALE * _acknex_scale(entity).x
+	var acknex := _acknex_position(entity)
+	acknex.z -= TutorialTitleScript.ORIGIN_DROP_UNITS
+	title.transform = Transform3D(Basis.IDENTITY, AcknexCoordsScript.to_godot_position(acknex))
+	var id_skill := _skill(entity, 1)
+	var radius := floorf((id_skill - floorf(id_skill)) * 1000.0 + 0.5)
+	title.set("title_id", int(floorf(id_skill)))
+	title.set("trigger_radius_units", radius if radius > 0.0 else TutorialTitleScript.DEFAULT_TRIGGER_RADIUS_UNITS)
+	title.set("camera_offset_units", Vector3(floorf(_skill(entity, 2)), floorf(_skill(entity, 3)), floorf(_skill(entity, 4))))
+	title.set("fade_in_frames", maxf(_skill(entity, 5), 1.0))
+	title.set("hold_ticks", _skill(entity, 6) if not is_zero_approx(_skill(entity, 6)) else 1.0)
+	title.set("fade_out_frames", maxf(_skill(entity, 7), 1.0))
+	title.set("target_alpha", clampf(_skill(entity, 8) / 100.0, 0.0, 1.0))
+	title.set("show_once", _flag(entity, 5))
+	_store_source_meta(title, entity)
+	return title
 
 
 ## mm1.wdl InitEnginePlatForm: Skill1 link id (8465 when 0), Skill2 speed,

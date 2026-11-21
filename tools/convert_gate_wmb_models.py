@@ -229,7 +229,8 @@ def apply_source_uv_fixups(
     polygon_uvs: list[tuple[float, float]],
 ) -> list[tuple[float, float]]:
     source_stem = clean_name(Path(source_name).stem)
-    if source_stem == "teleport" and clean_name(texture.name) == "tileteleport2_b":
+    teleport_rims = {"teleport": "tileteleport2_b", "telelion": "tileteleport3_b"}
+    if teleport_rims.get(source_stem) == clean_name(texture.name):
         texture_aspect = texture.height / max(texture.width, 1)
         return [(uv[0], uv[1] * texture_aspect) for uv in polygon_uvs]
     return polygon_uvs
@@ -502,6 +503,8 @@ def write_gltf(
     }
     if stem == "teleport":
         gltf["extras"] = {"uv_fixups": ["tileteleport2_b_single_vertical_repeat"]}
+    elif stem == "telelion":
+        gltf["extras"] = {"uv_fixups": ["tileteleport3_b_single_vertical_repeat"]}
     gltf_path = output_dir / f"{stem}.gltf"
     gltf_path.write_text(json.dumps(gltf, indent=2), encoding="utf-8")
     return gltf_path

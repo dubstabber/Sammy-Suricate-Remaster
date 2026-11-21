@@ -59,6 +59,13 @@ const ENEMY_SCENES_BY_FILE := {
 	"scorpion.mdl": SCORPION_SCENE,
 }
 
+const TELEPORT_MODEL_IDS_BY_FILE := {
+	"teleport.wmb": "model.teleport.pad",
+	"telelion.wmb": "model.teleport.lion",
+}
+# teleport.wmb / telelion.wmb / tiledeat.wmb pad height in quants.
+const WMB_PAD_HEIGHT := 32.0
+
 const MODEL_ASSET_IDS_BY_FILE := {
 	"sky2.mdl": "model.sky2",
 	"sky3.mdl": "model.sky3",
@@ -345,6 +352,11 @@ static func _make_gate(entity: Dictionary, weak: bool) -> Node3D:
 ## mm1.wdl Teleport_Hit: the player moves to (Skill1, Skill2, Skill3) facing Skill4.
 static func _make_teleporter(entity: Dictionary) -> Dictionary:
 	var node := _instantiate(TELEPORTER_SCENE, entity, _prop_transform(entity))
+	# The WMB pad is 32 quants tall around the entity origin (levels sink it 16
+	# quants): keep its full height so the top stands above the floor.
+	node.set("model_asset_id", String(TELEPORT_MODEL_IDS_BY_FILE.get(_file(entity), "model.teleport.pad")))
+	node.set("visual_scale", Vector3.ONE)
+	node.set("solid_height", WMB_PAD_HEIGHT * AcknexCoordsScript.SCALE)
 	var destination := Marker3D.new()
 	destination.name = node_name_for(entity) + "_destination"
 	var acknex_destination := Vector3(_skill(entity, 1), _skill(entity, 2), _skill(entity, 3))

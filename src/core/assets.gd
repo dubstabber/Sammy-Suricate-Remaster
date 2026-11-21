@@ -300,6 +300,12 @@ const CATALOG := {
         "kind": "model",
         "description": "Original teleport pad WMB"
     },
+    "model.teleport.lion": {
+        "path": "res://assets/models/teleports/telelion/telelion.gltf",
+        "source": "extract-sammy-assets/extracted/godot/raw/levels/telelion.wmb",
+        "kind": "model",
+        "description": "Original telelion teleport pad WMB (tileteleport3 skin)"
+    },
     "model.checkpoint.restart": {
         "path": "res://assets/models/checkpoints/restart/restart.gltf",
         "source": "extract-sammy-assets/extracted/godot/raw/levels/restart.wmb",

@@ -7,6 +7,7 @@ class_name LevelBuilder
 ## editor-editable scenes, and by tests.
 
 const MapperScript := preload("res://src/levels/level_entity_mapper.gd")
+const PlatformMotorScript := preload("res://src/props/platform_motor.gd")
 const TEMPLATE_SCENE_PATH := "res://scenes/levels/level_world_template.tscn"
 const LEVEL_ASSET_ROOT := "res://assets/levels"
 const LEVEL_MANIFEST_PATH := "res://assets/levels/level_manifest.json"
@@ -78,6 +79,7 @@ static func build(stem: String, level_number: int = 0) -> Dictionary:
 	for entity: Variant in data.get("entities", []):
 		if entity is Dictionary:
 			_place_entity(root, entity as Dictionary, report)
+	_link_platform_motors(root, report)
 	if level_number == LEVEL_10_NUMBER:
 		# Loads.wdl InitLevel10 hard-codes BallesJoueur1 = 4.
 		root.set("level_starting_lives", LEVEL_10_STARTING_LIVES)
@@ -157,6 +159,29 @@ static func _place_entity(root: Node3D, entity: Dictionary, report: Dictionary) 
 		_add_owned(root, group, destination)
 		node.set("destination_path", node.get_path_to(destination))
 	_count_mapped(report, kind)
+
+
+## mm1.wdl SetLinkMoteur: every InitPlatForm follows the InitEnginePlatForm
+## whose Skill1 matches its own.
+static func _link_platform_motors(root: Node3D, report: Dictionary) -> void:
+	var group := root.get_node_or_null("%s/%s" % [ENTITIES_NODE, String(MapperScript.KIND_PLATFORMS)])
+	if group == null:
+		return
+	var motors := {}
+	for child in group.get_children():
+		if child is PlatformMotorScript:
+			motors[int(child.get("link_id"))] = child
+	var unlinked := 0
+	for child in group.get_children():
+		if not child.has_meta("platform_link_id"):
+			continue
+		var motor := motors.get(int(child.get_meta("platform_link_id")), null) as Node
+		if motor == null:
+			unlinked += 1
+			continue
+		child.set("motor_path", child.get_path_to(motor))
+	if unlinked > 0:
+		report["unlinked_platforms"] = unlinked
 
 
 static func _entity_skill(entity: Dictionary, skill_number: int) -> float:

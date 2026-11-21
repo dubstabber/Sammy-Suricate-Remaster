@@ -135,6 +135,7 @@ func _run() -> void:
     await _test_gate_visual_models(assets)
     await _test_weak_gate_wasp_destruction(assets)
     await _test_moving_platform_system(assets)
+    await _test_platform_motor_system()
     await _test_teleporter_system(assets)
     await _test_death_pad_system(assets)
     await _test_exit_pad_system(assets)
@@ -4139,6 +4140,171 @@ func _test_checkpoint_system(assets: Node) -> void:
     await process_frame
 
 
+## mm1.wdl InitEnginePlatForm / InitPlatForm / PlatForm_Hit: a motor sweeps
+## Skill2 quants per tick, turns by Skill4/5 and pauses Skill3 ticks on a hit,
+## drags every linked platform at its link offset, and waits for the key lock.
+func _test_platform_motor_system() -> void:
+    var motor_script := load("res://src/props/platform_motor.gd") as GDScript
+    var timing: GDScript = load("res://src/core/acknex_engine_timing.gd")
+    var platform_scene := load(MOVING_PLATFORM_SCENE_PATH) as PackedScene
+    var start_delay: float = timing.call("waitt_interval", 2.0)
+    const UNLOCK_REJECTED := 0
+    const UNLOCK_DONE := 2
+    const UNLOCK_SILENT := 3
+
+    # Vertical shaft: floor top at y 0, ceiling underside at y 2.
+    var shaft := Node3D.new()
+    shaft.name = "PlatformMotorShaft"
+    root.add_child(shaft)
+    shaft.global_position = Vector3(300.0, 0.0, 0.0)
+    for wall_center_y in [-0.1, 2.1]:
+        var wall := StaticBody3D.new()
+        wall.collision_layer = WORLD_LAYER
+        var wall_shape := CollisionShape3D.new()
+        var wall_box := BoxShape3D.new()
+        wall_box.size = Vector3(1.0, 0.2, 1.0)
+        wall_shape.shape = wall_box
+        wall.add_child(wall_shape)
+        shaft.add_child(wall)
+        wall.position = Vector3(0.0, wall_center_y, 0.0)
+    var motor := motor_script.new() as Node3D
+    motor.name = "ShaftMotor"
+    motor.set("speed_units", 10.0)
+    motor.set("pause_ticks", 8.0)
+    motor.set("tilt_step_degrees", 180.0)
+    motor.set("tilt_degrees", 90.0)
+    motor.position = Vector3(0.0, 0.5, 0.0)
+    motor.set_physics_process(false)
+    shaft.add_child(motor)
+    var platform := platform_scene.instantiate() as AnimatableBody3D
+    platform.set("source_wmb_name", "platfor2.wmb")
+    platform.set("active_wmb_name", "platfor1.wmb")
+    platform.set("fit_collision_to_model", true)
+    platform.set("motor_path", NodePath("../ShaftMotor"))
+    platform.position = Vector3(3.0, 0.5, 0.0)
+    shaft.add_child(platform)
+    await physics_frame
+    await physics_frame
+
+    var linked: Array = motor.call("get_linked_platforms")
+    _expect(linked.size() == 1 and linked[0] == platform, "SetLinkMoteur should link the platform to its motor.")
+    _expect((motor.call("get_platform_offset", platform) as Vector3).is_equal_approx(Vector3(3.0, 0.0, 0.0)), "Linked platforms should keep their original offset from the motor.")
+    _expect(is_equal_approx(float(motor.call("get_speed")), 1.6), "Motor Skill2 10 should move 10 quants per tick (1.6 m/s).")
+    var solid := platform.get_node("CollisionShape3D") as CollisionShape3D
+    var solid_box := solid.shape as BoxShape3D
+    _expect(solid_box != null and absf(solid_box.size.y - 9.12) < 0.01 and absf(solid.position.y + 4.4) < 0.01, "Level platforms should fit their solid box to the converted platfor2 column.")
+
+    motor.call("advance", start_delay)
+    _expect((motor.call("get_last_displacement") as Vector3).is_zero_approx(), "Motors should wait their initial `waitt 2` before moving.")
+    motor.call("advance", 0.25)
+    var rise := motor.call("get_last_displacement") as Vector3
+    _expect(rise.is_equal_approx(Vector3(0.0, 0.4, 0.0)), "A tilt-90 motor should rise Skill2 quants per tick (got %s)." % rise)
+    _expect((platform.call("get_last_platform_displacement") as Vector3).is_equal_approx(rise), "Linked platforms should copy the motor's motion.")
+    _expect(platform.position.is_equal_approx(Vector3(3.0, 0.9, 0.0)), "Linked platforms should stay at motor + offset.")
+    motor.call("advance", 1.0)
+    _expect(int(motor.call("get_hit_count")) == 1, "The motor should stop on the shaft ceiling.")
+    _expect(absf(motor.position.y - 2.0) < 0.01, "The motor should stop at the ceiling, not pass it (y %s)." % motor.position.y)
+    _expect(is_equal_approx(float(motor.get("tilt_degrees")), 270.0), "moteurBonus_Hit should add Skill5 to the tilt.")
+    motor.call("advance", 0.1)
+    _expect((motor.call("get_last_displacement") as Vector3).is_zero_approx(), "The motor should pause Skill3 ticks after a hit.")
+    motor.call("advance", float(motor.call("get_pause_seconds")))
+    motor.call("advance", 0.25)
+    _expect((motor.call("get_last_displacement") as Vector3).is_equal_approx(Vector3(0.0, -0.4, 0.0)), "After the pause the motor should travel back down.")
+
+    # Key locks (motor Skill6, Flag7 exact).
+    var locked := motor_script.new() as Node3D
+    locked.set("speed_units", 10.0)
+    locked.set("lock_key_id", KEY_DIAMOND_MAGENTA)
+    locked.set_physics_process(false)
+    shaft.add_child(locked)
+    locked.position = Vector3(0.0, 0.5, 5.0)
+    locked.call("advance", start_delay + 1.0)
+    locked.call("advance", 0.25)
+    _expect(bool(locked.call("is_locked")) and (locked.call("get_last_displacement") as Vector3).is_zero_approx(), "A Skill6 motor should not move while locked.")
+    _expect(int(locked.call("try_unlock", KEY_DIAMOND_YELLOW)) == UNLOCK_REJECTED, "Mixed motor locks should reject a key that is not part of the mix.")
+    _expect(int(locked.call("try_unlock", KEY_DIAMOND_RED)) == UNLOCK_DONE, "Mixed motor locks should accept a primary component of the mix.")
+    locked.call("advance", 0.01)
+    _expect((locked.call("get_last_displacement") as Vector3).is_zero_approx(), "The lock loop only notices the key on its next waitt 4 poll.")
+    locked.call("advance", float(timing.call("waitt_interval", 4.0)))
+    locked.call("advance", 0.25)
+    _expect(not (locked.call("get_last_displacement") as Vector3).is_zero_approx(), "An unlocked motor should start moving.")
+    var exact := motor_script.new() as Node3D
+    exact.set("lock_key_id", KEY_DIAMOND_MAGENTA)
+    exact.set("exact_key", true)
+    shaft.add_child(exact)
+    _expect(int(exact.call("try_unlock", KEY_DIAMOND_RED)) == UNLOCK_REJECTED, "Flag7 motor locks should reject component keys.")
+    _expect(int(exact.call("try_unlock", KEY_DIAMOND_MAGENTA)) == UNLOCK_DONE, "Flag7 motor locks should accept the exact key.")
+    var cheat := motor_script.new() as Node3D
+    cheat.set("lock_key_id", KEY_DIAMOND_GREEN)
+    cheat.set("exact_key", true)
+    shaft.add_child(cheat)
+    _expect(int(cheat.call("try_unlock", KEY_DIAMOND_ALL)) == UNLOCK_SILENT, "Key 255 should open any motor lock without the platform sound.")
+
+    # PlatForm_Hit: standing on a linked platform with the key unlocks the motor
+    # and morphs only that platform to platfor1.wmb.
+    var keyed_motor := motor_script.new() as Node3D
+    keyed_motor.name = "KeyedMotor"
+    keyed_motor.set("lock_key_id", KEY_DIAMOND_MAGENTA)
+    shaft.add_child(keyed_motor)
+    var keyed_platform := platform_scene.instantiate() as AnimatableBody3D
+    keyed_platform.set("source_wmb_name", "platfmag.wmb")
+    keyed_platform.set("active_wmb_name", "platfor1.wmb")
+    keyed_platform.set("activation_sound_asset_id", "")
+    keyed_platform.set("motor_path", NodePath("../KeyedMotor"))
+    shaft.add_child(keyed_platform)
+    keyed_platform.position = Vector3(0.0, 0.5, 10.0)
+    var rider_script := GDScript.new()
+    rider_script.source_code = "extends Node3D\nvar key_id: int = 1\nfunc get_current_key_id() -> int:\n    return key_id\n"
+    rider_script.reload()
+    var rider := Node3D.new()
+    rider.set_script(rider_script)
+    rider.add_to_group("player")
+    shaft.add_child(rider)
+    rider.set("key_id", KEY_DIAMOND_YELLOW)
+    keyed_platform.call("_on_activation_body_entered", rider)
+    keyed_platform.call("_physics_process", 0.01)
+    _expect(bool(keyed_motor.call("is_locked")), "A wrong key on the platform should leave the motor locked.")
+    _expect(String(keyed_platform.call("get_visual_source_path")).ends_with("platfmag.gltf"), "A locked platform should keep its coloured lock model.")
+    rider.set("key_id", KEY_DIAMOND_RED)
+    keyed_platform.call("_physics_process", 0.01)
+    _expect(not bool(keyed_motor.call("is_locked")), "Standing on the platform with a matching key should unlock its motor.")
+    _expect(bool(keyed_platform.call("is_unlocked_here")) and String(keyed_platform.call("get_visual_source_path")).ends_with("platfor1.gltf"), "The unlocked platform should morph to platfor1.wmb.")
+    _expect(keyed_platform.get_node_or_null("GemLight") != null, "Unlocking a platform should flash a GemLight.")
+    shaft.queue_free()
+    await process_frame
+
+
+## Every shipped InitPlatForm links to its InitEnginePlatForm in the baked levels.
+func _test_baked_level_platforms(stems: PackedStringArray) -> void:
+    var motor_script_path := "res://src/props/platform_motor.gd"
+    var motors := 0
+    var linked_platforms := 0
+    var unmapped_platform_entities := 0
+    var motor_180c_platforms := 0
+    for stem in stems:
+        var level := load("res://scenes/levels/generated/%s.tscn" % stem) as PackedScene
+        if level == null:
+            continue
+        var state := level.get_state()
+        for node_index in state.get_node_count():
+            for property_index in state.get_node_property_count(node_index):
+                var property_name := state.get_node_property_name(node_index, property_index)
+                var value: Variant = state.get_node_property_value(node_index, property_index)
+                if property_name == &"script" and value is Script and (value as Script).resource_path == motor_script_path:
+                    motors += 1
+                elif property_name == &"motor_path" and not (value as NodePath).is_empty():
+                    linked_platforms += 1
+                    if stem == "180c_t":
+                        motor_180c_platforms += 1
+                elif property_name == &"metadata/wmb_unmapped_actions":
+                    var unmapped: Dictionary = value
+                    unmapped_platform_entities += int(unmapped.get("initplatform", 0)) + int(unmapped.get("initengineplatform", 0))
+    _expect(motors == 57, "All 57 InitEnginePlatForm motors should be baked (got %d)." % motors)
+    _expect(linked_platforms == 104, "All 104 InitPlatForm platforms should link to a motor (got %d)." % linked_platforms)
+    _expect(motor_180c_platforms == 12, "180c_t's single motor should drive its 12 platforms.")
+    _expect(unmapped_platform_entities == 0, "No platform entity should stay an unmapped marker.")
+
+
 func _make_platform_boost_rider() -> CharacterBody3D:
     var script := GDScript.new()
     script.source_code = "extends CharacterBody3D\n" \
@@ -7119,6 +7285,7 @@ func _test_level_entities_json() -> void:
         _expect(overlay_props == 102, "All 102 178d_t InitMDL grates should use the black-keyed overlay skin.")
 
     _test_baked_level_enemy_prefabs(builder.call("converted_level_stems") as PackedStringArray)
+    _test_baked_level_platforms(builder.call("converted_level_stems") as PackedStringArray)
 
 
 ## lion.wdl InitLion: Int(Skill1) picks the family stats regardless of the

@@ -2,6 +2,8 @@ extends AnimatableBody3D
 class_name MovingPlatform
 
 const KEY_RULES := preload("res://src/resources/key_diamond_rules.gd")
+const PlatformMotorScript := preload("res://src/props/platform_motor.gd")
+const GemLightScript := preload("res://src/effects/gem_light.gd")
 
 const ACKNEX_TO_GODOT_SCALE := 0.01
 const ACKNEX_TICKS_PER_SECOND := 16.0
@@ -61,6 +63,13 @@ var platform_variant: int = VARIANT_CUSTOM:
 @export var allow_player_boost_speedup: bool = true
 @export var boost_speed_multiplier: float = 3.0
 @export var turnaround_yaw_degrees: float = 0.0
+## Level platforms (mm1.wdl InitPlatForm) follow a PlatformMotor instead of
+## travelling `end_offset`; its lock decides when they move.
+@export var motor_path: NodePath
+## InitPlatForm Flag1: invisible but still solid.
+@export var hidden_visual: bool = false
+## Size the solid box and top sensor to the converted WMB model bounds.
+@export var fit_collision_to_model: bool = false
 
 var _start_position := Vector3.ZERO
 var _end_position := Vector3.ZERO
@@ -72,6 +81,8 @@ var _last_displacement := Vector3.ZERO
 var _last_velocity := Vector3.ZERO
 var _visual_source_path := ""
 var _active_rider: Node = null
+var _motor: PlatformMotorScript = null
+var _unlocked_here := false
 
 @onready var _visual_root: Node3D = $VisualRoot
 @onready var _activation_sensor: Area3D = $ActivationSensor
@@ -83,14 +94,19 @@ func _ready() -> void:
     _start_position = global_position
     _path_basis = global_transform.basis
     _end_position = _start_position + _path_basis * end_offset
-    _active = required_key_id == KEY_RULES.KEY_NONE
+    _active = required_key_id == KEY_RULES.KEY_NONE and not is_motor_driven()
     if _activation_sensor != null:
         _activation_sensor.body_entered.connect(_on_activation_body_entered)
         _activation_sensor.body_exited.connect(_on_activation_body_exited)
     _rebuild_visual()
+    _link_motor()
 
 
 func _physics_process(delta: float) -> void:
+    if is_motor_driven():
+        # The motor positions this platform (follow_motor); only the lock is checked here.
+        _check_motor_lock()
+        return
     var safe_delta := maxf(delta, 0.0)
     _last_displacement = Vector3.ZERO
     _last_velocity = Vector3.ZERO
@@ -133,6 +149,27 @@ func get_platform_id() -> int:
     return platform_id
 
 
+func is_motor_driven() -> bool:
+    return not motor_path.is_empty()
+
+
+func get_motor() -> Node3D:
+    return _motor
+
+
+## Called by the PlatformMotor every frame it moves (mm1.wdl LoopPlatForm).
+func follow_motor(target: Vector3) -> void:
+    var previous := global_position
+    global_position = target
+    _last_displacement = target - previous
+    var step := get_physics_process_delta_time()
+    _last_velocity = _last_displacement / step if step > 0.0 else Vector3.ZERO
+
+
+func is_unlocked_here() -> bool:
+    return _unlocked_here
+
+
 func get_base_speed() -> float:
     return absf(wdl_speed_units) * ACKNEX_TO_GODOT_SCALE * ACKNEX_TICKS_PER_SECOND
 
@@ -164,6 +201,10 @@ func get_visual_model_root() -> Node3D:
 
 
 func get_effective_source_wmb_name() -> String:
+    if is_motor_driven():
+        if _unlocked_here and not active_wmb_name.is_empty():
+            return active_wmb_name.get_file().to_lower()
+        return source_wmb_name.get_file().to_lower()
     if _active and morph_to_active_visual and not active_wmb_name.is_empty():
         return active_wmb_name.get_file().to_lower()
     return source_wmb_name.get_file().to_lower()
@@ -224,7 +265,7 @@ func _on_activation_body_entered(body: Node) -> void:
     if not _is_player(body):
         return
     _active_rider = body
-    if not _active:
+    if not _active and not is_motor_driven():
         activate(body)
 
 
@@ -262,10 +303,87 @@ func _rebuild_visual() -> void:
     if invisible_until_active and not _active:
         _visual_root.visible = false
         return
-    _visual_root.visible = true
+    _visual_root.visible = not hidden_visual
     if _build_original_visual_model():
+        if fit_collision_to_model:
+            _fit_collision_to_model()
         return
     _build_fallback_visual()
+
+
+func _link_motor() -> void:
+    if not is_motor_driven():
+        return
+    _motor = get_node_or_null(motor_path) as PlatformMotorScript
+    if _motor == null:
+        push_warning("%s: platform motor not found at %s" % [name, motor_path])
+        return
+    _motor.link_platform(self)
+
+
+## mm1.wdl PlatForm_Hit: the player standing on a linked platform with the
+## right key unlocks the motor; only this platform morphs to platfor1.wmb.
+func _check_motor_lock() -> void:
+    if _motor == null or not _motor.is_locked() or _active_rider == null:
+        return
+    if _active_rider is CharacterBody3D and not (_active_rider as CharacterBody3D).is_on_floor():
+        return
+    if not _active_rider.has_method("get_current_key_id"):
+        return
+    var result := _motor.try_unlock(int(_active_rider.call("get_current_key_id")))
+    if result != PlatformMotorScript.UnlockResult.UNLOCKED and result != PlatformMotorScript.UnlockResult.UNLOCKED_SILENT:
+        return
+    _unlocked_here = true
+    _rebuild_visual()
+    GemLightScript.flash(self, _motor.lock_key_id)
+    if result == PlatformMotorScript.UnlockResult.UNLOCKED:
+        _play_sfx(activation_sound_asset_id)
+
+
+func _fit_collision_to_model() -> void:
+    var model_root := get_visual_model_root()
+    if model_root == null:
+        return
+    var bounds_state := [false, AABB()]
+    _accumulate_mesh_bounds(model_root, _visual_root.transform, bounds_state)
+    if not bool(bounds_state[0]):
+        return
+    var bounds: AABB = bounds_state[1]
+    var solid := get_node_or_null("CollisionShape3D") as CollisionShape3D
+    if solid != null:
+        var solid_box := BoxShape3D.new()
+        solid_box.size = bounds.size
+        solid.shape = solid_box
+        solid.position = bounds.get_center()
+    var sensor_shape := get_node_or_null("ActivationSensor/CollisionShape3D") as CollisionShape3D
+    if sensor_shape != null:
+        var sensor_box := BoxShape3D.new()
+        sensor_box.size = Vector3(bounds.size.x + 0.08, 0.55, bounds.size.z + 0.08)
+        sensor_shape.shape = sensor_box
+        sensor_shape.position = Vector3(bounds.get_center().x, bounds.end.y + 0.15, bounds.get_center().z)
+
+
+## Bounds of every mesh under `node`, in this platform's local space.
+func _accumulate_mesh_bounds(node: Node, parent_transform: Transform3D, bounds_state: Array) -> void:
+    var local_transform := parent_transform
+    if node is Node3D:
+        local_transform = parent_transform * (node as Node3D).transform
+    if node is MeshInstance3D:
+        var mesh_bounds := (node as MeshInstance3D).get_aabb()
+        for corner_index in 8:
+            var corner := mesh_bounds.position + Vector3(
+                mesh_bounds.size.x if (corner_index & 1) != 0 else 0.0,
+                mesh_bounds.size.y if (corner_index & 2) != 0 else 0.0,
+                mesh_bounds.size.z if (corner_index & 4) != 0 else 0.0
+            )
+            var point := local_transform * corner
+            if not bool(bounds_state[0]):
+                bounds_state[1] = AABB(point, Vector3.ZERO)
+                bounds_state[0] = true
+            else:
+                bounds_state[1] = (bounds_state[1] as AABB).expand(point)
+    for child in node.get_children():
+        _accumulate_mesh_bounds(child, local_transform, bounds_state)
 
 
 func _build_original_visual_model() -> bool:

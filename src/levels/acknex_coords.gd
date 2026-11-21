@@ -43,3 +43,10 @@ static func character_basis(pan_degrees: float) -> Basis:
 static func pan_direction(pan_degrees: float) -> Vector3:
 	var radians := deg_to_rad(pan_degrees)
 	return Vector3(cos(radians), 0.0, -sin(radians))
+
+
+## Direction of an Acknex pan/tilt pair (tilt 90 is straight up), in Godot space.
+static func angle_direction(pan_degrees: float, tilt_degrees: float) -> Vector3:
+	var pan := deg_to_rad(pan_degrees)
+	var tilt := deg_to_rad(tilt_degrees)
+	return Vector3(cos(tilt) * cos(pan), sin(tilt), -cos(tilt) * sin(pan))

@@ -34,6 +34,8 @@ const SCORPION_SCENE := preload("res://scenes/enemies/scorpion_enemy.tscn")
 const NANOLION_SCENE := preload("res://scenes/enemies/nanolion_enemy.tscn")
 const ROCKER_SCENE := preload("res://scenes/enemies/rocker_enemy.tscn")
 const HIPPIE_SCENE := preload("res://scenes/enemies/hippie_enemy.tscn")
+const MOVING_PLATFORM_SCENE := preload("res://scenes/props/moving_platform.tscn")
+const PlatformMotorScript := preload("res://src/props/platform_motor.gd")
 
 const SPRITE_TEXTURE_ROOT := "res://assets/textures/sprites"
 const WASP_TYPE_PATH_FORMAT := "res://assets/wasps/type_%d.tres"
@@ -45,6 +47,9 @@ const KIND_SCORE_GOAL := &"score_goal"
 const KIND_CONFIG := &"config"
 const KIND_UNMAPPED := &"unmapped"
 const KIND_SKY := &"sky"
+const KIND_PLATFORMS := &"Platforms"
+## mm1.wdl InitPlatForm morphs an unlocked platform to this WMB.
+const PLATFORM_ACTIVE_WMB := "platfor1.wmb"
 
 ## Invisible level-config entities kept as markers for later milestones.
 const CONFIG_ACTIONS := [
@@ -170,6 +175,10 @@ static func map_entity(entity: Dictionary) -> Dictionary:
 			return {"kind": &"Spawners", "node": _make_spawner(WASP_SPAWNER_SCENE, entity)}
 		"initlion":
 			return {"kind": &"Enemies", "node": _make_enemy(entity)}
+		"initengineplatform":
+			return {"kind": KIND_PLATFORMS, "node": _make_platform_motor(entity)}
+		"initplatform":
+			return {"kind": KIND_PLATFORMS, "node": _make_platform(entity)}
 		"initarbre", "onground":
 			var sprite := _make_sprite(entity, action)
 			if sprite != null:
@@ -386,6 +395,40 @@ static func _make_teleporter(entity: Dictionary) -> Dictionary:
 		AcknexCoordsScript.to_godot_position(acknex_destination)
 	)
 	return {"kind": &"Teleporters", "node": node, "destination": destination}
+
+
+## mm1.wdl InitEnginePlatForm: Skill1 link id (8465 when 0), Skill2 speed,
+## Skill3 pause, Skill4/5 pan/tilt turn on collision, Skill6 key lock, Flag7
+## exact key.
+static func _make_platform_motor(entity: Dictionary) -> Node3D:
+	var motor := PlatformMotorScript.new() as Node3D
+	motor.name = node_name_for(entity)
+	motor.transform = Transform3D(Basis.IDENTITY, _godot_position(entity))
+	var link_id := int(_skill(entity, 1))
+	motor.set("link_id", link_id if link_id != 0 else PlatformMotorScript.DEFAULT_LINK_ID)
+	motor.set("speed_units", _skill(entity, 2))
+	motor.set("pause_ticks", _skill(entity, 3))
+	motor.set("pan_step_degrees", _skill(entity, 4))
+	motor.set("tilt_step_degrees", _skill(entity, 5))
+	motor.set("lock_key_id", int(_skill(entity, 6)))
+	motor.set("exact_key", _flag(entity, 7))
+	var angles := AcknexCoordsScript.array_to_vector3(entity.get("angles", []))
+	motor.set("pan_degrees", angles.x)
+	motor.set("tilt_degrees", angles.y)
+	_store_source_meta(motor, entity)
+	return motor
+
+
+## mm1.wdl InitPlatForm: follows the motor with the same Skill1; Flag1 hides it.
+static func _make_platform(entity: Dictionary) -> Node3D:
+	var node := _instantiate(MOVING_PLATFORM_SCENE, entity, _prop_transform(entity))
+	node.set("source_wmb_name", _file(entity))
+	node.set("active_wmb_name", PLATFORM_ACTIVE_WMB)
+	node.set("platform_id", int(_skill(entity, 1)))
+	node.set("hidden_visual", _flag(entity, 1))
+	node.set("fit_collision_to_model", true)
+	node.set_meta("platform_link_id", int(_skill(entity, 1)))
+	return node
 
 
 static func _make_spawner(scene: PackedScene, entity: Dictionary) -> Node3D:

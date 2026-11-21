@@ -1,26 +1,28 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://src/levels/level_world.gd" id="1_fmqug"]
-[ext_resource type="PackedScene" path="res://assets/levels/bonus3/bonus3.gltf" id="2_m8yvk"]
-[ext_resource type="Script" path="res://src/props/model_prop.gd" id="3_nahwv"]
-[ext_resource type="PackedScene" path="res://assets/models/sky3/sky3.gltf" id="4_dlobn"]
-[ext_resource type="PackedScene" path="res://assets/models/menu/solmenu5/solmenu5.gltf" id="5_pvl48"]
-[ext_resource type="PackedScene" path="res://scenes/pickups/key_diamond_pickup.tscn" id="6_b8y5a"]
-[ext_resource type="Resource" path="res://assets/key_diamonds/yellow.tres" id="7_hc070"]
-[ext_resource type="PackedScene" path="res://scenes/pickups/diamond_pickup.tscn" id="8_ahjw4"]
-[ext_resource type="Resource" path="res://assets/key_diamonds/blue.tres" id="9_iekkq"]
-[ext_resource type="Resource" path="res://assets/key_diamonds/green.tres" id="10_l4ywu"]
-[ext_resource type="PackedScene" path="res://scenes/props/exit_pad.tscn" id="11_o6tvw"]
-[ext_resource type="PackedScene" path="res://scenes/props/death_pad.tscn" id="12_6ncr5"]
-[ext_resource type="PackedScene" path="res://scenes/gates/key_gate.tscn" id="13_in8uc"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/hippie_enemy.tscn" id="14_c6cap"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/nanolion_enemy.tscn" id="15_ben4i"]
-[ext_resource type="PackedScene" path="res://scenes/props/teleporter.tscn" id="16_xab3w"]
-[ext_resource type="Script" path="res://src/levels/level_entity_marker.gd" id="17_5m3n4"]
-[ext_resource type="Script" path="res://src/camera/third_person_camera.gd" id="18_u7lmq"]
-[ext_resource type="PackedScene" path="res://scenes/ui/debug_overlay.tscn" id="19_v2ego"]
-[ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="20_a8a8m"]
-[ext_resource type="PackedScene" path="res://scenes/ui/level_hud.tscn" id="21_jw20k"]
+[ext_resource type="Script" path="res://src/levels/level_world.gd" id="1_nahwv"]
+[ext_resource type="PackedScene" path="res://assets/levels/bonus3/bonus3.gltf" id="2_dlobn"]
+[ext_resource type="Script" path="res://src/props/model_prop.gd" id="3_pvl48"]
+[ext_resource type="PackedScene" path="res://assets/models/sky3/sky3.gltf" id="4_b8y5a"]
+[ext_resource type="PackedScene" path="res://assets/models/menu/solmenu5/solmenu5.gltf" id="5_hc070"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/key_diamond_pickup.tscn" id="6_ahjw4"]
+[ext_resource type="Resource" path="res://assets/key_diamonds/yellow.tres" id="7_iekkq"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/diamond_pickup.tscn" id="8_l4ywu"]
+[ext_resource type="Resource" path="res://assets/key_diamonds/blue.tres" id="9_o6tvw"]
+[ext_resource type="Resource" path="res://assets/key_diamonds/green.tres" id="10_6ncr5"]
+[ext_resource type="Script" path="res://src/props/platform_motor.gd" id="11_in8uc"]
+[ext_resource type="PackedScene" path="res://scenes/props/moving_platform.tscn" id="12_c6cap"]
+[ext_resource type="PackedScene" path="res://scenes/props/exit_pad.tscn" id="13_ben4i"]
+[ext_resource type="PackedScene" path="res://scenes/props/death_pad.tscn" id="14_xab3w"]
+[ext_resource type="PackedScene" path="res://scenes/gates/key_gate.tscn" id="15_5m3n4"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/hippie_enemy.tscn" id="16_u7lmq"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/nanolion_enemy.tscn" id="17_v2ego"]
+[ext_resource type="PackedScene" path="res://scenes/props/teleporter.tscn" id="18_a8a8m"]
+[ext_resource type="Script" path="res://src/levels/level_entity_marker.gd" id="19_jw20k"]
+[ext_resource type="Script" path="res://src/camera/third_person_camera.gd" id="20_47l5l"]
+[ext_resource type="PackedScene" path="res://scenes/ui/debug_overlay.tscn" id="21_t1fks"]
+[ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="22_fjan0"]
+[ext_resource type="PackedScene" path="res://scenes/ui/level_hud.tscn" id="23_vp3of"]
 
 [sub_resource type="Environment" id="Environment_level"]
 background_mode = 1
@@ -29,8 +31,8 @@ ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 ambient_light_energy = 0.55
 
-[node name="Level_bonus3" type="Node3D" unique_id=1450072298]
-script = ExtResource("1_fmqug")
+[node name="Level_bonus3" type="Node3D" unique_id=955974921]
+script = ExtResource("1_nahwv")
 level_stem = "bonus3"
 level_number = 15
 source_wmb = "extract-sammy-assets/sammy-suricate-eng/bonus3.wmb"
@@ -39,30 +41,27 @@ sky_path = NodePath("Entities/Sky")
 camera_path = NodePath("LevelCamera")
 score_goal_points = 1050
 metadata/wmb_light_count = 2
-metadata/wmb_unmapped_actions = {
-"initengineplatform": 4,
-"initplatform": 4
-}
+metadata/wmb_unmapped_actions = {}
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1449085973]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1483160884]
 environment = SubResource("Environment_level")
 
-[node name="Sun" type="DirectionalLight3D" parent="." unique_id=638081723]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=507895617]
 transform = Transform3D(-0.70710677, -0.6830127, 0.18301272, 0, 0.25881907, 0.9659259, -0.70710677, 0.6830127, -0.18301272, 0, 0, 0)
 light_energy = 1.1
 shadow_enabled = true
 
-[node name="Geometry" type="Node3D" parent="." unique_id=1870804531]
+[node name="Geometry" type="Node3D" parent="." unique_id=1604971235]
 
-[node name="LevelGeometry" parent="Geometry" unique_id=254815332 instance=ExtResource("2_m8yvk")]
+[node name="LevelGeometry" parent="Geometry" unique_id=254815332 instance=ExtResource("2_dlobn")]
 
-[node name="Entities" type="Node3D" parent="." unique_id=356494482]
+[node name="Entities" type="Node3D" parent="." unique_id=1671010032]
 
-[node name="Sky" type="Node3D" parent="Entities" unique_id=1105253775]
+[node name="Sky" type="Node3D" parent="Entities" unique_id=1522692079]
 
-[node name="E001_initskymenu" type="Node3D" parent="Entities/Sky" unique_id=1221825238]
+[node name="E001_initskymenu" type="Node3D" parent="Entities/Sky" unique_id=510967262]
 transform = Transform3D(5, 0, 0, 0, 3, 0, 0, 0, 5, 33.44, -93, 45.84)
-script = ExtResource("3_nahwv")
+script = ExtResource("3_pvl48")
 asset_id = "model.sky3"
 metadata/wmb_index = 1
 metadata/wmb_action = "initSkyMenu"
@@ -70,14 +69,14 @@ metadata/wmb_file = "sky3.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, -600, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="Visual" parent="Entities/Sky/E001_initskymenu" unique_id=1353589587 instance=ExtResource("4_dlobn")]
+[node name="Visual" parent="Entities/Sky/E001_initskymenu" unique_id=1353589587 instance=ExtResource("4_b8y5a")]
 transform = Transform3D(0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01, 0, 0, 0)
 
-[node name="Props" type="Node3D" parent="Entities" unique_id=1875950186]
+[node name="Props" type="Node3D" parent="Entities" unique_id=2088088695]
 
-[node name="E002_initdecor" type="Node3D" parent="Entities/Props" unique_id=221652319]
+[node name="E002_initdecor" type="Node3D" parent="Entities/Props" unique_id=1322382486]
 transform = Transform3D(2.5, 0, 0, 0, 1.5, 0, 0, 0, 2.5, 46.71999, -0.5, 46.239998)
-script = ExtResource("3_nahwv")
+script = ExtResource("3_pvl48")
 asset_id = "model.menu.floor"
 metadata/wmb_index = 2
 metadata/wmb_action = "initDecor"
@@ -85,14 +84,14 @@ metadata/wmb_file = "solmenu5.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, -50, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="Visual" parent="Entities/Props/E002_initdecor" unique_id=1886437917 instance=ExtResource("5_pvl48")]
+[node name="Visual" parent="Entities/Props/E002_initdecor" unique_id=1886437917 instance=ExtResource("5_hc070")]
 transform = Transform3D(0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01, 0, 0, 0)
 
-[node name="Pickups" type="Node3D" parent="Entities" unique_id=451710850]
+[node name="Pickups" type="Node3D" parent="Entities" unique_id=1777844017]
 
-[node name="E014_initkey" parent="Entities/Pickups" unique_id=71847195 instance=ExtResource("6_b8y5a")]
+[node name="E014_initkey" parent="Entities/Pickups" unique_id=667611094 instance=ExtResource("6_ahjw4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.88, 4.1425, 32.239998)
-key_type = ExtResource("7_hc070")
+key_type = ExtResource("7_iekkq")
 visual_ground_clearance = 0.0
 metadata/wmb_index = 14
 metadata/wmb_action = "initKey"
@@ -100,7 +99,7 @@ metadata/wmb_file = "gemye+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 200, 0, 0, 2, 0, 0)
 metadata/wmb_flags = 32
 
-[node name="E015_initbonus3" parent="Entities/Pickups" unique_id=1310941615 instance=ExtResource("8_ahjw4")]
+[node name="E015_initbonus3" parent="Entities/Pickups" unique_id=1483377111 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.66702, 3.84, 57.599567)
 points = 30
 metadata/wmb_index = 15
@@ -109,7 +108,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E016_initkey" parent="Entities/Pickups" unique_id=867630981 instance=ExtResource("6_b8y5a")]
+[node name="E016_initkey" parent="Entities/Pickups" unique_id=540797121 instance=ExtResource("6_ahjw4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.559998, 35.3425, 46.079998)
 visual_ground_clearance = 0.0
 metadata/wmb_index = 16
@@ -118,7 +117,7 @@ metadata/wmb_file = "gemre+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 16, 0, 0, 1, 0, 0)
 metadata/wmb_flags = 32
 
-[node name="E017_initbonus3" parent="Entities/Pickups" unique_id=588190729 instance=ExtResource("8_ahjw4")]
+[node name="E017_initbonus3" parent="Entities/Pickups" unique_id=451364585 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.107021, 3.84, 55.03957)
 points = 30
 metadata/wmb_index = 17
@@ -127,7 +126,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E018_initbonus3" parent="Entities/Pickups" unique_id=1523407816 instance=ExtResource("8_ahjw4")]
+[node name="E018_initbonus3" parent="Entities/Pickups" unique_id=1702397992 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.38702, 3.84, 51.279568)
 points = 30
 metadata/wmb_index = 18
@@ -136,9 +135,9 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E019_initkey" parent="Entities/Pickups" unique_id=1962629790 instance=ExtResource("6_b8y5a")]
+[node name="E019_initkey" parent="Entities/Pickups" unique_id=1414896560 instance=ExtResource("6_ahjw4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.199999, 4.6225, 46.079998)
-key_type = ExtResource("9_iekkq")
+key_type = ExtResource("9_o6tvw")
 visual_ground_clearance = 0.0
 metadata/wmb_index = 19
 metadata/wmb_action = "initKey"
@@ -146,7 +145,7 @@ metadata/wmb_file = "gembl+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 90, 0, 0, 4, 0, 0)
 metadata/wmb_flags = 32
 
-[node name="E025_initbonus3" parent="Entities/Pickups" unique_id=1482858618 instance=ExtResource("8_ahjw4")]
+[node name="E025_initbonus3" parent="Entities/Pickups" unique_id=1481140746 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.94702, 3.84, 46.07957)
 points = 30
 metadata/wmb_index = 25
@@ -155,9 +154,9 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E026_initkey" parent="Entities/Pickups" unique_id=983846693 instance=ExtResource("6_b8y5a")]
+[node name="E026_initkey" parent="Entities/Pickups" unique_id=1643762940 instance=ExtResource("6_ahjw4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.399998, 14.9425, 46.079998)
-key_type = ExtResource("10_l4ywu")
+key_type = ExtResource("10_6ncr5")
 visual_ground_clearance = 0.0
 metadata/wmb_index = 26
 metadata/wmb_action = "initKey"
@@ -165,7 +164,7 @@ metadata/wmb_file = "gemve+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 90, 0, 0, 6, 0, 0)
 metadata/wmb_flags = 32
 
-[node name="E029_initbonus3" parent="Entities/Pickups" unique_id=552725213 instance=ExtResource("8_ahjw4")]
+[node name="E029_initbonus3" parent="Entities/Pickups" unique_id=603959770 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.28, 40.969997, 41.68)
 points = 30
 metadata/wmb_index = 29
@@ -174,9 +173,9 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E080_initkey" parent="Entities/Pickups" unique_id=1200353291 instance=ExtResource("6_b8y5a")]
+[node name="E080_initkey" parent="Entities/Pickups" unique_id=1717849384 instance=ExtResource("6_ahjw4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.32, 35.1025, 33.04)
-key_type = ExtResource("7_hc070")
+key_type = ExtResource("7_iekkq")
 visual_ground_clearance = 0.0
 metadata/wmb_index = 80
 metadata/wmb_action = "initKey"
@@ -184,9 +183,9 @@ metadata/wmb_file = "gemye+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 200, 0, 0, 2, 0, 0)
 metadata/wmb_flags = 32
 
-[node name="E081_initkey" parent="Entities/Pickups" unique_id=945184521 instance=ExtResource("6_b8y5a")]
+[node name="E081_initkey" parent="Entities/Pickups" unique_id=1816175344 instance=ExtResource("6_ahjw4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.439999, 35.3425, 46.079998)
-key_type = ExtResource("10_l4ywu")
+key_type = ExtResource("10_6ncr5")
 visual_ground_clearance = 0.0
 metadata/wmb_index = 81
 metadata/wmb_action = "initKey"
@@ -194,7 +193,7 @@ metadata/wmb_file = "gemve+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 16, 0, 0, 6, 0, 0)
 metadata/wmb_flags = 32
 
-[node name="E082_initbonus3" parent="Entities/Pickups" unique_id=1150337991 instance=ExtResource("8_ahjw4")]
+[node name="E082_initbonus3" parent="Entities/Pickups" unique_id=1918654645 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.78702, 34.559998, 36.31957)
 points = 30
 metadata/wmb_index = 82
@@ -203,7 +202,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E083_initbonus3" parent="Entities/Pickups" unique_id=853836503 instance=ExtResource("8_ahjw4")]
+[node name="E083_initbonus3" parent="Entities/Pickups" unique_id=426006702 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.66702, 3.84, 36.31957)
 points = 30
 metadata/wmb_index = 83
@@ -212,7 +211,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E085_initbonus3" parent="Entities/Pickups" unique_id=1859900336 instance=ExtResource("8_ahjw4")]
+[node name="E085_initbonus3" parent="Entities/Pickups" unique_id=293255220 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.66702, 3.84, 46.07957)
 points = 30
 metadata/wmb_index = 85
@@ -221,7 +220,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E086_initbonus3" parent="Entities/Pickups" unique_id=2037157741 instance=ExtResource("8_ahjw4")]
+[node name="E086_initbonus3" parent="Entities/Pickups" unique_id=1890954584 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.22702, 3.84, 46.15957)
 points = 30
 metadata/wmb_index = 86
@@ -230,7 +229,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E087_initbonus3" parent="Entities/Pickups" unique_id=30493580 instance=ExtResource("8_ahjw4")]
+[node name="E087_initbonus3" parent="Entities/Pickups" unique_id=986435448 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.74702, 3.84, 33.83957)
 points = 30
 metadata/wmb_index = 87
@@ -239,7 +238,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E088_initbonus3" parent="Entities/Pickups" unique_id=1574246425 instance=ExtResource("8_ahjw4")]
+[node name="E088_initbonus3" parent="Entities/Pickups" unique_id=917664065 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.467022, 3.84, 36.31957)
 points = 30
 metadata/wmb_index = 88
@@ -248,7 +247,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E089_initbonus3" parent="Entities/Pickups" unique_id=1226276184 instance=ExtResource("8_ahjw4")]
+[node name="E089_initbonus3" parent="Entities/Pickups" unique_id=1570500267 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.58702, 3.84, 40.23957)
 points = 30
 metadata/wmb_index = 89
@@ -257,7 +256,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E090_initbonus3" parent="Entities/Pickups" unique_id=1512526640 instance=ExtResource("8_ahjw4")]
+[node name="E090_initbonus3" parent="Entities/Pickups" unique_id=1398470234 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.18702, 14.08, 59.35957)
 points = 30
 metadata/wmb_index = 90
@@ -266,7 +265,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E091_initbonus3" parent="Entities/Pickups" unique_id=1561202780 instance=ExtResource("8_ahjw4")]
+[node name="E091_initbonus3" parent="Entities/Pickups" unique_id=1362458465 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.98702, 14.08, 57.599567)
 points = 30
 metadata/wmb_index = 91
@@ -275,7 +274,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E092_initbonus3" parent="Entities/Pickups" unique_id=1595584896 instance=ExtResource("8_ahjw4")]
+[node name="E092_initbonus3" parent="Entities/Pickups" unique_id=707617194 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.707022, 14.08, 51.279568)
 points = 30
 metadata/wmb_index = 92
@@ -284,7 +283,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E093_initbonus3" parent="Entities/Pickups" unique_id=1369862741 instance=ExtResource("8_ahjw4")]
+[node name="E093_initbonus3" parent="Entities/Pickups" unique_id=2074115572 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.74702, 14.08, 45.91957)
 points = 30
 metadata/wmb_index = 93
@@ -293,7 +292,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E094_initbonus3" parent="Entities/Pickups" unique_id=2067271208 instance=ExtResource("8_ahjw4")]
+[node name="E094_initbonus3" parent="Entities/Pickups" unique_id=1138371851 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.627022, 14.08, 37.83957)
 points = 30
 metadata/wmb_index = 94
@@ -302,7 +301,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E095_initbonus3" parent="Entities/Pickups" unique_id=88016958 instance=ExtResource("8_ahjw4")]
+[node name="E095_initbonus3" parent="Entities/Pickups" unique_id=991029666 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.027021, 14.08, 33.99957)
 points = 30
 metadata/wmb_index = 95
@@ -311,7 +310,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E096_initbonus3" parent="Entities/Pickups" unique_id=553701206 instance=ExtResource("8_ahjw4")]
+[node name="E096_initbonus3" parent="Entities/Pickups" unique_id=114136329 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.26702, 14.08, 32.31957)
 points = 30
 metadata/wmb_index = 96
@@ -320,7 +319,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E097_initbonus3" parent="Entities/Pickups" unique_id=1115649806 instance=ExtResource("8_ahjw4")]
+[node name="E097_initbonus3" parent="Entities/Pickups" unique_id=658121492 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.06702, 14.08, 33.83957)
 points = 30
 metadata/wmb_index = 97
@@ -329,7 +328,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E098_initbonus3" parent="Entities/Pickups" unique_id=113327631 instance=ExtResource("8_ahjw4")]
+[node name="E098_initbonus3" parent="Entities/Pickups" unique_id=925100157 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.90702, 14.08, 40.23957)
 points = 30
 metadata/wmb_index = 98
@@ -338,7 +337,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E099_initbonus3" parent="Entities/Pickups" unique_id=517037307 instance=ExtResource("8_ahjw4")]
+[node name="E099_initbonus3" parent="Entities/Pickups" unique_id=435680058 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.78702, 14.08, 45.75957)
 points = 30
 metadata/wmb_index = 99
@@ -347,7 +346,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E100_initkey" parent="Entities/Pickups" unique_id=1029546583 instance=ExtResource("6_b8y5a")]
+[node name="E100_initkey" parent="Entities/Pickups" unique_id=1309306087 instance=ExtResource("6_ahjw4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.16, 14.782499, 46.079998)
 visual_ground_clearance = 0.0
 metadata/wmb_index = 100
@@ -356,7 +355,7 @@ metadata/wmb_file = "gemre+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 16, 0, 0, 1, 0, 0)
 metadata/wmb_flags = 32
 
-[node name="E101_initbonus3" parent="Entities/Pickups" unique_id=569913858 instance=ExtResource("8_ahjw4")]
+[node name="E101_initbonus3" parent="Entities/Pickups" unique_id=725614848 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.74702, 24.32, 46.15957)
 points = 30
 metadata/wmb_index = 101
@@ -365,7 +364,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E102_initbonus3" parent="Entities/Pickups" unique_id=687082492 instance=ExtResource("8_ahjw4")]
+[node name="E102_initbonus3" parent="Entities/Pickups" unique_id=1759292426 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.947021, 24.32, 37.83957)
 points = 30
 metadata/wmb_index = 102
@@ -374,7 +373,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E103_initbonus3" parent="Entities/Pickups" unique_id=611604733 instance=ExtResource("8_ahjw4")]
+[node name="E103_initbonus3" parent="Entities/Pickups" unique_id=1576432494 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.50702, 24.32, 33.99957)
 points = 30
 metadata/wmb_index = 103
@@ -383,7 +382,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E104_initbonus3" parent="Entities/Pickups" unique_id=2120371748 instance=ExtResource("8_ahjw4")]
+[node name="E104_initbonus3" parent="Entities/Pickups" unique_id=1062319351 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.58702, 24.32, 32.23957)
 points = 30
 metadata/wmb_index = 104
@@ -392,7 +391,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E105_initbonus3" parent="Entities/Pickups" unique_id=2024971536 instance=ExtResource("8_ahjw4")]
+[node name="E105_initbonus3" parent="Entities/Pickups" unique_id=547847210 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.06702, 24.32, 33.91957)
 points = 30
 metadata/wmb_index = 105
@@ -401,7 +400,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E106_initbonus3" parent="Entities/Pickups" unique_id=383971430 instance=ExtResource("8_ahjw4")]
+[node name="E106_initbonus3" parent="Entities/Pickups" unique_id=1882507226 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.78702, 24.32, 36.47957)
 points = 30
 metadata/wmb_index = 106
@@ -410,7 +409,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E107_initbonus3" parent="Entities/Pickups" unique_id=1165445763 instance=ExtResource("8_ahjw4")]
+[node name="E107_initbonus3" parent="Entities/Pickups" unique_id=626468475 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.90702, 24.32, 40.31957)
 points = 30
 metadata/wmb_index = 107
@@ -419,7 +418,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E108_initbonus3" parent="Entities/Pickups" unique_id=901773657 instance=ExtResource("8_ahjw4")]
+[node name="E108_initbonus3" parent="Entities/Pickups" unique_id=210230024 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.10702, 24.32, 45.75957)
 points = 30
 metadata/wmb_index = 108
@@ -428,7 +427,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E109_initbonus3" parent="Entities/Pickups" unique_id=2041154737 instance=ExtResource("8_ahjw4")]
+[node name="E109_initbonus3" parent="Entities/Pickups" unique_id=1365223112 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.58702, 24.32, 52.31957)
 points = 30
 metadata/wmb_index = 109
@@ -437,7 +436,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E110_initbonus3" parent="Entities/Pickups" unique_id=502194318 instance=ExtResource("8_ahjw4")]
+[node name="E110_initbonus3" parent="Entities/Pickups" unique_id=1456366329 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.74702, 24.32, 56.39957)
 points = 30
 metadata/wmb_index = 110
@@ -446,7 +445,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E111_initbonus3" parent="Entities/Pickups" unique_id=402049648 instance=ExtResource("8_ahjw4")]
+[node name="E111_initbonus3" parent="Entities/Pickups" unique_id=1176761734 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.74702, 24.32, 59.439568)
 points = 30
 metadata/wmb_index = 111
@@ -455,7 +454,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E112_initbonus3" parent="Entities/Pickups" unique_id=168874212 instance=ExtResource("8_ahjw4")]
+[node name="E112_initbonus3" parent="Entities/Pickups" unique_id=1458650732 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.90702, 24.32, 57.439568)
 points = 30
 metadata/wmb_index = 112
@@ -464,7 +463,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E113_initbonus3" parent="Entities/Pickups" unique_id=1342340292 instance=ExtResource("8_ahjw4")]
+[node name="E113_initbonus3" parent="Entities/Pickups" unique_id=2017893315 instance=ExtResource("8_l4ywu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.14702, 24.32, 53.599567)
 points = 30
 metadata/wmb_index = 113
@@ -473,9 +472,127 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 32, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="Pads" type="Node3D" parent="Entities" unique_id=2077812047]
+[node name="Platforms" type="Node3D" parent="Entities" unique_id=570609704]
 
-[node name="E027_initexit" parent="Entities/Pads" unique_id=1835223288 instance=ExtResource("11_o6tvw")]
+[node name="E020_initengineplatform" type="Node3D" parent="Entities/Platforms" unique_id=842879479]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.32, -13.16, 51.879997)
+script = ExtResource("11_in8uc")
+link_id = 7855
+speed_units = 10.0
+pause_ticks = 40.0
+tilt_step_degrees = 180.0
+lock_key_id = 2
+exact_key = true
+tilt_degrees = 90.0
+metadata/wmb_index = 20
+metadata/wmb_action = "initEnginePlatform"
+metadata/wmb_file = "small.pcx"
+metadata/wmb_skills = PackedFloat32Array(7855, 10, 40, 0, 180, 2, 0, 0)
+metadata/wmb_flags = 64
+
+[node name="E021_initengineplatform" type="Node3D" parent="Entities/Platforms" unique_id=386252017]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.359999, -23.6, 41.6)
+script = ExtResource("11_in8uc")
+link_id = 7854
+speed_units = 12.0
+pause_ticks = 40.0
+tilt_step_degrees = 180.0
+lock_key_id = 6
+exact_key = true
+tilt_degrees = 90.0
+metadata/wmb_index = 21
+metadata/wmb_action = "initEnginePlatform"
+metadata/wmb_file = "small.pcx"
+metadata/wmb_skills = PackedFloat32Array(7854, 12, 40, 0, 180, 6, 0, 0)
+metadata/wmb_flags = 64
+
+[node name="E023_initengineplatform" type="Node3D" parent="Entities/Platforms" unique_id=198721522]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.32, -13.24, 57)
+script = ExtResource("11_in8uc")
+link_id = 7857
+speed_units = 10.0
+pause_ticks = 40.0
+tilt_step_degrees = 180.0
+lock_key_id = 4
+exact_key = true
+tilt_degrees = 90.0
+metadata/wmb_index = 23
+metadata/wmb_action = "initEnginePlatform"
+metadata/wmb_file = "small.pcx"
+metadata/wmb_skills = PackedFloat32Array(7857, 10, 40, 0, 180, 4, 0, 0)
+metadata/wmb_flags = 64
+
+[node name="E024_initengineplatform" type="Node3D" parent="Entities/Platforms" unique_id=1345778880]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.32, -11.639999, 60.84)
+script = ExtResource("11_in8uc")
+link_id = 7858
+speed_units = 10.0
+pause_ticks = 24.0
+tilt_step_degrees = 180.0
+lock_key_id = 2
+exact_key = true
+tilt_degrees = 90.0
+metadata/wmb_index = 24
+metadata/wmb_action = "initEnginePlatform"
+metadata/wmb_file = "small.pcx"
+metadata/wmb_skills = PackedFloat32Array(7858, 10, 24, 0, 180, 2, 0, 0)
+metadata/wmb_flags = 64
+
+[node name="E168_initplatform" parent="Entities/Platforms" unique_id=390772058 instance=ExtResource("12_c6cap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.279999, 3.6799998, 44.16)
+platform_id = 7854
+source_wmb_name = "platgree.wmb"
+motor_path = NodePath("../E021_initengineplatform")
+fit_collision_to_model = true
+metadata/wmb_index = 168
+metadata/wmb_action = "initplatform"
+metadata/wmb_file = "platgree.wmb"
+metadata/wmb_skills = PackedFloat32Array(7854, 0, 0, 0, 0, 6, 0, 0)
+metadata/wmb_flags = 64
+metadata/platform_link_id = 7854
+
+[node name="E178_initplatform" parent="Entities/Platforms" unique_id=807422097 instance=ExtResource("12_c6cap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.279999, 3.6799998, 48)
+platform_id = 7855
+source_wmb_name = "platfyel.wmb"
+motor_path = NodePath("../E020_initengineplatform")
+fit_collision_to_model = true
+metadata/wmb_index = 178
+metadata/wmb_action = "initplatform"
+metadata/wmb_file = "platfyel.wmb"
+metadata/wmb_skills = PackedFloat32Array(7855, 0, 0, 0, 0, 2, 0, 0)
+metadata/wmb_flags = 64
+metadata/platform_link_id = 7855
+
+[node name="E184_initplatform" parent="Entities/Platforms" unique_id=118781529 instance=ExtResource("12_c6cap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.28, 34.399998, 30.08)
+platform_id = 7858
+source_wmb_name = "platfyel.wmb"
+motor_path = NodePath("../E024_initengineplatform")
+fit_collision_to_model = true
+metadata/wmb_index = 184
+metadata/wmb_action = "initplatform"
+metadata/wmb_file = "platfyel.wmb"
+metadata/wmb_skills = PackedFloat32Array(7858, 0, 0, 0, 0, 2, 0, 0)
+metadata/wmb_flags = 64
+metadata/platform_link_id = 7858
+
+[node name="E185_initplatform" parent="Entities/Platforms" unique_id=1570599125 instance=ExtResource("12_c6cap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.28, 24.16, 46.079998)
+platform_id = 7857
+source_wmb_name = "platfblu.wmb"
+motor_path = NodePath("../E023_initengineplatform")
+fit_collision_to_model = true
+metadata/wmb_index = 185
+metadata/wmb_action = "initplatform"
+metadata/wmb_file = "platfblu.wmb"
+metadata/wmb_skills = PackedFloat32Array(7857, 0, 0, 0, 0, 4, 0, 0)
+metadata/wmb_flags = 64
+metadata/platform_link_id = 7857
+
+[node name="Pads" type="Node3D" parent="Entities" unique_id=997490353]
+
+[node name="E027_initexit" parent="Entities/Pads" unique_id=800433891 instance=ExtResource("13_ben4i")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.28069, 40.960022, 45.460014)
 metadata/wmb_index = 27
 metadata/wmb_action = "initExit"
@@ -483,7 +600,7 @@ metadata/wmb_file = "tileexit.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E182_inittiledeath" parent="Entities/Pads" unique_id=991659774 instance=ExtResource("12_6ncr5")]
+[node name="E182_inittiledeath" parent="Entities/Pads" unique_id=123961289 instance=ExtResource("14_xab3w")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.28, -0.79999995, 37.76)
 metadata/wmb_index = 182
 metadata/wmb_action = "initTiledeath"
@@ -491,7 +608,7 @@ metadata/wmb_file = "tiledeat.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E183_inittiledeath" parent="Entities/Pads" unique_id=248006080 instance=ExtResource("12_6ncr5")]
+[node name="E183_inittiledeath" parent="Entities/Pads" unique_id=1709332970 instance=ExtResource("14_xab3w")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.8, 3.84, 46.16)
 metadata/wmb_index = 183
 metadata/wmb_action = "initTiledeath"
@@ -499,7 +616,7 @@ metadata/wmb_file = "tiledeat.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E213_inittiledeath" parent="Entities/Pads" unique_id=756343833 instance=ExtResource("12_6ncr5")]
+[node name="E213_inittiledeath" parent="Entities/Pads" unique_id=981545091 instance=ExtResource("14_xab3w")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.119999, -1.28, 28.8)
 metadata/wmb_index = 213
 metadata/wmb_action = "initTiledeath"
@@ -507,9 +624,9 @@ metadata/wmb_file = "tiledeat.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="Gates" type="Node3D" parent="Entities" unique_id=1225551186]
+[node name="Gates" type="Node3D" parent="Entities" unique_id=1316707813]
 
-[node name="E028_initdoor" parent="Entities/Gates" unique_id=93647284 instance=ExtResource("13_in8uc")]
+[node name="E028_initdoor" parent="Entities/Gates" unique_id=1696155686 instance=ExtResource("15_5m3n4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.279312, 40.960014, 44.020004)
 use_wdl_door_fields = true
 wdl_skill6_required_key = 7
@@ -524,7 +641,7 @@ metadata/wmb_file = "doorexit.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 150, 0, 40, 0, 7, 25, 0)
 metadata/wmb_flags = 64
 
-[node name="E030_initdoor" parent="Entities/Gates" unique_id=1827161864 instance=ExtResource("13_in8uc")]
+[node name="E030_initdoor" parent="Entities/Gates" unique_id=1933223423 instance=ExtResource("15_5m3n4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.28, 40.959995, 39.36)
 use_wdl_door_fields = true
 wdl_skill6_required_key = 3
@@ -541,7 +658,7 @@ metadata/wmb_file = "dfixOran.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 300, 0, 40, 80, 3, 25, 0)
 metadata/wmb_flags = 80
 
-[node name="E186_initdoor" parent="Entities/Gates" unique_id=1323372657 instance=ExtResource("13_in8uc")]
+[node name="E186_initdoor" parent="Entities/Gates" unique_id=177846853 instance=ExtResource("15_5m3n4")]
 transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, 22.08, 3.8399951, 38.28)
 use_wdl_door_fields = true
 wdl_skill6_required_key = 4
@@ -556,7 +673,7 @@ metadata/wmb_file = "doneBlue.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 300, 0, 40, 0, 4, 25, 0)
 metadata/wmb_flags = 64
 
-[node name="E187_initdoor" parent="Entities/Gates" unique_id=1138568458 instance=ExtResource("13_in8uc")]
+[node name="E187_initdoor" parent="Entities/Gates" unique_id=2091888223 instance=ExtResource("15_5m3n4")]
 transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 44, 34.559994, 37.8)
 use_wdl_door_fields = true
 wdl_skill6_required_key = 4
@@ -571,7 +688,7 @@ metadata/wmb_file = "doneBlue.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 300, 0, 40, 0, 4, 25, 0)
 metadata/wmb_flags = 64
 
-[node name="E188_initdoor" parent="Entities/Gates" unique_id=901509879 instance=ExtResource("13_in8uc")]
+[node name="E188_initdoor" parent="Entities/Gates" unique_id=1258403846 instance=ExtResource("15_5m3n4")]
 transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, 25.439999, 3.8399951, 35)
 use_wdl_door_fields = true
 wdl_skill6_required_key = 4
@@ -586,7 +703,7 @@ metadata/wmb_file = "doneBlue.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 300, 0, 40, 0, 4, 25, 0)
 metadata/wmb_flags = 64
 
-[node name="E189_initdoor" parent="Entities/Gates" unique_id=379547929 instance=ExtResource("13_in8uc")]
+[node name="E189_initdoor" parent="Entities/Gates" unique_id=2024158565 instance=ExtResource("15_5m3n4")]
 transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 41.2, 34.559994, 35)
 use_wdl_door_fields = true
 wdl_skill6_required_key = 5
@@ -601,9 +718,9 @@ metadata/wmb_file = "doneMage.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 300, 0, 40, 0, 5, 25, 0)
 metadata/wmb_flags = 64
 
-[node name="Enemies" type="Node3D" parent="Entities" unique_id=949994443]
+[node name="Enemies" type="Node3D" parent="Entities" unique_id=339254684]
 
-[node name="E077_initlion" parent="Entities/Enemies" unique_id=942469190 instance=ExtResource("14_c6cap")]
+[node name="E077_initlion" parent="Entities/Enemies" unique_id=576698921 instance=ExtResource("16_u7lmq")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 36.017883, 14.08, 33.129665)
 react_range = 8.0
 run_speed = 5.760000000000002
@@ -615,7 +732,7 @@ metadata/wmb_file = "hippie.MDL"
 metadata/wmb_skills = PackedFloat32Array(12, 12, 800, 28.03, 1.3, 10000, 0, 4)
 metadata/wmb_flags = 36
 
-[node name="E078_initlion" parent="Entities/Enemies" unique_id=585999763 instance=ExtResource("15_ben4i")]
+[node name="E078_initlion" parent="Entities/Enemies" unique_id=1271721201 instance=ExtResource("17_v2ego")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 35.297886, 14.08, 59.369667)
 react_range = 8.0
 run_speed = 5.760000000000002
@@ -627,7 +744,7 @@ metadata/wmb_file = "nanolion.MDL"
 metadata/wmb_skills = PackedFloat32Array(10, 12, 800, 28.03, 1.3, 10000, 0, 4)
 metadata/wmb_flags = 36
 
-[node name="E160_initlion" parent="Entities/Enemies" unique_id=390453664 instance=ExtResource("15_ben4i")]
+[node name="E160_initlion" parent="Entities/Enemies" unique_id=1702996746 instance=ExtResource("17_v2ego")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 35.137886, 24.32, 59.049667)
 react_range = 8.0
 run_speed = 7.6800000000000015
@@ -639,7 +756,7 @@ metadata/wmb_file = "nanolion.MDL"
 metadata/wmb_skills = PackedFloat32Array(10, 16, 800, 29.03, 1.3, 10000, 0, 4)
 metadata/wmb_flags = 36
 
-[node name="E161_initlion" parent="Entities/Enemies" unique_id=1841616744 instance=ExtResource("15_ben4i")]
+[node name="E161_initlion" parent="Entities/Enemies" unique_id=74598002 instance=ExtResource("17_v2ego")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 32.337887, 24.32, 32.569668)
 react_range = 8.0
 run_speed = 7.6800000000000015
@@ -651,9 +768,9 @@ metadata/wmb_file = "nanolion.MDL"
 metadata/wmb_skills = PackedFloat32Array(10, 16, 800, 29.03, 1.3, 10000, 0, 4)
 metadata/wmb_flags = 36
 
-[node name="Teleporters" type="Node3D" parent="Entities" unique_id=877999508]
+[node name="Teleporters" type="Node3D" parent="Entities" unique_id=697325294]
 
-[node name="E163_initteleport" parent="Entities/Teleporters" unique_id=667825363 instance=ExtResource("16_xab3w")]
+[node name="E163_initteleport" parent="Entities/Teleporters" unique_id=1631440784 instance=ExtResource("18_a8a8m")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.88, -1.4399999, 45.44)
 destination_path = NodePath("../E163_initteleport_destination")
 solid_height = 0.32
@@ -664,10 +781,10 @@ metadata/wmb_file = "teleport.wmb"
 metadata/wmb_skills = PackedFloat32Array(3315, -6630, 400, 90, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E163_initteleport_destination" type="Marker3D" parent="Entities/Teleporters" unique_id=577645892]
+[node name="E163_initteleport_destination" type="Marker3D" parent="Entities/Teleporters" unique_id=933232650]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.149998, 4, 66.299995)
 
-[node name="E210_initteleport" parent="Entities/Teleporters" unique_id=1531316949 instance=ExtResource("16_xab3w")]
+[node name="E210_initteleport" parent="Entities/Teleporters" unique_id=1387405019 instance=ExtResource("18_a8a8m")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.04, -1.4399999, 71.04)
 destination_path = NodePath("../E210_initteleport_destination")
 solid_height = 0.32
@@ -678,10 +795,10 @@ metadata/wmb_file = "teleport.wmb"
 metadata/wmb_skills = PackedFloat32Array(3315, -6630, 400, 90, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E210_initteleport_destination" type="Marker3D" parent="Entities/Teleporters" unique_id=605648889]
+[node name="E210_initteleport_destination" type="Marker3D" parent="Entities/Teleporters" unique_id=960392895]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.149998, 4, 66.299995)
 
-[node name="E211_initteleport" parent="Entities/Teleporters" unique_id=1443103453 instance=ExtResource("16_xab3w")]
+[node name="E211_initteleport" parent="Entities/Teleporters" unique_id=1748357781 instance=ExtResource("18_a8a8m")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.32, -1.4399999, 46.16)
 destination_path = NodePath("../E211_initteleport_destination")
 solid_height = 0.32
@@ -692,10 +809,10 @@ metadata/wmb_file = "teleport.wmb"
 metadata/wmb_skills = PackedFloat32Array(3315, -6630, 400, 90, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E211_initteleport_destination" type="Marker3D" parent="Entities/Teleporters" unique_id=1251437239]
+[node name="E211_initteleport_destination" type="Marker3D" parent="Entities/Teleporters" unique_id=706776491]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.149998, 4, 66.299995)
 
-[node name="E212_initteleport" parent="Entities/Teleporters" unique_id=997732723 instance=ExtResource("16_xab3w")]
+[node name="E212_initteleport" parent="Entities/Teleporters" unique_id=1258440302 instance=ExtResource("18_a8a8m")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.12, -1.4399999, 23.76)
 destination_path = NodePath("../E212_initteleport_destination")
 solid_height = 0.32
@@ -706,14 +823,14 @@ metadata/wmb_file = "teleport.wmb"
 metadata/wmb_skills = PackedFloat32Array(3315, -6630, 400, 90, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E212_initteleport_destination" type="Marker3D" parent="Entities/Teleporters" unique_id=1048495372]
+[node name="E212_initteleport_destination" type="Marker3D" parent="Entities/Teleporters" unique_id=2137413985]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.149998, 4, 66.299995)
 
-[node name="Config" type="Node3D" parent="." unique_id=1793712647]
+[node name="Config" type="Node3D" parent="." unique_id=992962185]
 
-[node name="E003_initextraballes" type="Marker3D" parent="Config" unique_id=740939272]
+[node name="E003_initextraballes" type="Marker3D" parent="Config" unique_id=1653091748]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.686249, -7.6812496, 2.6075728)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 3
 action = "initextraballes"
 source_action = "initextraballes"
@@ -722,9 +839,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(-2468.625, -260.7573, -768.125)
 
-[node name="E004_initnextraballes" type="Marker3D" parent="Config" unique_id=278750458]
+[node name="E004_initnextraballes" type="Marker3D" parent="Config" unique_id=1149603253]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.686249, -7.6812496, 3.9075727)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 4
 action = "initnextraballes"
 source_action = "initNextraballes"
@@ -733,9 +850,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(-2468.625, -390.7573, -768.125)
 
-[node name="E005_initgame" type="Marker3D" parent="Config" unique_id=1201145891]
+[node name="E005_initgame" type="Marker3D" parent="Config" unique_id=1723262709]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.686249, -7.6812496, 5.167573)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 5
 action = "initgame"
 source_action = "initgame"
@@ -745,9 +862,9 @@ skills = PackedFloat32Array(25, -64, -524, 0, 3000, 0, 1050, 0)
 flags = 1
 acknex_position = Vector3(-2468.625, -516.7573, -768.125)
 
-[node name="E006_initgame2" type="Marker3D" parent="Config" unique_id=503318551]
+[node name="E006_initgame2" type="Marker3D" parent="Config" unique_id=1565082642]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.98625, -7.36125, 5.147573)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 6
 action = "initgame2"
 source_action = "initgame2"
@@ -757,9 +874,9 @@ skills = PackedFloat32Array(1, 1790, -2200, 10000, 270, 0, 0, 0)
 flags = 14
 acknex_position = Vector3(-2598.625, -514.7573, -736.125)
 
-[node name="E007_initgame4" type="Marker3D" parent="Config" unique_id=436549606]
+[node name="E007_initgame4" type="Marker3D" parent="Config" unique_id=585273387]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.346249, -7.36125, 5.3075733)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 7
 action = "initgame4"
 source_action = "initgame4"
@@ -769,9 +886,9 @@ skills = PackedFloat32Array(0.5, 0.5, 10000, 0, 0, 0, 0, 0)
 flags = 14
 acknex_position = Vector3(-2734.625, -530.7573, -736.125)
 
-[node name="E008_initgame5" type="Marker3D" parent="Config" unique_id=533712436]
+[node name="E008_initgame5" type="Marker3D" parent="Config" unique_id=1742032898]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.78625, -7.36125, 5.3075733)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 8
 action = "initgame5"
 source_action = "initgame5"
@@ -781,9 +898,9 @@ skills = PackedFloat32Array(10, 10, 0, 0.9, 0.2, 20, 0.3, 0)
 flags = 14
 acknex_position = Vector3(-2878.625, -530.7573, -736.125)
 
-[node name="E009_initgame3" type="Marker3D" parent="Config" unique_id=943405918]
+[node name="E009_initgame3" type="Marker3D" parent="Config" unique_id=1292575302]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.266249, -6.5612497, 6.447573)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 9
 action = "initgame3"
 source_action = "initgame3"
@@ -792,9 +909,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(30, 4.5, 60, 23.5, -12, 3, 0, 0)
 acknex_position = Vector3(-2726.625, -644.7573, -656.125)
 
-[node name="E010_initcamera3" type="Marker3D" parent="Config" unique_id=321862975]
+[node name="E010_initcamera3" type="Marker3D" parent="Config" unique_id=1234648730]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.856249, -7.49125, 6.677573)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 10
 action = "initcamera3"
 source_action = "initcamera3"
@@ -804,9 +921,9 @@ skills = PackedFloat32Array(0, 0, 0, 1, 64, 0, 0, 0.6)
 flags = 2
 acknex_position = Vector3(-2585.625, -667.7573, -749.125)
 
-[node name="E011_initcamera2" type="Marker3D" parent="Config" unique_id=299787718]
+[node name="E011_initcamera2" type="Marker3D" parent="Config" unique_id=1595494247]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.57625, -7.49125, 6.677573)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 11
 action = "initcamera2"
 source_action = "initcamera2"
@@ -815,9 +932,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(10, 0, 1, 0.1, 1, 2, 0, 0)
 acknex_position = Vector3(-2457.625, -667.7573, -749.125)
 
-[node name="E012_initpublic" type="Marker3D" parent="Config" unique_id=723484431]
+[node name="E012_initpublic" type="Marker3D" parent="Config" unique_id=340249483]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.686249, -7.6812496, 7.727573)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 12
 action = "initpublic"
 source_action = "initpublic"
@@ -826,9 +943,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(999, 7086, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(-2468.625, -772.7573, -768.125)
 
-[node name="E013_initgame7" type="Marker3D" parent="Config" unique_id=1798297765]
+[node name="E013_initgame7" type="Marker3D" parent="Config" unique_id=1310733072]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.4, -7.7599998, 5.2)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 13
 action = "initgame7"
 source_action = "initgame7"
@@ -837,9 +954,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(2, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(-3040, -520, -776)
 
-[node name="E031_initpath" type="Marker3D" parent="Config" unique_id=1118411316]
+[node name="E031_initpath" type="Marker3D" parent="Config" unique_id=1489081888]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.46615, 15.119712, 32.866207)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 31
 action = "initpath"
 source_action = "initpath"
@@ -848,9 +965,9 @@ source_file = "setpath.wmb"
 skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3346.6147, -3286.6206, 1511.9712)
 
-[node name="E032_initpath" type="Marker3D" parent="Config" unique_id=1132872088]
+[node name="E032_initpath" type="Marker3D" parent="Config" unique_id=2130100752]
 transform = Transform3D(0.9961947, 0, -0.08715574, 0, 1, 0, 0.08715574, 0, 0.9961947, 35.386555, 15.119712, 32.93691)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 32
 action = "initpath"
 source_action = "initpath"
@@ -860,9 +977,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3538.6555, -3293.691, 1511.9712)
 acknex_angles = Vector3(355, 0, 0)
 
-[node name="E033_initpath" type="Marker3D" parent="Config" unique_id=1131321636]
+[node name="E033_initpath" type="Marker3D" parent="Config" unique_id=1570146182]
 transform = Transform3D(0.9659258, 0, -0.25881904, 0, 1, 0, 0.25881904, 0, 0.9659258, 37.30978, 15.119712, 33.158596)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 33
 action = "initpath"
 source_action = "initpath"
@@ -872,9 +989,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3730.9783, -3315.8599, 1511.9712)
 acknex_angles = Vector3(345, 0, 0)
 
-[node name="E034_initpath" type="Marker3D" parent="Config" unique_id=631123334]
+[node name="E034_initpath" type="Marker3D" parent="Config" unique_id=252352363]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 39.080437, 15.119712, 33.61287)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 34
 action = "initpath"
 source_action = "initpath"
@@ -884,9 +1001,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3908.044, -3361.287, 1511.9712)
 acknex_angles = Vector3(330, 0, 0)
 
-[node name="E035_initpath" type="Marker3D" parent="Config" unique_id=1471811908]
+[node name="E035_initpath" type="Marker3D" parent="Config" unique_id=1117197995]
 transform = Transform3D(0.81915206, 0, -0.57357645, 0, 1, 0, 0.57357645, 0, 0.81915206, 40.765438, 15.119712, 34.485023)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 35
 action = "initpath"
 source_action = "initpath"
@@ -896,9 +1013,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4076.544, -3448.5024, 1511.9712)
 acknex_angles = Vector3(325, 0, 0)
 
-[node name="E036_initpath" type="Marker3D" parent="Config" unique_id=1537500018]
+[node name="E036_initpath" type="Marker3D" parent="Config" unique_id=66653488]
 transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 42.37739, 15.119712, 35.51078)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 36
 action = "initpath"
 source_action = "initpath"
@@ -908,9 +1025,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4237.7393, -3551.0781, 1511.9712)
 acknex_angles = Vector3(315, 0, 0)
 
-[node name="E037_initpath" type="Marker3D" parent="Config" unique_id=1213294931]
+[node name="E037_initpath" type="Marker3D" parent="Config" unique_id=1545046849]
 transform = Transform3D(0.64278764, 0, -0.76604444, 0, 1, 0, 0.76604444, 0, 0.64278764, 43.584248, 15.119712, 36.624493)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 37
 action = "initpath"
 source_action = "initpath"
@@ -920,9 +1037,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4358.425, -3662.4495, 1511.9712)
 acknex_angles = Vector3(310, 0, 0)
 
-[node name="E038_initpath" type="Marker3D" parent="Config" unique_id=1008429928]
+[node name="E038_initpath" type="Marker3D" parent="Config" unique_id=1811908801]
 transform = Transform3D(0.49999997, 0, -0.86602545, 0, 1, 0, 0.86602545, 0, 0.49999997, 44.559483, 15.119712, 37.893826)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 38
 action = "initpath"
 source_action = "initpath"
@@ -932,9 +1049,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4455.948, -3789.3828, 1511.9712)
 acknex_angles = Vector3(300, 0, 0)
 
-[node name="E039_initpath" type="Marker3D" parent="Config" unique_id=1495104253]
+[node name="E039_initpath" type="Marker3D" parent="Config" unique_id=288802285]
 transform = Transform3D(0.42261824, 0, -0.9063078, 0, 1, 0, 0.9063078, 0, 0.42261824, 45.367733, 15.119712, 39.24953)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 39
 action = "initpath"
 source_action = "initpath"
@@ -944,9 +1061,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4536.7734, -3924.9531, 1511.9712)
 acknex_angles = Vector3(295, 0, 0)
 
-[node name="E040_initpath" type="Marker3D" parent="Config" unique_id=1651341031]
+[node name="E040_initpath" type="Marker3D" parent="Config" unique_id=1403484805]
 transform = Transform3D(0.25881907, 0, -0.9659258, 0, 1, 0, 0.9659258, 0, 0.25881907, 46.025204, 15.119712, 40.843174)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 40
 action = "initpath"
 source_action = "initpath"
@@ -956,9 +1073,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4602.5205, -4084.3174, 1511.9712)
 acknex_angles = Vector3(285, 0, 0)
 
-[node name="E041_initpath" type="Marker3D" parent="Config" unique_id=1722198965]
+[node name="E041_initpath" type="Marker3D" parent="Config" unique_id=943207363]
 transform = Transform3D(0.087155804, 0, -0.9961947, 0, 1, 0, 0.9961947, 0, 0.087155804, 46.523514, 15.119712, 42.599945)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 41
 action = "initpath"
 source_action = "initpath"
@@ -968,9 +1085,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4652.3516, -4259.9946, 1511.9712)
 acknex_angles = Vector3(275, 0, 0)
 
-[node name="E042_initpath" type="Marker3D" parent="Config" unique_id=2115740390]
+[node name="E042_initpath" type="Marker3D" parent="Config" unique_id=482178562]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 46.93281, 15.119712, 44.35954)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 42
 action = "initpath"
 source_action = "initpath"
@@ -980,9 +1097,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4693.2813, -4435.954, 1511.9712)
 acknex_angles = Vector3(270, 0, 0)
 
-[node name="E043_initpath" type="Marker3D" parent="Config" unique_id=2103202397]
+[node name="E043_initpath" type="Marker3D" parent="Config" unique_id=405444099]
 transform = Transform3D(-0.1736482, 0, -0.9848077, 0, 1, 0, 0.9848077, 0, -0.1736482, 47.031338, 15.119712, 45.961155)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 43
 action = "initpath"
 source_action = "initpath"
@@ -992,9 +1109,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4703.134, -4596.1157, 1511.9712)
 acknex_angles = Vector3(260, 0, 0)
 
-[node name="E044_initpath" type="Marker3D" parent="Config" unique_id=872089067]
+[node name="E044_initpath" type="Marker3D" parent="Config" unique_id=154879355]
 transform = Transform3D(-0.25881904, 0, -0.9659258, 0, 1, 0, 0.9659258, 0, -0.25881904, 46.88042, 15.119712, 47.803173)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 44
 action = "initpath"
 source_action = "initpath"
@@ -1004,9 +1121,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4688.042, -4780.3174, 1511.9712)
 acknex_angles = Vector3(255, 0, 0)
 
-[node name="E045_initpath" type="Marker3D" parent="Config" unique_id=1397759523]
+[node name="E045_initpath" type="Marker3D" parent="Config" unique_id=1754844344]
 transform = Transform3D(-0.50000006, 0, -0.8660254, 0, 1, 0, 0.8660254, 0, -0.50000006, 46.586147, 15.119712, 49.653828)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 45
 action = "initpath"
 source_action = "initpath"
@@ -1016,9 +1133,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4658.6147, -4965.383, 1511.9712)
 acknex_angles = Vector3(240, 0, 0)
 
-[node name="E046_initpath" type="Marker3D" parent="Config" unique_id=3437483]
+[node name="E046_initpath" type="Marker3D" parent="Config" unique_id=688549276]
 transform = Transform3D(-0.57357645, 0, -0.819152, 0, 1, 0, 0.819152, 0, -0.57357645, 46.033993, 15.119712, 51.418827)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 46
 action = "initpath"
 source_action = "initpath"
@@ -1028,9 +1145,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4603.3994, -5141.883, 1511.9712)
 acknex_angles = Vector3(235, 0, 0)
 
-[node name="E047_initpath" type="Marker3D" parent="Config" unique_id=94074916]
+[node name="E047_initpath" type="Marker3D" parent="Config" unique_id=216540935]
 transform = Transform3D(-0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, -0.70710677, 45.24824, 15.119712, 53.11078)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 47
 action = "initpath"
 source_action = "initpath"
@@ -1040,9 +1157,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4524.824, -5311.078, 1511.9712)
 acknex_angles = Vector3(225, 0, 0)
 
-[node name="E048_initpath" type="Marker3D" parent="Config" unique_id=2064708231]
+[node name="E048_initpath" type="Marker3D" parent="Config" unique_id=766659258]
 transform = Transform3D(-0.76604444, 0, -0.64278764, 0, 1, 0, 0.64278764, 0, -0.76604444, 44.214527, 15.119712, 54.79764)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 48
 action = "initpath"
 source_action = "initpath"
@@ -1052,9 +1169,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4421.4526, -5479.764, 1511.9712)
 acknex_angles = Vector3(220, 0, 0)
 
-[node name="E049_initpath" type="Marker3D" parent="Config" unique_id=1406794351]
+[node name="E049_initpath" type="Marker3D" parent="Config" unique_id=843770821]
 transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, 42.62519, 15.119712, 56.25287)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 49
 action = "initpath"
 source_action = "initpath"
@@ -1064,9 +1181,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4262.519, -5625.287, 1511.9712)
 acknex_angles = Vector3(210, 0, 0)
 
-[node name="E050_initpath" type="Marker3D" parent="Config" unique_id=1438517593]
+[node name="E050_initpath" type="Marker3D" parent="Config" unique_id=947705782]
 transform = Transform3D(-0.90630776, 0, -0.42261833, 0, 1, 0, 0.42261833, 0, -0.90630776, 40.869488, 15.119712, 57.46113)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 50
 action = "initpath"
 source_action = "initpath"
@@ -1076,9 +1193,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4086.9487, -5746.113, 1511.9712)
 acknex_angles = Vector3(205, 0, 0)
 
-[node name="E051_initpath" type="Marker3D" parent="Config" unique_id=1244000129]
+[node name="E051_initpath" type="Marker3D" parent="Config" unique_id=3830393]
 transform = Transform3D(-0.9659258, 0, -0.25881913, 0, 1, 0, 0.25881913, 0, -0.9659258, 39.115845, 15.119712, 58.1186)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 51
 action = "initpath"
 source_action = "initpath"
@@ -1088,9 +1205,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3911.5847, -5811.86, 1511.9712)
 acknex_angles = Vector3(195, 0, 0)
 
-[node name="E052_initpath" type="Marker3D" parent="Config" unique_id=538357638]
+[node name="E052_initpath" type="Marker3D" parent="Config" unique_id=1336458823]
 transform = Transform3D(-0.9848077, 0, -0.1736483, 0, 1, 0, 0.1736483, 0, -0.9848077, 37.27786, 15.119712, 59.007683)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 52
 action = "initpath"
 source_action = "initpath"
@@ -1100,9 +1217,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3727.7861, -5900.7686, 1511.9712)
 acknex_angles = Vector3(190, 0, 0)
 
-[node name="E053_initpath" type="Marker3D" parent="Config" unique_id=275891982]
+[node name="E053_initpath" type="Marker3D" parent="Config" unique_id=60584059]
 transform = Transform3D(-0.9961947, 0, -0.08715564, 0, 1, 0, 0.08715564, 0, -0.9961947, 35.439075, 15.119712, 59.336906)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 53
 action = "initpath"
 source_action = "initpath"
@@ -1112,9 +1229,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3543.9075, -5933.691, 1511.9712)
 acknex_angles = Vector3(185, 0, 0)
 
-[node name="E054_initpath" type="Marker3D" parent="Config" unique_id=88234153]
+[node name="E054_initpath" type="Marker3D" parent="Config" unique_id=1279076159]
 transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, 33.67948, 15.119712, 59.506207)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 54
 action = "initpath"
 source_action = "initpath"
@@ -1124,9 +1241,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3367.9482, -5950.6206, 1511.9712)
 acknex_angles = Vector3(180, 0, 0)
 
-[node name="E055_initpath" type="Marker3D" parent="Config" unique_id=1237360910]
+[node name="E055_initpath" type="Marker3D" parent="Config" unique_id=1532742361]
 transform = Transform3D(-0.9961947, 0, 0.08715564, 0, 1, 0, -0.08715564, 0, -0.9961947, 31.919073, 15.119712, 59.355503)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 55
 action = "initpath"
 source_action = "initpath"
@@ -1136,9 +1253,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3191.9075, -5935.5503, 1511.9712)
 acknex_angles = Vector3(175, 0, 0)
 
-[node name="E056_initpath" type="Marker3D" parent="Config" unique_id=280285908]
+[node name="E056_initpath" type="Marker3D" parent="Config" unique_id=48230847]
 transform = Transform3D(-0.9659258, 0, 0.25881913, 0, 1, 0, -0.25881913, 0, -0.9659258, 30.155846, 15.119712, 59.053814)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 56
 action = "initpath"
 source_action = "initpath"
@@ -1148,9 +1265,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3015.5847, -5905.3813, 1511.9712)
 acknex_angles = Vector3(165, 0, 0)
 
-[node name="E057_initpath" type="Marker3D" parent="Config" unique_id=2122029611]
+[node name="E057_initpath" type="Marker3D" parent="Config" unique_id=846258778]
 transform = Transform3D(-0.90630776, 0, 0.42261833, 0, 1, 0, -0.42261833, 0, -0.90630776, 28.389486, 15.119712, 58.511284)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 57
 action = "initpath"
 source_action = "initpath"
@@ -1160,9 +1277,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2838.9487, -5851.1284, 1511.9712)
 acknex_angles = Vector3(155, 0, 0)
 
-[node name="E058_initpath" type="Marker3D" parent="Config" unique_id=1468791632]
+[node name="E058_initpath" type="Marker3D" parent="Config" unique_id=1785957660]
 transform = Transform3D(-0.8660254, 0, 0.50000006, 0, 1, 0, -0.50000006, 0, -0.8660254, 26.86519, 15.119712, 57.55954)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 58
 action = "initpath"
 source_action = "initpath"
@@ -1172,9 +1289,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2686.519, -5755.954, 1511.9712)
 acknex_angles = Vector3(150, 0, 0)
 
-[node name="E059_initpath" type="Marker3D" parent="Config" unique_id=724892395]
+[node name="E059_initpath" type="Marker3D" parent="Config" unique_id=1821998444]
 transform = Transform3D(-0.76604444, 0, 0.64278764, 0, 1, 0, -0.64278764, 0, -0.76604444, 25.094526, 15.119712, 56.37477)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 59
 action = "initpath"
 source_action = "initpath"
@@ -1184,9 +1301,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2509.4526, -5637.477, 1511.9712)
 acknex_angles = Vector3(140, 0, 0)
 
-[node name="E060_initpath" type="Marker3D" parent="Config" unique_id=1746808159]
+[node name="E060_initpath" type="Marker3D" parent="Config" unique_id=1451050085]
 transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, 23.56824, 15.119712, 54.78163)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 60
 action = "initpath"
 source_action = "initpath"
@@ -1196,9 +1313,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2356.824, -5478.163, 1511.9712)
 acknex_angles = Vector3(135, 0, 0)
 
-[node name="E061_initpath" type="Marker3D" parent="Config" unique_id=1876970420]
+[node name="E061_initpath" type="Marker3D" parent="Config" unique_id=1846138502]
 transform = Transform3D(-0.57357645, 0, 0.819152, 0, 1, 0, -0.819152, 0, -0.57357645, 22.033997, 15.119712, 52.953583)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 61
 action = "initpath"
 source_action = "initpath"
@@ -1208,9 +1325,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2203.3997, -5295.3584, 1511.9712)
 acknex_angles = Vector3(125, 0, 0)
 
-[node name="E062_initpath" type="Marker3D" parent="Config" unique_id=417395244]
+[node name="E062_initpath" type="Marker3D" parent="Config" unique_id=575204628]
 transform = Transform3D(-0.50000006, 0, 0.8660254, 0, 1, 0, -0.8660254, 0, -0.50000006, 20.906147, 15.119712, 51.278584)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 62
 action = "initpath"
 source_action = "initpath"
@@ -1220,9 +1337,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2090.6147, -5127.8584, 1511.9712)
 acknex_angles = Vector3(120, 0, 0)
 
-[node name="E063_initpath" type="Marker3D" parent="Config" unique_id=908544142]
+[node name="E063_initpath" type="Marker3D" parent="Config" unique_id=1944364156]
 transform = Transform3D(-0.34202012, 0, 0.9396926, 0, 1, 0, -0.9396926, 0, -0.34202012, 20.089296, 15.119712, 49.606438)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 63
 action = "initpath"
 source_action = "initpath"
@@ -1232,9 +1349,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2008.9297, -4960.644, 1511.9712)
 acknex_angles = Vector3(110, 0, 0)
 
-[node name="E064_initpath" type="Marker3D" parent="Config" unique_id=828387539]
+[node name="E064_initpath" type="Marker3D" parent="Config" unique_id=652774776]
 transform = Transform3D(-0.25881904, 0, 0.9659258, 0, 1, 0, -0.9659258, 0, -0.25881904, 19.760422, 15.119712, 47.769238)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 64
 action = "initpath"
 source_action = "initpath"
@@ -1244,9 +1361,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(1976.0422, -4776.924, 1511.9712)
 acknex_angles = Vector3(105, 0, 0)
 
-[node name="E065_initpath" type="Marker3D" parent="Config" unique_id=17979759]
+[node name="E065_initpath" type="Marker3D" parent="Config" unique_id=2073990590]
 transform = Transform3D(-0.08715577, 0, 0.9961947, 0, 1, 0, -0.9961947, 0, -0.08715577, 19.582111, 15.119712, 46.092464)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 65
 action = "initpath"
 source_action = "initpath"
@@ -1256,9 +1373,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(1958.2112, -4609.2466, 1511.9712)
 acknex_angles = Vector3(95, 0, 0)
 
-[node name="E066_initpath" type="Marker3D" parent="Config" unique_id=474797704]
+[node name="E066_initpath" type="Marker3D" parent="Config" unique_id=517661082]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 19.572815, 15.119712, 44.57287)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 66
 action = "initpath"
 source_action = "initpath"
@@ -1268,9 +1385,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(1957.2815, -4457.287, 1511.9712)
 acknex_angles = Vector3(90, 0, 0)
 
-[node name="E067_initpath" type="Marker3D" parent="Config" unique_id=778153119]
+[node name="E067_initpath" type="Marker3D" parent="Config" unique_id=1006245961]
 transform = Transform3D(0.17364822, 0, 0.9848077, 0, 1, 0, -0.9848077, 0, 0.17364822, 19.71429, 15.119712, 42.97125)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 67
 action = "initpath"
 source_action = "initpath"
@@ -1280,9 +1397,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(1971.4292, -4297.125, 1511.9712)
 acknex_angles = Vector3(80, 0, 0)
 
-[node name="E068_initpath" type="Marker3D" parent="Config" unique_id=179932976]
+[node name="E068_initpath" type="Marker3D" parent="Config" unique_id=1735767998]
 transform = Transform3D(0.25881907, 0, 0.9659258, 0, 1, 0, -0.9659258, 0, 0.25881907, 20.185207, 15.119712, 41.529236)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 68
 action = "initpath"
 source_action = "initpath"
@@ -1292,9 +1409,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2018.5208, -4152.924, 1511.9712)
 acknex_angles = Vector3(75, 0, 0)
 
-[node name="E069_initpath" type="Marker3D" parent="Config" unique_id=403496575]
+[node name="E069_initpath" type="Marker3D" parent="Config" unique_id=1506286612]
 transform = Transform3D(0.49999997, 0, 0.86602545, 0, 1, 0, -0.86602545, 0, 0.49999997, 21.039482, 15.119712, 40.23858)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 69
 action = "initpath"
 source_action = "initpath"
@@ -1304,9 +1421,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2103.9482, -4023.8582, 1511.9712)
 acknex_angles = Vector3(60, 0, 0)
 
-[node name="E070_initpath" type="Marker3D" parent="Config" unique_id=1954588778]
+[node name="E070_initpath" type="Marker3D" parent="Config" unique_id=1227243434]
 transform = Transform3D(0.57357645, 0, 0.81915206, 0, 1, 0, -0.81915206, 0, 0.57357645, 21.911633, 15.119712, 38.47358)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 70
 action = "initpath"
 source_action = "initpath"
@@ -1316,9 +1433,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2191.1633, -3847.3582, 1511.9712)
 acknex_angles = Vector3(55, 0, 0)
 
-[node name="E071_initpath" type="Marker3D" parent="Config" unique_id=424920427]
+[node name="E071_initpath" type="Marker3D" parent="Config" unique_id=1522669360]
 transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 23.01739, 15.119712, 37.02163)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 71
 action = "initpath"
 source_action = "initpath"
@@ -1328,9 +1445,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2301.739, -3702.163, 1511.9712)
 acknex_angles = Vector3(45, 0, 0)
 
-[node name="E072_initpath" type="Marker3D" parent="Config" unique_id=892873399]
+[node name="E072_initpath" type="Marker3D" parent="Config" unique_id=1468812469]
 transform = Transform3D(0.76604444, 0, 0.6427876, 0, 1, 0, -0.6427876, 0, 0.76604444, 24.291103, 15.119712, 35.734768)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 72
 action = "initpath"
 source_action = "initpath"
@@ -1340,9 +1457,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2429.1104, -3573.477, 1511.9712)
 acknex_angles = Vector3(40, 0, 0)
 
-[node name="E073_initpath" type="Marker3D" parent="Config" unique_id=617453257]
+[node name="E073_initpath" type="Marker3D" parent="Config" unique_id=1968734728]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 25.800438, 15.119712, 34.67954)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 73
 action = "initpath"
 source_action = "initpath"
@@ -1352,9 +1469,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2580.044, -3467.954, 1511.9712)
 acknex_angles = Vector3(30, 0, 0)
 
-[node name="E074_initpath" type="Marker3D" parent="Config" unique_id=2069672188]
+[node name="E074_initpath" type="Marker3D" parent="Config" unique_id=1920978543]
 transform = Transform3D(0.90630776, 0, 0.42261827, 0, 1, 0, -0.42261827, 0, 0.90630776, 27.316141, 15.119712, 33.951283)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 74
 action = "initpath"
 source_action = "initpath"
@@ -1364,9 +1481,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2731.6143, -3395.1284, 1511.9712)
 acknex_angles = Vector3(25, 0, 0)
 
-[node name="E075_initpath" type="Marker3D" parent="Config" unique_id=406771354]
+[node name="E075_initpath" type="Marker3D" parent="Config" unique_id=8831607]
 transform = Transform3D(0.9659258, 0, 0.25881904, 0, 1, 0, -0.25881904, 0, 0.9659258, 29.149782, 15.119712, 33.373814)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 75
 action = "initpath"
 source_action = "initpath"
@@ -1376,9 +1493,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2914.9783, -3337.3813, 1511.9712)
 acknex_angles = Vector3(15, 0, 0)
 
-[node name="E076_initpath" type="Marker3D" parent="Config" unique_id=1373127743]
+[node name="E076_initpath" type="Marker3D" parent="Config" unique_id=2047714637]
 transform = Transform3D(0.9961947, 0, 0.08715574, 0, 1, 0, -0.08715574, 0, 0.9961947, 31.306555, 15.119712, 32.9555)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 76
 action = "initpath"
 source_action = "initpath"
@@ -1388,9 +1505,9 @@ skills = PackedFloat32Array(28, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3130.6555, -3295.5503, 1511.9712)
 acknex_angles = Vector3(5, 0, 0)
 
-[node name="E114_initpath" type="Marker3D" parent="Config" unique_id=1737466219]
+[node name="E114_initpath" type="Marker3D" parent="Config" unique_id=1390198980]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.30615, 25.35971, 32.546204)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 114
 action = "initpath"
 source_action = "initpath"
@@ -1399,9 +1516,9 @@ source_file = "setpath.wmb"
 skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3330.6147, -3254.6206, 2535.9712)
 
-[node name="E115_initpath" type="Marker3D" parent="Config" unique_id=2051728443]
+[node name="E115_initpath" type="Marker3D" parent="Config" unique_id=711604584]
 transform = Transform3D(0.9961947, 0, -0.08715574, 0, 1, 0, 0.08715574, 0, 0.9961947, 35.22655, 25.35971, 32.61691)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 115
 action = "initpath"
 source_action = "initpath"
@@ -1411,9 +1528,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3522.6553, -3261.691, 2535.9712)
 acknex_angles = Vector3(355, 0, 0)
 
-[node name="E116_initpath" type="Marker3D" parent="Config" unique_id=1311353942]
+[node name="E116_initpath" type="Marker3D" parent="Config" unique_id=2023634924]
 transform = Transform3D(0.9659258, 0, -0.25881904, 0, 1, 0, 0.25881904, 0, 0.9659258, 37.14978, 25.35971, 32.838596)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 116
 action = "initpath"
 source_action = "initpath"
@@ -1423,9 +1540,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3714.978, -3283.8599, 2535.9712)
 acknex_angles = Vector3(345, 0, 0)
 
-[node name="E117_initpath" type="Marker3D" parent="Config" unique_id=1143317430]
+[node name="E117_initpath" type="Marker3D" parent="Config" unique_id=191848065]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 38.920437, 25.35971, 33.29287)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 117
 action = "initpath"
 source_action = "initpath"
@@ -1435,9 +1552,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3892.0437, -3329.287, 2535.9712)
 acknex_angles = Vector3(330, 0, 0)
 
-[node name="E118_initpath" type="Marker3D" parent="Config" unique_id=63732606]
+[node name="E118_initpath" type="Marker3D" parent="Config" unique_id=736590864]
 transform = Transform3D(0.81915206, 0, -0.57357645, 0, 1, 0, 0.57357645, 0, 0.81915206, 40.605434, 25.35971, 34.165024)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 118
 action = "initpath"
 source_action = "initpath"
@@ -1447,9 +1564,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4060.5437, -3416.5024, 2535.9712)
 acknex_angles = Vector3(325, 0, 0)
 
-[node name="E119_initpath" type="Marker3D" parent="Config" unique_id=1475888570]
+[node name="E119_initpath" type="Marker3D" parent="Config" unique_id=857665750]
 transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 42.21739, 25.35971, 35.19078)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 119
 action = "initpath"
 source_action = "initpath"
@@ -1459,9 +1576,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4221.739, -3519.0781, 2535.9712)
 acknex_angles = Vector3(315, 0, 0)
 
-[node name="E120_initpath" type="Marker3D" parent="Config" unique_id=337054404]
+[node name="E120_initpath" type="Marker3D" parent="Config" unique_id=1425730301]
 transform = Transform3D(0.64278764, 0, -0.76604444, 0, 1, 0, 0.76604444, 0, 0.64278764, 43.424248, 25.35971, 36.304493)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 120
 action = "initpath"
 source_action = "initpath"
@@ -1471,9 +1588,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4342.425, -3630.4495, 2535.9712)
 acknex_angles = Vector3(310, 0, 0)
 
-[node name="E121_initpath" type="Marker3D" parent="Config" unique_id=1300201746]
+[node name="E121_initpath" type="Marker3D" parent="Config" unique_id=2010904842]
 transform = Transform3D(0.49999997, 0, -0.86602545, 0, 1, 0, 0.86602545, 0, 0.49999997, 44.399475, 25.35971, 37.573826)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 121
 action = "initpath"
 source_action = "initpath"
@@ -1483,9 +1600,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4439.9478, -3757.3828, 2535.9712)
 acknex_angles = Vector3(300, 0, 0)
 
-[node name="E122_initpath" type="Marker3D" parent="Config" unique_id=788327855]
+[node name="E122_initpath" type="Marker3D" parent="Config" unique_id=1381221405]
 transform = Transform3D(0.42261824, 0, -0.9063078, 0, 1, 0, 0.9063078, 0, 0.42261824, 45.207733, 25.35971, 38.92953)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 122
 action = "initpath"
 source_action = "initpath"
@@ -1495,9 +1612,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4520.7734, -3892.9531, 2535.9712)
 acknex_angles = Vector3(295, 0, 0)
 
-[node name="E123_initpath" type="Marker3D" parent="Config" unique_id=501733743]
+[node name="E123_initpath" type="Marker3D" parent="Config" unique_id=303248942]
 transform = Transform3D(0.25881907, 0, -0.9659258, 0, 1, 0, 0.9659258, 0, 0.25881907, 45.865204, 25.35971, 40.523174)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 123
 action = "initpath"
 source_action = "initpath"
@@ -1507,9 +1624,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4586.5205, -4052.3174, 2535.9712)
 acknex_angles = Vector3(285, 0, 0)
 
-[node name="E124_initpath" type="Marker3D" parent="Config" unique_id=1856918454]
+[node name="E124_initpath" type="Marker3D" parent="Config" unique_id=2055935083]
 transform = Transform3D(0.087155804, 0, -0.9961947, 0, 1, 0, 0.9961947, 0, 0.087155804, 46.363514, 25.35971, 42.279945)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 124
 action = "initpath"
 source_action = "initpath"
@@ -1519,9 +1636,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4636.3516, -4227.9946, 2535.9712)
 acknex_angles = Vector3(275, 0, 0)
 
-[node name="E125_initpath" type="Marker3D" parent="Config" unique_id=680762801]
+[node name="E125_initpath" type="Marker3D" parent="Config" unique_id=1102102960]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 46.77281, 25.35971, 44.03954)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 125
 action = "initpath"
 source_action = "initpath"
@@ -1531,9 +1648,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4677.2813, -4403.954, 2535.9712)
 acknex_angles = Vector3(270, 0, 0)
 
-[node name="E126_initpath" type="Marker3D" parent="Config" unique_id=1892578072]
+[node name="E126_initpath" type="Marker3D" parent="Config" unique_id=1751193358]
 transform = Transform3D(-0.1736482, 0, -0.9848077, 0, 1, 0, 0.9848077, 0, -0.1736482, 46.871338, 25.35971, 45.641155)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 126
 action = "initpath"
 source_action = "initpath"
@@ -1543,9 +1660,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4687.134, -4564.1157, 2535.9712)
 acknex_angles = Vector3(260, 0, 0)
 
-[node name="E127_initpath" type="Marker3D" parent="Config" unique_id=417343744]
+[node name="E127_initpath" type="Marker3D" parent="Config" unique_id=442347914]
 transform = Transform3D(-0.25881904, 0, -0.9659258, 0, 1, 0, 0.9659258, 0, -0.25881904, 46.720417, 25.35971, 47.483173)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 127
 action = "initpath"
 source_action = "initpath"
@@ -1555,9 +1672,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4672.042, -4748.3174, 2535.9712)
 acknex_angles = Vector3(255, 0, 0)
 
-[node name="E128_initpath" type="Marker3D" parent="Config" unique_id=1704675743]
+[node name="E128_initpath" type="Marker3D" parent="Config" unique_id=746376361]
 transform = Transform3D(-0.50000006, 0, -0.8660254, 0, 1, 0, 0.8660254, 0, -0.50000006, 46.426147, 25.35971, 49.333828)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 128
 action = "initpath"
 source_action = "initpath"
@@ -1567,9 +1684,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4642.6147, -4933.383, 2535.9712)
 acknex_angles = Vector3(240, 0, 0)
 
-[node name="E129_initpath" type="Marker3D" parent="Config" unique_id=1325624048]
+[node name="E129_initpath" type="Marker3D" parent="Config" unique_id=591799732]
 transform = Transform3D(-0.57357645, 0, -0.819152, 0, 1, 0, 0.819152, 0, -0.57357645, 45.873993, 25.35971, 51.098827)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 129
 action = "initpath"
 source_action = "initpath"
@@ -1579,9 +1696,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4587.3994, -5109.883, 2535.9712)
 acknex_angles = Vector3(235, 0, 0)
 
-[node name="E130_initpath" type="Marker3D" parent="Config" unique_id=1967409379]
+[node name="E130_initpath" type="Marker3D" parent="Config" unique_id=278663591]
 transform = Transform3D(-0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, -0.70710677, 45.088238, 25.35971, 52.79078)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 130
 action = "initpath"
 source_action = "initpath"
@@ -1591,9 +1708,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4508.8237, -5279.078, 2535.9712)
 acknex_angles = Vector3(225, 0, 0)
 
-[node name="E131_initpath" type="Marker3D" parent="Config" unique_id=2082732651]
+[node name="E131_initpath" type="Marker3D" parent="Config" unique_id=1892354139]
 transform = Transform3D(-0.76604444, 0, -0.64278764, 0, 1, 0, 0.64278764, 0, -0.76604444, 44.05452, 25.35971, 54.477642)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 131
 action = "initpath"
 source_action = "initpath"
@@ -1603,9 +1720,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4405.452, -5447.764, 2535.9712)
 acknex_angles = Vector3(220, 0, 0)
 
-[node name="E132_initpath" type="Marker3D" parent="Config" unique_id=1415152921]
+[node name="E132_initpath" type="Marker3D" parent="Config" unique_id=2112357267]
 transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, 42.46519, 25.35971, 55.93287)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 132
 action = "initpath"
 source_action = "initpath"
@@ -1615,9 +1732,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4246.519, -5593.287, 2535.9712)
 acknex_angles = Vector3(210, 0, 0)
 
-[node name="E133_initpath" type="Marker3D" parent="Config" unique_id=1586413084]
+[node name="E133_initpath" type="Marker3D" parent="Config" unique_id=1112322084]
 transform = Transform3D(-0.90630776, 0, -0.42261833, 0, 1, 0, 0.42261833, 0, -0.90630776, 40.709488, 25.35971, 57.14113)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 133
 action = "initpath"
 source_action = "initpath"
@@ -1627,9 +1744,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(4070.9487, -5714.113, 2535.9712)
 acknex_angles = Vector3(205, 0, 0)
 
-[node name="E134_initpath" type="Marker3D" parent="Config" unique_id=1413961217]
+[node name="E134_initpath" type="Marker3D" parent="Config" unique_id=952350365]
 transform = Transform3D(-0.9659258, 0, -0.25881913, 0, 1, 0, 0.25881913, 0, -0.9659258, 38.955845, 25.35971, 57.7986)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 134
 action = "initpath"
 source_action = "initpath"
@@ -1639,9 +1756,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3895.5845, -5779.86, 2535.9712)
 acknex_angles = Vector3(195, 0, 0)
 
-[node name="E135_initpath" type="Marker3D" parent="Config" unique_id=1494032627]
+[node name="E135_initpath" type="Marker3D" parent="Config" unique_id=1841232086]
 transform = Transform3D(-0.9848077, 0, -0.1736483, 0, 1, 0, 0.1736483, 0, -0.9848077, 37.11786, 25.35971, 58.687683)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 135
 action = "initpath"
 source_action = "initpath"
@@ -1651,9 +1768,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3711.786, -5868.7686, 2535.9712)
 acknex_angles = Vector3(190, 0, 0)
 
-[node name="E136_initpath" type="Marker3D" parent="Config" unique_id=2055999832]
+[node name="E136_initpath" type="Marker3D" parent="Config" unique_id=92438311]
 transform = Transform3D(-0.9961947, 0, -0.08715564, 0, 1, 0, 0.08715564, 0, -0.9961947, 35.279076, 25.35971, 59.016907)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 136
 action = "initpath"
 source_action = "initpath"
@@ -1663,9 +1780,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3527.9075, -5901.691, 2535.9712)
 acknex_angles = Vector3(185, 0, 0)
 
-[node name="E137_initpath" type="Marker3D" parent="Config" unique_id=1650520239]
+[node name="E137_initpath" type="Marker3D" parent="Config" unique_id=2086701292]
 transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, 33.519478, 25.35971, 59.186203)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 137
 action = "initpath"
 source_action = "initpath"
@@ -1675,9 +1792,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3351.948, -5918.6206, 2535.9712)
 acknex_angles = Vector3(180, 0, 0)
 
-[node name="E138_initpath" type="Marker3D" parent="Config" unique_id=1704508893]
+[node name="E138_initpath" type="Marker3D" parent="Config" unique_id=777896410]
 transform = Transform3D(-0.9961947, 0, 0.08715564, 0, 1, 0, -0.08715564, 0, -0.9961947, 31.759073, 25.35971, 59.035503)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 138
 action = "initpath"
 source_action = "initpath"
@@ -1687,9 +1804,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3175.9075, -5903.5503, 2535.9712)
 acknex_angles = Vector3(175, 0, 0)
 
-[node name="E139_initpath" type="Marker3D" parent="Config" unique_id=677788601]
+[node name="E139_initpath" type="Marker3D" parent="Config" unique_id=708587799]
 transform = Transform3D(-0.9659258, 0, 0.25881913, 0, 1, 0, -0.25881913, 0, -0.9659258, 29.995844, 25.35971, 58.73381)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 139
 action = "initpath"
 source_action = "initpath"
@@ -1699,9 +1816,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2999.5845, -5873.3813, 2535.9712)
 acknex_angles = Vector3(165, 0, 0)
 
-[node name="E140_initpath" type="Marker3D" parent="Config" unique_id=924552184]
+[node name="E140_initpath" type="Marker3D" parent="Config" unique_id=1374439626]
 transform = Transform3D(-0.90630776, 0, 0.42261833, 0, 1, 0, -0.42261833, 0, -0.90630776, 28.229486, 25.35971, 58.191284)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 140
 action = "initpath"
 source_action = "initpath"
@@ -1711,9 +1828,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2822.9487, -5819.1284, 2535.9712)
 acknex_angles = Vector3(155, 0, 0)
 
-[node name="E141_initpath" type="Marker3D" parent="Config" unique_id=743984848]
+[node name="E141_initpath" type="Marker3D" parent="Config" unique_id=173168389]
 transform = Transform3D(-0.8660254, 0, 0.50000006, 0, 1, 0, -0.50000006, 0, -0.8660254, 26.70519, 25.35971, 57.23954)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 141
 action = "initpath"
 source_action = "initpath"
@@ -1723,9 +1840,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2670.519, -5723.954, 2535.9712)
 acknex_angles = Vector3(150, 0, 0)
 
-[node name="E142_initpath" type="Marker3D" parent="Config" unique_id=824530688]
+[node name="E142_initpath" type="Marker3D" parent="Config" unique_id=1802791542]
 transform = Transform3D(-0.76604444, 0, 0.64278764, 0, 1, 0, -0.64278764, 0, -0.76604444, 24.934523, 25.35971, 56.054768)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 142
 action = "initpath"
 source_action = "initpath"
@@ -1735,9 +1852,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2493.4524, -5605.477, 2535.9712)
 acknex_angles = Vector3(140, 0, 0)
 
-[node name="E143_initpath" type="Marker3D" parent="Config" unique_id=240966877]
+[node name="E143_initpath" type="Marker3D" parent="Config" unique_id=238306617]
 transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, 23.408237, 25.35971, 54.461628)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 143
 action = "initpath"
 source_action = "initpath"
@@ -1747,9 +1864,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2340.8237, -5446.163, 2535.9712)
 acknex_angles = Vector3(135, 0, 0)
 
-[node name="E144_initpath" type="Marker3D" parent="Config" unique_id=311093929]
+[node name="E144_initpath" type="Marker3D" parent="Config" unique_id=1935886438]
 transform = Transform3D(-0.57357645, 0, 0.819152, 0, 1, 0, -0.819152, 0, -0.57357645, 21.873993, 25.35971, 52.633583)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 144
 action = "initpath"
 source_action = "initpath"
@@ -1759,9 +1876,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2187.3994, -5263.3584, 2535.9712)
 acknex_angles = Vector3(125, 0, 0)
 
-[node name="E145_initpath" type="Marker3D" parent="Config" unique_id=218416062]
+[node name="E145_initpath" type="Marker3D" parent="Config" unique_id=1212232875]
 transform = Transform3D(-0.50000006, 0, 0.8660254, 0, 1, 0, -0.8660254, 0, -0.50000006, 20.746147, 25.35971, 50.958584)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 145
 action = "initpath"
 source_action = "initpath"
@@ -1771,9 +1888,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2074.6147, -5095.8584, 2535.9712)
 acknex_angles = Vector3(120, 0, 0)
 
-[node name="E146_initpath" type="Marker3D" parent="Config" unique_id=1613339295]
+[node name="E146_initpath" type="Marker3D" parent="Config" unique_id=613512422]
 transform = Transform3D(-0.34202012, 0, 0.9396926, 0, 1, 0, -0.9396926, 0, -0.34202012, 19.929295, 25.35971, 49.286438)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 146
 action = "initpath"
 source_action = "initpath"
@@ -1783,9 +1900,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(1992.9294, -4928.644, 2535.9712)
 acknex_angles = Vector3(110, 0, 0)
 
-[node name="E147_initpath" type="Marker3D" parent="Config" unique_id=499772607]
+[node name="E147_initpath" type="Marker3D" parent="Config" unique_id=1694090638]
 transform = Transform3D(-0.25881904, 0, 0.9659258, 0, 1, 0, -0.9659258, 0, -0.25881904, 19.60042, 25.35971, 47.449238)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 147
 action = "initpath"
 source_action = "initpath"
@@ -1795,9 +1912,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(1960.042, -4744.924, 2535.9712)
 acknex_angles = Vector3(105, 0, 0)
 
-[node name="E148_initpath" type="Marker3D" parent="Config" unique_id=1193063957]
+[node name="E148_initpath" type="Marker3D" parent="Config" unique_id=2093254368]
 transform = Transform3D(-0.08715577, 0, 0.9961947, 0, 1, 0, -0.9961947, 0, -0.08715577, 19.42211, 25.35971, 45.772465)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 148
 action = "initpath"
 source_action = "initpath"
@@ -1807,9 +1924,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(1942.2109, -4577.2466, 2535.9712)
 acknex_angles = Vector3(95, 0, 0)
 
-[node name="E149_initpath" type="Marker3D" parent="Config" unique_id=809001046]
+[node name="E149_initpath" type="Marker3D" parent="Config" unique_id=768867032]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 19.412811, 25.35971, 44.25287)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 149
 action = "initpath"
 source_action = "initpath"
@@ -1819,9 +1936,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(1941.2813, -4425.287, 2535.9712)
 acknex_angles = Vector3(90, 0, 0)
 
-[node name="E150_initpath" type="Marker3D" parent="Config" unique_id=11400321]
+[node name="E150_initpath" type="Marker3D" parent="Config" unique_id=2102383390]
 transform = Transform3D(0.17364822, 0, 0.9848077, 0, 1, 0, -0.9848077, 0, 0.17364822, 19.554289, 25.35971, 42.65125)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 150
 action = "initpath"
 source_action = "initpath"
@@ -1831,9 +1948,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(1955.429, -4265.125, 2535.9712)
 acknex_angles = Vector3(80, 0, 0)
 
-[node name="E151_initpath" type="Marker3D" parent="Config" unique_id=597807661]
+[node name="E151_initpath" type="Marker3D" parent="Config" unique_id=554396245]
 transform = Transform3D(0.25881907, 0, 0.9659258, 0, 1, 0, -0.9659258, 0, 0.25881907, 20.025204, 25.35971, 41.209236)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 151
 action = "initpath"
 source_action = "initpath"
@@ -1843,9 +1960,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2002.5205, -4120.924, 2535.9712)
 acknex_angles = Vector3(75, 0, 0)
 
-[node name="E152_initpath" type="Marker3D" parent="Config" unique_id=267894832]
+[node name="E152_initpath" type="Marker3D" parent="Config" unique_id=1849194712]
 transform = Transform3D(0.49999997, 0, 0.86602545, 0, 1, 0, -0.86602545, 0, 0.49999997, 20.879477, 25.35971, 39.91858)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 152
 action = "initpath"
 source_action = "initpath"
@@ -1855,9 +1972,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2087.9478, -3991.8582, 2535.9712)
 acknex_angles = Vector3(60, 0, 0)
 
-[node name="E153_initpath" type="Marker3D" parent="Config" unique_id=635845937]
+[node name="E153_initpath" type="Marker3D" parent="Config" unique_id=1746268442]
 transform = Transform3D(0.57357645, 0, 0.81915206, 0, 1, 0, -0.81915206, 0, 0.57357645, 21.75163, 25.35971, 38.15358)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 153
 action = "initpath"
 source_action = "initpath"
@@ -1867,9 +1984,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2175.163, -3815.3582, 2535.9712)
 acknex_angles = Vector3(55, 0, 0)
 
-[node name="E154_initpath" type="Marker3D" parent="Config" unique_id=841667436]
+[node name="E154_initpath" type="Marker3D" parent="Config" unique_id=1368747626]
 transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 22.857388, 25.35971, 36.70163)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 154
 action = "initpath"
 source_action = "initpath"
@@ -1879,9 +1996,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2285.7388, -3670.163, 2535.9712)
 acknex_angles = Vector3(45, 0, 0)
 
-[node name="E155_initpath" type="Marker3D" parent="Config" unique_id=496449220]
+[node name="E155_initpath" type="Marker3D" parent="Config" unique_id=761513813]
 transform = Transform3D(0.76604444, 0, 0.6427876, 0, 1, 0, -0.6427876, 0, 0.76604444, 24.1311, 25.35971, 35.41477)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 155
 action = "initpath"
 source_action = "initpath"
@@ -1891,9 +2008,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2413.11, -3541.477, 2535.9712)
 acknex_angles = Vector3(40, 0, 0)
 
-[node name="E156_initpath" type="Marker3D" parent="Config" unique_id=334876347]
+[node name="E156_initpath" type="Marker3D" parent="Config" unique_id=365124672]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 25.640436, 25.35971, 34.35954)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 156
 action = "initpath"
 source_action = "initpath"
@@ -1903,9 +2020,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2564.0437, -3435.954, 2535.9712)
 acknex_angles = Vector3(30, 0, 0)
 
-[node name="E157_initpath" type="Marker3D" parent="Config" unique_id=787504948]
+[node name="E157_initpath" type="Marker3D" parent="Config" unique_id=452434308]
 transform = Transform3D(0.90630776, 0, 0.42261827, 0, 1, 0, -0.42261827, 0, 0.90630776, 27.15614, 25.35971, 33.631283)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 157
 action = "initpath"
 source_action = "initpath"
@@ -1915,9 +2032,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2715.614, -3363.1284, 2535.9712)
 acknex_angles = Vector3(25, 0, 0)
 
-[node name="E158_initpath" type="Marker3D" parent="Config" unique_id=1435536212]
+[node name="E158_initpath" type="Marker3D" parent="Config" unique_id=771398661]
 transform = Transform3D(0.9659258, 0, 0.25881904, 0, 1, 0, -0.25881904, 0, 0.9659258, 28.98978, 25.35971, 33.053814)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 158
 action = "initpath"
 source_action = "initpath"
@@ -1927,9 +2044,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(2898.978, -3305.3813, 2535.9712)
 acknex_angles = Vector3(15, 0, 0)
 
-[node name="E159_initpath" type="Marker3D" parent="Config" unique_id=696608986]
+[node name="E159_initpath" type="Marker3D" parent="Config" unique_id=975000931]
 transform = Transform3D(0.9961947, 0, 0.08715574, 0, 1, 0, -0.08715574, 0, 0.9961947, 31.146551, 25.35971, 32.6355)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 159
 action = "initpath"
 source_action = "initpath"
@@ -1939,9 +2056,9 @@ skills = PackedFloat32Array(29, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(3114.6553, -3263.5503, 2535.9712)
 acknex_angles = Vector3(5, 0, 0)
 
-[node name="E162_initcamera1" type="Marker3D" parent="Config" unique_id=1340852437]
+[node name="E162_initcamera1" type="Marker3D" parent="Config" unique_id=154213864]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.515644, -6.2287517, 6.7487698)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 162
 action = "initcamera1"
 source_action = "initcamera1"
@@ -1951,9 +2068,9 @@ skills = PackedFloat32Array(2000, 50, 2000, 1000, 0, 1000, 180, 200)
 flags = 4
 acknex_position = Vector3(-2851.5645, -674.877, -622.8752)
 
-[node name="E164_setcamera" type="Marker3D" parent="Config" unique_id=653976624]
+[node name="E164_setcamera" type="Marker3D" parent="Config" unique_id=1444113671]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 46.519634, 5.04, 46.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 164
 action = "setcamera"
 source_action = "setcamera"
@@ -1963,9 +2080,9 @@ skills = PackedFloat32Array(1, 1000, 640, 270, 200, 50, 400, 0)
 acknex_position = Vector3(4651.9634, -4612.431, 504)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E165_setcamera" type="Marker3D" parent="Config" unique_id=777363298]
+[node name="E165_setcamera" type="Marker3D" parent="Config" unique_id=88126753]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 32.919632, 5.04, 32.52431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 165
 action = "setcamera"
 source_action = "setcamera"
@@ -1975,9 +2092,9 @@ skills = PackedFloat32Array(1, 1000, 780, 0, 200, 50, 400, 0)
 acknex_position = Vector3(3291.9634, -3252.4312, 504)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E166_setcamera" type="Marker3D" parent="Config" unique_id=1144260564]
+[node name="E166_setcamera" type="Marker3D" parent="Config" unique_id=1304643356]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 19.479633, 4.96, 46.04431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 166
 action = "setcamera"
 source_action = "setcamera"
@@ -1987,9 +2104,9 @@ skills = PackedFloat32Array(1, 1000, 649, 90, 200, 50, 400, 0)
 acknex_position = Vector3(1947.9634, -4604.431, 496)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E167_setcamera" type="Marker3D" parent="Config" unique_id=339437101]
+[node name="E167_setcamera" type="Marker3D" parent="Config" unique_id=126922656]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 32.919632, 5.04, 59.564312)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 167
 action = "setcamera"
 source_action = "setcamera"
@@ -1999,9 +2116,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3291.9634, -5956.431, 504)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E169_setcamera" type="Marker3D" parent="Config" unique_id=169977372]
+[node name="E169_setcamera" type="Marker3D" parent="Config" unique_id=254644227]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.23963, 15.24, 32.564312)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 169
 action = "setcamera"
 source_action = "setcamera"
@@ -2011,9 +2128,9 @@ skills = PackedFloat32Array(1, 1000, 780, 0, 200, 50, 400, 0)
 acknex_position = Vector3(3323.9634, -3256.4312, 1524)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E170_setcamera" type="Marker3D" parent="Config" unique_id=1142712607]
+[node name="E170_setcamera" type="Marker3D" parent="Config" unique_id=1664348982]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.55963, 25.519999, 32.52431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 170
 action = "setcamera"
 source_action = "setcamera"
@@ -2023,9 +2140,9 @@ skills = PackedFloat32Array(1, 1000, 780, 0, 200, 50, 400, 0)
 acknex_position = Vector3(3355.9634, -3252.4312, 2552)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E171_setcamera" type="Marker3D" parent="Config" unique_id=332671834]
+[node name="E171_setcamera" type="Marker3D" parent="Config" unique_id=1406656379]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.879635, 35.8, 32.564312)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 171
 action = "setcamera"
 source_action = "setcamera"
@@ -2035,9 +2152,9 @@ skills = PackedFloat32Array(1, 1000, 780, 0, 200, 50, 400, 0)
 acknex_position = Vector3(3387.9634, -3256.4312, 3580)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E172_setcamera" type="Marker3D" parent="Config" unique_id=1846298503]
+[node name="E172_setcamera" type="Marker3D" parent="Config" unique_id=293248048]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 19.719633, 15.32, 46.08431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 172
 action = "setcamera"
 source_action = "setcamera"
@@ -2047,9 +2164,9 @@ skills = PackedFloat32Array(1, 1000, 651, 90, 200, 50, 400, 0)
 acknex_position = Vector3(1971.9634, -4608.431, 1532)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E173_setcamera" type="Marker3D" parent="Config" unique_id=666428441]
+[node name="E173_setcamera" type="Marker3D" parent="Config" unique_id=1315968962]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 19.959633, 25.4, 46.04431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 173
 action = "setcamera"
 source_action = "setcamera"
@@ -2059,9 +2176,9 @@ skills = PackedFloat32Array(1, 1000, 652, 90, 200, 50, 400, 0)
 acknex_position = Vector3(1995.9634, -4604.431, 2540)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E174_setcamera" type="Marker3D" parent="Config" unique_id=399521924]
+[node name="E174_setcamera" type="Marker3D" parent="Config" unique_id=71022611]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 20.199633, 35.76, 46.08431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 174
 action = "setcamera"
 source_action = "setcamera"
@@ -2071,9 +2188,9 @@ skills = PackedFloat32Array(1, 1000, 653, 90, 200, 50, 400, 0)
 acknex_position = Vector3(2019.9634, -4608.431, 3576)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E175_setcamera" type="Marker3D" parent="Config" unique_id=314623446]
+[node name="E175_setcamera" type="Marker3D" parent="Config" unique_id=603629678]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 46.759632, 15.32, 46.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 175
 action = "setcamera"
 source_action = "setcamera"
@@ -2083,9 +2200,9 @@ skills = PackedFloat32Array(1, 1000, 650, 270, 200, 50, 400, 0)
 acknex_position = Vector3(4675.9634, -4612.431, 1532)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E176_setcamera" type="Marker3D" parent="Config" unique_id=1087053343]
+[node name="E176_setcamera" type="Marker3D" parent="Config" unique_id=398576408]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 46.999634, 25.48, 46.08431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 176
 action = "setcamera"
 source_action = "setcamera"
@@ -2095,9 +2212,9 @@ skills = PackedFloat32Array(1, 1000, 655, 270, 200, 50, 400, 0)
 acknex_position = Vector3(4699.9634, -4608.431, 2548)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E177_setcamera" type="Marker3D" parent="Config" unique_id=165301080]
+[node name="E177_setcamera" type="Marker3D" parent="Config" unique_id=1857133518]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 47.159634, 35.68, 46.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 177
 action = "setcamera"
 source_action = "setcamera"
@@ -2107,9 +2224,9 @@ skills = PackedFloat32Array(1, 1000, 660, 270, 200, 50, 400, 0)
 acknex_position = Vector3(4715.9634, -4612.431, 3568)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E179_setcamera" type="Marker3D" parent="Config" unique_id=2042737543]
+[node name="E179_setcamera" type="Marker3D" parent="Config" unique_id=1468567805]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.159634, 15.28, 59.564312)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 179
 action = "setcamera"
 source_action = "setcamera"
@@ -2119,9 +2236,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3315.9634, -5956.431, 1528)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E180_setcamera" type="Marker3D" parent="Config" unique_id=1188983912]
+[node name="E180_setcamera" type="Marker3D" parent="Config" unique_id=229195288]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.39963, 25.599998, 59.564312)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 180
 action = "setcamera"
 source_action = "setcamera"
@@ -2131,9 +2248,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3339.9634, -5956.431, 2560)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E181_setcamera" type="Marker3D" parent="Config" unique_id=1817440782]
+[node name="E181_setcamera" type="Marker3D" parent="Config" unique_id=1656033614]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.71963, 35.84, 59.564312)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 181
 action = "setcamera"
 source_action = "setcamera"
@@ -2143,9 +2260,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3371.9634, -5956.431, 3584)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E190_setcamera" type="Marker3D" parent="Config" unique_id=1869163349]
+[node name="E190_setcamera" type="Marker3D" parent="Config" unique_id=463354367]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.319633, 4.96, 66.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 190
 action = "setcamera"
 source_action = "setcamera"
@@ -2155,9 +2272,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3331.9634, -6612.4316, 496)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E191_setcamera" type="Marker3D" parent="Config" unique_id=2121230584]
+[node name="E191_setcamera" type="Marker3D" parent="Config" unique_id=1682915526]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 49.87963, -0.16, 46.20431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 191
 action = "setcamera"
 source_action = "setcamera"
@@ -2167,9 +2284,9 @@ skills = PackedFloat32Array(1, 1000, 640, 270, 200, 50, 400, 0)
 acknex_position = Vector3(4987.9634, -4620.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E192_setcamera" type="Marker3D" parent="Config" unique_id=1683566585]
+[node name="E192_setcamera" type="Marker3D" parent="Config" unique_id=476483043]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 52.439632, -0.16, 46.04431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 192
 action = "setcamera"
 source_action = "setcamera"
@@ -2179,9 +2296,9 @@ skills = PackedFloat32Array(1, 1000, 640, 270, 200, 50, 400, 0)
 acknex_position = Vector3(5243.9634, -4604.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E193_setcamera" type="Marker3D" parent="Config" unique_id=577143545]
+[node name="E193_setcamera" type="Marker3D" parent="Config" unique_id=1333097556]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 54.999634, -0.16, 46.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 193
 action = "setcamera"
 source_action = "setcamera"
@@ -2191,9 +2308,9 @@ skills = PackedFloat32Array(1, 1000, 640, 270, 200, 50, 400, 0)
 acknex_position = Vector3(5499.9634, -4612.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E194_setcamera" type="Marker3D" parent="Config" unique_id=1626821990]
+[node name="E194_setcamera" type="Marker3D" parent="Config" unique_id=860068220]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 57.639633, -0.16, 46.04431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 194
 action = "setcamera"
 source_action = "setcamera"
@@ -2203,9 +2320,9 @@ skills = PackedFloat32Array(1, 1000, 640, 270, 200, 50, 400, 0)
 acknex_position = Vector3(5763.9634, -4604.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E195_setcamera" type="Marker3D" parent="Config" unique_id=316248592]
+[node name="E195_setcamera" type="Marker3D" parent="Config" unique_id=1232985885]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 60.119633, -0.16, 46.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 195
 action = "setcamera"
 source_action = "setcamera"
@@ -2215,9 +2332,9 @@ skills = PackedFloat32Array(1, 1000, 640, 270, 200, 50, 400, 0)
 acknex_position = Vector3(6011.9634, -4612.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E196_setcamera" type="Marker3D" parent="Config" unique_id=689309547]
+[node name="E196_setcamera" type="Marker3D" parent="Config" unique_id=1354191870]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.3464, -0.24, 29.29459)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 196
 action = "setcamera"
 source_action = "setcamera"
@@ -2227,9 +2344,9 @@ skills = PackedFloat32Array(1, 1000, 780, 0, 200, 50, 400, 0)
 acknex_position = Vector3(3334.6401, -2929.459, -24)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E197_setcamera" type="Marker3D" parent="Config" unique_id=421231334]
+[node name="E197_setcamera" type="Marker3D" parent="Config" unique_id=1362291946]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.3464, -0.24, 26.734589)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 197
 action = "setcamera"
 source_action = "setcamera"
@@ -2239,9 +2356,9 @@ skills = PackedFloat32Array(1, 1000, 780, 0, 200, 50, 400, 0)
 acknex_position = Vector3(3334.6401, -2673.459, -24)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E198_setcamera" type="Marker3D" parent="Config" unique_id=23406176]
+[node name="E198_setcamera" type="Marker3D" parent="Config" unique_id=924872122]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.3464, -0.24, 24.25459)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 198
 action = "setcamera"
 source_action = "setcamera"
@@ -2251,9 +2368,9 @@ skills = PackedFloat32Array(1, 1000, 780, 0, 200, 50, 400, 0)
 acknex_position = Vector3(3334.6401, -2425.459, -24)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E199_setcamera" type="Marker3D" parent="Config" unique_id=1596299218]
+[node name="E199_setcamera" type="Marker3D" parent="Config" unique_id=1715688350]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.3464, -0.24, 21.694592)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 199
 action = "setcamera"
 source_action = "setcamera"
@@ -2263,9 +2380,9 @@ skills = PackedFloat32Array(1, 1000, 780, 0, 200, 50, 400, 0)
 acknex_position = Vector3(3334.6401, -2169.4592, -24)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E200_setcamera" type="Marker3D" parent="Config" unique_id=867811028]
+[node name="E200_setcamera" type="Marker3D" parent="Config" unique_id=910384853]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 16.679634, -0.16, 46.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 200
 action = "setcamera"
 source_action = "setcamera"
@@ -2275,9 +2392,9 @@ skills = PackedFloat32Array(1, 1000, 649, 90, 200, 50, 400, 0)
 acknex_position = Vector3(1667.9634, -4612.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E201_setcamera" type="Marker3D" parent="Config" unique_id=2102607313]
+[node name="E201_setcamera" type="Marker3D" parent="Config" unique_id=2099248608]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 14.119634, -0.16, 46.04431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 201
 action = "setcamera"
 source_action = "setcamera"
@@ -2287,9 +2404,9 @@ skills = PackedFloat32Array(1, 1000, 649, 90, 200, 50, 400, 0)
 acknex_position = Vector3(1411.9634, -4604.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E202_setcamera" type="Marker3D" parent="Config" unique_id=1214045916]
+[node name="E202_setcamera" type="Marker3D" parent="Config" unique_id=492538210]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 11.959634, -0.16, 46.04431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 202
 action = "setcamera"
 source_action = "setcamera"
@@ -2299,9 +2416,9 @@ skills = PackedFloat32Array(1, 1000, 649, 90, 200, 50, 400, 0)
 acknex_position = Vector3(1195.9634, -4604.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E203_setcamera" type="Marker3D" parent="Config" unique_id=1584262194]
+[node name="E203_setcamera" type="Marker3D" parent="Config" unique_id=1185049226]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 9.159634, -0.16, 46.04431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 203
 action = "setcamera"
 source_action = "setcamera"
@@ -2311,9 +2428,9 @@ skills = PackedFloat32Array(1, 1000, 649, 90, 200, 50, 400, 0)
 acknex_position = Vector3(915.9634, -4604.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E204_setcamera" type="Marker3D" parent="Config" unique_id=1206287337]
+[node name="E204_setcamera" type="Marker3D" parent="Config" unique_id=1904124622]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 6.5996337, -0.16, 46.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 204
 action = "setcamera"
 source_action = "setcamera"
@@ -2323,9 +2440,9 @@ skills = PackedFloat32Array(1, 1000, 649, 90, 200, 50, 400, 0)
 acknex_position = Vector3(659.9634, -4612.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E205_setcamera" type="Marker3D" parent="Config" unique_id=2122181962]
+[node name="E205_setcamera" type="Marker3D" parent="Config" unique_id=1396941161]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.23963, -0.08, 62.60431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 205
 action = "setcamera"
 source_action = "setcamera"
@@ -2335,9 +2452,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3323.9634, -6260.431, -8)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E206_setcamera" type="Marker3D" parent="Config" unique_id=1871254413]
+[node name="E206_setcamera" type="Marker3D" parent="Config" unique_id=1749225605]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.23963, -0.08, 65.16431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 206
 action = "setcamera"
 source_action = "setcamera"
@@ -2347,9 +2464,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3323.9634, -6516.431, -8)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E207_setcamera" type="Marker3D" parent="Config" unique_id=1347564631]
+[node name="E207_setcamera" type="Marker3D" parent="Config" unique_id=46383581]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.39963, -0.08, 67.80431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 207
 action = "setcamera"
 source_action = "setcamera"
@@ -2359,9 +2476,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3339.9634, -6780.4316, -8)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E208_setcamera" type="Marker3D" parent="Config" unique_id=1430016941]
+[node name="E208_setcamera" type="Marker3D" parent="Config" unique_id=1391106669]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.319633, -0.08, 70.28432)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 208
 action = "setcamera"
 source_action = "setcamera"
@@ -2371,9 +2488,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3331.9634, -7028.4316, -8)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E209_setcamera" type="Marker3D" parent="Config" unique_id=280385674]
+[node name="E209_setcamera" type="Marker3D" parent="Config" unique_id=1502521951]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.319633, -0.08, 72.92432)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 209
 action = "setcamera"
 source_action = "setcamera"
@@ -2383,9 +2500,9 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3331.9634, -7292.4316, -8)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E214_setcamera" type="Marker3D" parent="Config" unique_id=965920083]
+[node name="E214_setcamera" type="Marker3D" parent="Config" unique_id=345304050]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 46.119633, -0.16, 46.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 214
 action = "setcamera"
 source_action = "setcamera"
@@ -2395,9 +2512,9 @@ skills = PackedFloat32Array(1, 1000, 640, 270, 200, 50, 400, 0)
 acknex_position = Vector3(4611.9634, -4612.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E215_setcamera" type="Marker3D" parent="Config" unique_id=296251463]
+[node name="E215_setcamera" type="Marker3D" parent="Config" unique_id=1320067023]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.1864, -0.24, 33.374588)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 215
 action = "setcamera"
 source_action = "setcamera"
@@ -2407,9 +2524,9 @@ skills = PackedFloat32Array(1, 1000, 780, 0, 200, 50, 400, 0)
 acknex_position = Vector3(3318.6401, -3337.459, -24)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E216_setcamera" type="Marker3D" parent="Config" unique_id=1662066648]
+[node name="E216_setcamera" type="Marker3D" parent="Config" unique_id=564676399]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 20.439632, -0.16, 46.12431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 216
 action = "setcamera"
 source_action = "setcamera"
@@ -2419,9 +2536,9 @@ skills = PackedFloat32Array(1, 1000, 649, 90, 200, 50, 400, 0)
 acknex_position = Vector3(2043.9634, -4612.431, -16)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="E217_setcamera" type="Marker3D" parent="Config" unique_id=978339613]
+[node name="E217_setcamera" type="Marker3D" parent="Config" unique_id=550956366]
 transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 33.319633, -0.08, 59.00431)
-script = ExtResource("17_5m3n4")
+script = ExtResource("19_jw20k")
 source_index = 217
 action = "setcamera"
 source_action = "setcamera"
@@ -2431,122 +2548,22 @@ skills = PackedFloat32Array(1, 1000, 800, 180, 200, 50, 400, 0)
 acknex_position = Vector3(3331.9634, -5900.431, -8)
 acknex_angles = Vector3(132, 0, 0)
 
-[node name="Unmapped" type="Node3D" parent="." unique_id=556369190]
+[node name="Unmapped" type="Node3D" parent="." unique_id=532843885]
 
-[node name="E020_initengineplatform" type="Marker3D" parent="Unmapped" unique_id=250081066]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.32, -13.16, 51.879997)
-script = ExtResource("17_5m3n4")
-source_index = 20
-action = "initengineplatform"
-source_action = "initEnginePlatform"
-source_name = "small_mdl_063"
-source_file = "small.pcx"
-skills = PackedFloat32Array(7855, 10, 40, 0, 180, 2, 0, 0)
-flags = 64
-acknex_position = Vector3(1732, -5188, -1316)
-acknex_angles = Vector3(0, 90, 0)
-
-[node name="E021_initengineplatform" type="Marker3D" parent="Unmapped" unique_id=1309397554]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.359999, -23.6, 41.6)
-script = ExtResource("17_5m3n4")
-source_index = 21
-action = "initengineplatform"
-source_action = "initEnginePlatform"
-source_name = "small_mdl_063"
-source_file = "small.pcx"
-skills = PackedFloat32Array(7854, 12, 40, 0, 180, 6, 0, 0)
-flags = 64
-acknex_position = Vector3(1736, -4160, -2360)
-acknex_angles = Vector3(0, 90, 0)
-
-[node name="E023_initengineplatform" type="Marker3D" parent="Unmapped" unique_id=1998058670]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.32, -13.24, 57)
-script = ExtResource("17_5m3n4")
-source_index = 23
-action = "initengineplatform"
-source_action = "initEnginePlatform"
-source_name = "small_mdl_063"
-source_file = "small.pcx"
-skills = PackedFloat32Array(7857, 10, 40, 0, 180, 4, 0, 0)
-flags = 64
-acknex_position = Vector3(1732, -5700, -1324)
-acknex_angles = Vector3(0, 90, 0)
-
-[node name="E024_initengineplatform" type="Marker3D" parent="Unmapped" unique_id=439331592]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.32, -11.639999, 60.84)
-script = ExtResource("17_5m3n4")
-source_index = 24
-action = "initengineplatform"
-source_action = "initEnginePlatform"
-source_name = "small_mdl_063"
-source_file = "small.pcx"
-skills = PackedFloat32Array(7858, 10, 24, 0, 180, 2, 0, 0)
-flags = 64
-acknex_position = Vector3(1732, -6084, -1164)
-acknex_angles = Vector3(0, 90, 0)
-
-[node name="E168_initplatform" type="Marker3D" parent="Unmapped" unique_id=1103620027]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.279999, 3.6799998, 44.16)
-script = ExtResource("17_5m3n4")
-source_index = 168
-action = "initplatform"
-source_action = "initplatform"
-source_name = "platfor2_mdl_284"
-source_file = "platgree.wmb"
-skills = PackedFloat32Array(7854, 0, 0, 0, 0, 6, 0, 0)
-flags = 64
-acknex_position = Vector3(1728, -4416, 368)
-
-[node name="E178_initplatform" type="Marker3D" parent="Unmapped" unique_id=57091426]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.279999, 3.6799998, 48)
-script = ExtResource("17_5m3n4")
-source_index = 178
-action = "initplatform"
-source_action = "initplatform"
-source_name = "platfor2_mdl_284"
-source_file = "platfyel.wmb"
-skills = PackedFloat32Array(7855, 0, 0, 0, 0, 2, 0, 0)
-flags = 64
-acknex_position = Vector3(1728, -4800, 368)
-
-[node name="E184_initplatform" type="Marker3D" parent="Unmapped" unique_id=40388448]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.28, 34.399998, 30.08)
-script = ExtResource("17_5m3n4")
-source_index = 184
-action = "initplatform"
-source_action = "initplatform"
-source_name = "platfor2_mdl_284"
-source_file = "platfyel.wmb"
-skills = PackedFloat32Array(7858, 0, 0, 0, 0, 2, 0, 0)
-flags = 64
-acknex_position = Vector3(3328, -3008, 3440)
-
-[node name="E185_initplatform" type="Marker3D" parent="Unmapped" unique_id=2140031870]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.28, 24.16, 46.079998)
-script = ExtResource("17_5m3n4")
-source_index = 185
-action = "initplatform"
-source_action = "initplatform"
-source_name = "platfor2_mdl_284"
-source_file = "platfblu.wmb"
-skills = PackedFloat32Array(7857, 0, 0, 0, 0, 4, 0, 0)
-flags = 64
-acknex_position = Vector3(4928, -4608, 2416)
-
-[node name="PlayerStart" type="Marker3D" parent="." unique_id=992925617]
+[node name="PlayerStart" type="Marker3D" parent="." unique_id=82423721]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.278748, 3.84, 66.16757)
 
-[node name="LevelCamera" type="Camera3D" parent="." unique_id=2029683217]
-script = ExtResource("18_u7lmq")
+[node name="LevelCamera" type="Camera3D" parent="." unique_id=635404243]
+script = ExtResource("20_47l5l")
 target_path = NodePath("../Player")
 
-[node name="DebugOverlay" parent="." unique_id=495229711 instance=ExtResource("19_v2ego")]
+[node name="DebugOverlay" parent="." unique_id=1391889155 instance=ExtResource("21_t1fks")]
 player_path = NodePath("../Player")
 label_position = Vector2(12, 60)
 
-[node name="KeyDiamondPanel" parent="." unique_id=651489303 instance=ExtResource("20_a8a8m")]
+[node name="KeyDiamondPanel" parent="." unique_id=1365818808 instance=ExtResource("22_fjan0")]
 player_path = NodePath("../Player")
 screen_position = Vector2(582, 5)
 
-[node name="LevelHud" parent="." unique_id=1406935665 instance=ExtResource("21_jw20k")]
+[node name="LevelHud" parent="." unique_id=246475311 instance=ExtResource("23_vp3of")]
 player_path = NodePath("../Player")

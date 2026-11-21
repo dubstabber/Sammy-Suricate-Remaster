@@ -9,7 +9,8 @@ const ORIGINAL_IDPLAYER := 9999
 const HIT_SOUND_WDL_RANGE_UNITS := 1500.0
 
 @export var model_asset_id: String = "model.wasp1"
-@export var hit_sound_asset_id: String = "sfx.wasp_kaput"
+## bullets.wdl: a dying wasp plays one of the three WaspKaputt sounds at random.
+@export var hit_sound_asset_ids: PackedStringArray = PackedStringArray(["sfx.wasp_kaput", "sfx.wasp_kaput_2", "sfx.wasp_kaput_3"])
 
 var _wasp_type: Resource = null
 var _source_player: Node = null
@@ -131,7 +132,8 @@ func _despawn(play_hit_sound: bool) -> void:
 	_consumed = true
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
-	if play_hit_sound and not hit_sound_asset_id.is_empty():
+	if play_hit_sound and not hit_sound_asset_ids.is_empty():
+		var hit_sound_asset_id := hit_sound_asset_ids[randi() % hit_sound_asset_ids.size()]
 		var audio := get_node_or_null("/root/Audio")
 		if audio != null and audio.has_method("play_spatial_sfx"):
 			audio.call("play_spatial_sfx", hit_sound_asset_id, self, HIT_SOUND_WDL_RANGE_UNITS)

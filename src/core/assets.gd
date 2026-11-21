@@ -1212,6 +1212,60 @@ const CATALOG := {
         "kind": "audio",
         "description": "Original TakeWasp_son wasp pickup chime"
     },
+    "sfx.wasp_kaput_2": {
+        "path": "res://assets/audio/WaspKap2.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/WaspKap2.wav",
+        "kind": "audio",
+        "description": "Original WaspKaputt2_son wasp death variant (bullets.wdl)"
+    },
+    "sfx.wasp_kaput_3": {
+        "path": "res://assets/audio/WaspKap3.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/WaspKap3.wav",
+        "kind": "audio",
+        "description": "Original WaspKaputt3_son wasp death variant (bullets.wdl)"
+    },
+    "sfx.lion_roar": {
+        "path": "res://assets/audio/tigre.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/tigre.wav",
+        "kind": "audio",
+        "description": "Original Tigre_son lion roar (hit, stuck and friend-call roars)"
+    },
+    "sfx.lion_attack": {
+        "path": "res://assets/audio/lionatt1.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/lionatt1.wav",
+        "kind": "audio",
+        "description": "Original LionAttack1_son lion charge cry"
+    },
+    "sfx.lion_hit_1": {
+        "path": "res://assets/audio/lionHit1.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/lionHit1.wav",
+        "kind": "audio",
+        "description": "Original LionHit1_son lion pain cry"
+    },
+    "sfx.lion_hit_2": {
+        "path": "res://assets/audio/lionHit2.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/lionHit2.wav",
+        "kind": "audio",
+        "description": "Original LionHit2_son lion pain cry"
+    },
+    "sfx.player_kaputt": {
+        "path": "res://assets/audio/kaputt.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/kaputt.wav",
+        "kind": "audio",
+        "description": "Original Kaputt_son played when Sammy dies"
+    },
+    "sfx.title_bell": {
+        "path": "res://assets/audio/Bell1.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/Bell1.wav",
+        "kind": "audio",
+        "description": "Original Bell1 played when a tutorial title appears"
+    },
+    "sfx.slide": {
+        "path": "res://assets/audio/glisse.wav",
+        "source": "extract-sammy-assets/extracted/godot/audio/glisse.wav",
+        "kind": "audio",
+        "description": "Original Glisse_son tuned while Sammy slides down a slope"
+    },
     "sfx.wasp_kaput": {
         "path": "res://assets/audio/WaspKapu.wav",
         "source": "extract-sammy-assets/extracted/godot/audio/WaspKapu.wav",

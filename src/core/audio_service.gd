@@ -8,6 +8,20 @@ const MIN_SPATIAL_MAX_DISTANCE := 0.01
 const SPATIAL_REFERENCE_DISTANCE_RATIO := 0.5
 const MIN_SPATIAL_UNIT_SIZE := 1.0
 const SPATIAL_VOLUME_BOOST_DB := 6.0
+## A5 engine sound volume steps (sammypolish.exe 0x488BC0): DirectSound
+## attenuation in hundredths of a dB for the 64 levels a WDL volume maps to.
+const WDL_VOLUME_STEP_CENTIBELS := [
+    -10000, -4143, -3449, -3044, -2756, -2533, -2351, -2197, -2063, -1945, -1840, -1745, -1658, -1578, -1504, -1435,
+    -1370, -1309, -1252, -1198, -1147, -1098, -1052, -1007, -965, -924, -885, -847, -810, -775, -741, -709,
+    -677, -646, -616, -587, -559, -532, -505, -479, -454, -429, -405, -381, -358, -336, -314, -292,
+    -271, -251, -231, -211, -191, -172, -154, -135, -117, -100, -82, -65, -48, -32, -16, 0,
+]
+## The engine scales a WDL volume by Sound_Vol (the options sound slider,
+## 0..100) and shifts it right by 7 to pick one of the 64 steps.
+## TUNE_SOUND frequency: value * 10 / 1024 of the sample rate, clamped to 100..100000 Hz.
+const WDL_FREQUENCY_SCALE := 10.0 / 1024.0
+const WDL_MIN_FREQUENCY_HZ := 100.0
+const WDL_MAX_FREQUENCY_HZ := 100000.0
 
 var _music_player: AudioStreamPlayer
 var _sfx_players: Array[AudioStreamPlayer] = []
@@ -16,6 +30,8 @@ var _next_sfx_index := 0
 var _music_volume := 1.0
 var _sfx_volume := 1.0
 var _next_spatial_sfx_id := 0
+var _tuned_players := {}
+var _next_tuned_handle := 1
 
 
 func _ready() -> void:
@@ -60,6 +76,8 @@ func stop_sfx() -> void:
             player.stream = null
             player.queue_free()
     _spatial_sfx_players.clear()
+    for handle: int in _tuned_players.keys():
+        stop_tuned_sfx(handle)
 
 
 func set_music_volume_percent(value: float) -> void:
@@ -79,6 +97,10 @@ func set_sfx_volume_percent(value: float) -> void:
     for player in _spatial_sfx_players:
         if is_instance_valid(player):
             player.volume_db = _spatial_volume_db()
+    for handle: int in _tuned_players:
+        var tuned := _tuned_players[handle] as AudioStreamPlayer
+        if tuned != null and is_instance_valid(tuned):
+            _apply_tuning(tuned, 0.0, 0.0)
 
 
 func get_sfx_volume_percent() -> float:
@@ -95,6 +117,88 @@ func play_sfx(asset_id: String) -> void:
     player.volume_db = _volume_to_db(_sfx_volume)
     player.stream = stream
     player.play()
+
+
+## WDL `play_sound snd, volume` followed by optional `tune_sound handle,
+## volume, frequency`: returns a handle for tune_sfx / stop_tuned_sfx.
+func play_sfx_tuned(asset_id: String, wdl_volume: float = 100.0, wdl_frequency: float = 0.0) -> int:
+    var stream := _load_stream(asset_id)
+    if stream == null:
+        return 0
+    var player := AudioStreamPlayer.new()
+    var handle := _next_tuned_handle
+    _next_tuned_handle += 1
+    player.name = "TunedSfxPlayer%d" % handle
+    player.bus = "Master"
+    player.stream = stream
+    player.set_meta(&"wdl_volume", wdl_volume)
+    add_child(player)
+    _tuned_players[handle] = player
+    player.finished.connect(_on_tuned_sfx_finished.bind(handle), CONNECT_ONE_SHOT)
+    _apply_tuning(player, wdl_volume, wdl_frequency)
+    player.play()
+    return handle
+
+
+## WDL TUNE_SOUND (sammypolish.exe sub_41D900): a volume or frequency of 0
+## leaves that property unchanged.
+func tune_sfx(handle: int, wdl_volume: float, wdl_frequency: float) -> bool:
+    var player := _tuned_players.get(handle, null) as AudioStreamPlayer
+    if player == null or not is_instance_valid(player):
+        return false
+    _apply_tuning(player, wdl_volume, wdl_frequency)
+    return true
+
+
+func stop_tuned_sfx(handle: int) -> void:
+    var player := _tuned_players.get(handle, null) as AudioStreamPlayer
+    _tuned_players.erase(handle)
+    if player != null and is_instance_valid(player):
+        player.stop()
+        player.queue_free()
+
+
+func is_tuned_sfx_playing(handle: int) -> bool:
+    var player := _tuned_players.get(handle, null) as AudioStreamPlayer
+    return player != null and is_instance_valid(player) and player.playing
+
+
+func get_tuned_sfx_player(handle: int) -> AudioStreamPlayer:
+    return _tuned_players.get(handle, null) as AudioStreamPlayer
+
+
+## dB of a WDL sound volume at a Sound_Vol master volume (both 0..100).
+static func wdl_volume_db(wdl_volume: float, master_volume_percent: float = 100.0) -> float:
+    if wdl_volume <= 0.0 or master_volume_percent <= 0.0:
+        return SILENT_VOLUME_DB
+    var step := clampi(int(wdl_volume * master_volume_percent) >> 7, 1, WDL_VOLUME_STEP_CENTIBELS.size() - 1)
+    return float(WDL_VOLUME_STEP_CENTIBELS[step]) / 100.0
+
+
+## Playback pitch of a WDL TUNE_SOUND frequency for a stream of `mix_rate` Hz.
+static func wdl_pitch_scale(wdl_frequency: float, mix_rate: float) -> float:
+    var rate := maxf(mix_rate, 1.0)
+    var hz := clampf(wdl_frequency * WDL_FREQUENCY_SCALE * rate, WDL_MIN_FREQUENCY_HZ, WDL_MAX_FREQUENCY_HZ)
+    return maxf(hz / rate, 0.01)
+
+
+func _apply_tuning(player: AudioStreamPlayer, wdl_volume: float, wdl_frequency: float) -> void:
+    if wdl_volume > 0.0:
+        player.set_meta(&"wdl_volume", wdl_volume)
+    var volume := float(player.get_meta(&"wdl_volume", 100.0))
+    player.volume_db = wdl_volume_db(volume, _sfx_volume * 100.0)
+    if wdl_frequency > 0.0:
+        var mix_rate := 22050.0
+        if player.stream is AudioStreamWAV:
+            mix_rate = float((player.stream as AudioStreamWAV).mix_rate)
+        player.pitch_scale = wdl_pitch_scale(wdl_frequency, mix_rate)
+
+
+func _on_tuned_sfx_finished(handle: int) -> void:
+    var player := _tuned_players.get(handle, null) as AudioStreamPlayer
+    _tuned_players.erase(handle)
+    if player != null and is_instance_valid(player):
+        player.queue_free()
 
 
 func play_spatial_sfx(asset_id: String, source: Node3D, wdl_range_units: float = DEFAULT_SPATIAL_WDL_RANGE_UNITS) -> void:

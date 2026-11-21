@@ -11,6 +11,17 @@ const DEFAULT_MIN_HIT_ANIMATION_SPEED_SCALE := 5.0
 const DEFAULT_MAX_HIT_ANIMATION_SPEED_SCALE := 10.0
 const DEFAULT_ATTACK_CONTACT_MARGIN := 0.04
 const ENEMY_ENTITY_SOUND_WDL_RANGE_UNITS := 1000.0
+## anims.wdl LionEtat 11 end: one of LionHit1, LionHit2 or Tigre at random.
+const LION_HIT_SOUND_IDS: Array[String] = ["sfx.lion_hit_1", "sfx.lion_hit_2", "sfx.lion_roar"]
+const LION_ROAR_SOUND_ID := "sfx.lion_roar"
+const LION_ATTACK_SOUND_ID := "sfx.lion_attack"
+## skills.wdl LionRandomAttack: the charge cry plays when random(100) beats it.
+const LION_RANDOM_ATTACK := 50.0
+## lion.wdl stuck friend-call roar: Tigre at 2000 quants and LionAttack1 at 1500.
+const LION_CALL_ROAR_RANGE_UNITS := 2000.0
+const LION_CALL_ATTACK_RANGE_UNITS := 1500.0
+## IdEnnemySpec of the standard lions (scorpions are 3).
+const LION_FAMILY_ID := 1.0
 const ENEMY_VISIBILITY_RANGE_SCRIPT := preload("res://src/effects/enemy_visibility_range.gd")
 
 # WDL lion.wdl LionEtat parity. Numeric values match the original states so
@@ -511,6 +522,7 @@ func _tick_wait(delta: float) -> Vector3:
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
 	if _should_begin_chase():
+		_play_charge_cry()
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
 	if _wait_remaining <= 0.0:
@@ -529,6 +541,7 @@ func _tick_walk(delta: float) -> Vector3:
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
 	if _should_begin_chase():
+		_play_charge_cry()
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
 	if not _has_wander_target:
@@ -735,6 +748,7 @@ func _update_blocked_roar(delta: float) -> void:
 	if _target != null and not _has_line_of_sight_to(_target):
 		return
 	_blocked_time_accumulator = 0.0
+	_play_stuck_roar()
 	_enter_state(EnemyState.ROAR)
 
 
@@ -809,6 +823,7 @@ func _on_animation_finished(anim_name: StringName) -> void:
 
 
 func _finish_hit_recoil() -> void:
+	_play_lion_voice(LION_HIT_SOUND_IDS.pick_random())
 	var should_chase_after_hit := _hit_recoil_should_chase
 	_hit_recoil_should_chase = false
 	_apply_post_hit_range_boost()
@@ -1218,6 +1233,49 @@ func _play_random_sfx_at_node(asset_ids: PackedStringArray, source: Node3D, wdl_
 		if not asset_id.is_empty():
 			_play_sfx_at_node(asset_id, source, wdl_range_units)
 			return
+
+
+## lion.wdl / anims.wdl lion voices: `play_sound snd,100` then `Tune_Sound`
+## with volume 30000 / DistLionPlayer and frequency 200 * WeightForce +-25 %.
+func _play_lion_voice(asset_id: String) -> int:
+	var audio := get_node_or_null("/root/Audio")
+	if audio == null or not audio.has_method("play_sfx_tuned"):
+		return 0
+	var distance_units := maxf(_distance_to_player_units(), 1.0)
+	var volume := 30000.0 / distance_units
+	var frequency := 200.0 * enemy_weight_force + randf() * 50.0 - 25.0
+	return int(audio.call("play_sfx_tuned", asset_id, volume, frequency))
+
+
+## lion.wdl LionEtat 1 -> 2: standard lions cry LionAttack1 when random(100) > LionRandomAttack.
+func _play_charge_cry() -> void:
+	if not is_equal_approx(enemy_family_id, LION_FAMILY_ID):
+		return
+	if randf() * 100.0 > LION_RANDOM_ATTACK:
+		_play_lion_voice(LION_ATTACK_SOUND_ID)
+
+
+## lion.wdl GuardStuckBalle: a Flag7 lion with no call running roars for help,
+## other lions growl Tigre; scorpions play their attack sound.
+func _play_stuck_roar() -> void:
+	if is_equal_approx(enemy_family_id, LION_FAMILY_ID):
+		if roar_calls_friends and not is_attack_call_active():
+			_play_sfx(LION_ROAR_SOUND_ID, LION_CALL_ROAR_RANGE_UNITS)
+			_play_sfx(LION_ATTACK_SOUND_ID, LION_CALL_ATTACK_RANGE_UNITS)
+		else:
+			_play_lion_voice(LION_ROAR_SOUND_ID)
+	elif not attack_sound_asset_id.is_empty():
+		_play_sfx(attack_sound_asset_id)
+
+
+## DistLionPlayer.Z: 3D distance to the player in quants.
+func _distance_to_player_units() -> float:
+	var player: Node3D = _target
+	if player == null and is_inside_tree():
+		player = get_tree().get_first_node_in_group("player") as Node3D
+	if player == null:
+		return 1000.0
+	return global_position.distance_to(player.global_position) / ACKNEX_TO_GODOT_SCALE
 
 
 func _play_sfx(asset_id: String, wdl_range_units: float = ENEMY_ENTITY_SOUND_WDL_RANGE_UNITS) -> void:

@@ -114,6 +114,7 @@ func _run() -> void:
     _test_collision_layer_names()
     _test_asset_catalog(assets)
     await _test_audio_service_spatial_sfx(assets)
+    await _test_audio_service_tuned_sfx(assets)
     await _test_main_menu_scene()
     _test_eye_of_truth_state(game)
     _test_score_state(game)
@@ -591,6 +592,67 @@ func _test_audio_service_spatial_sfx(assets: Node) -> void:
         audio.call("stop_sfx")
     source.queue_free()
     await process_frame
+
+
+## sammypolish.exe TUNE_SOUND (sub_41D900): handle, volume, frequency. The
+## volume picks one of 64 DirectSound steps via (volume * Sound_Vol) >> 7 and
+## the frequency is value * 10 / 1024 of the sample rate; 0 leaves either as is.
+func _test_audio_service_tuned_sfx(assets: Node) -> void:
+    var audio := root.get_node_or_null("Audio")
+    if audio == null or not audio.has_method("play_sfx_tuned"):
+        _expect(false, "Audio service should expose WDL play_sound/tune_sound handles.")
+        return
+    for sound_id in ["sfx.lion_roar", "sfx.lion_attack", "sfx.lion_hit_1", "sfx.lion_hit_2", "sfx.player_kaputt", "sfx.wasp_kaput_2", "sfx.wasp_kaput_3", "sfx.title_bell", "sfx.slide"]:
+        _expect(assets.load_asset(sound_id) is AudioStream, "Original WDL sound should be catalogued: %s" % sound_id)
+    var audio_script := audio.get_script() as GDScript
+    _expect(is_zero_approx(float(audio_script.call("wdl_volume_db", 100.0, 100.0))), "WDL volume 100 at full Sound_Vol should be the loudest step.")
+    _expect(is_equal_approx(float(audio_script.call("wdl_volume_db", 30.0, 75.0)), -13.09), "WDL volume 30 at Sound_Vol 75 should pick step 17 (-13.09 dB).")
+    _expect(float(audio_script.call("wdl_volume_db", 0.0, 100.0)) <= -80.0, "WDL volume 0 should be silent.")
+    _expect(absf(float(audio_script.call("wdl_pitch_scale", 100.0, 22050.0)) - 0.9765625) < 0.0001, "TUNE_SOUND frequency 100 should play at 1000/1024 of the sample rate.")
+    _expect(absf(float(audio_script.call("wdl_pitch_scale", 2.0, 11025.0)) - 0.01953125) < 0.0001, "TUNE_SOUND frequency 2 should drop the pitch to 2 %.")
+    _expect(absf(float(audio_script.call("wdl_pitch_scale", 1000.0, 22050.0)) - 100000.0 / 22050.0) < 0.0001, "TUNE_SOUND frequency should clamp at 100 kHz.")
+
+    audio.call("set_sfx_volume_percent", 100.0)
+    var handle := int(audio.call("play_sfx_tuned", "sfx.lion_roar", 100.0, 0.0))
+    _expect(handle > 0 and bool(audio.call("is_tuned_sfx_playing", handle)), "play_sfx_tuned should return a live handle.")
+    var tuned := audio.call("get_tuned_sfx_player", handle) as AudioStreamPlayer
+    if tuned != null:
+        _expect(is_zero_approx(tuned.volume_db) and is_equal_approx(tuned.pitch_scale, 1.0), "Frequency 0 should keep the original pitch.")
+        audio.call("tune_sfx", handle, 30.0, 150.0)
+        _expect(is_equal_approx(tuned.volume_db, -10.07) and absf(tuned.pitch_scale - 1.46484375) < 0.0001, "tune_sfx should apply the WDL volume step and frequency.")
+        audio.call("tune_sfx", handle, 0.0, 0.0)
+        _expect(is_equal_approx(tuned.volume_db, -10.07) and absf(tuned.pitch_scale - 1.46484375) < 0.0001, "tune_sfx with 0 should leave volume and frequency unchanged.")
+    audio.call("stop_tuned_sfx", handle)
+    _expect(not bool(audio.call("is_tuned_sfx_playing", handle)), "stop_tuned_sfx should stop the handle.")
+
+    # anims.wdl LionEtat 11: a lion finishing its hit recoil cries, tuned by distance and weight.
+    var lion := (load("res://scenes/enemies/rasta_enemy.tscn") as PackedScene).instantiate() as CharacterBody3D
+    lion.set_physics_process(false)
+    root.add_child(lion)
+    await process_frame
+    var before := _tuned_sfx_players(audio)
+    lion.call("_finish_hit_recoil")
+    var cries := _tuned_sfx_players(audio).filter(func(p: AudioStreamPlayer) -> bool: return not before.has(p))
+    _expect(cries.size() == 1, "A lion finishing its hit recoil should play one tuned cry.")
+    if cries.size() == 1:
+        var cry := cries[0] as AudioStreamPlayer
+        var allowed := [assets.load_asset("sfx.lion_hit_1"), assets.load_asset("sfx.lion_hit_2"), assets.load_asset("sfx.lion_roar")]
+        _expect(allowed.has(cry.stream), "The hit cry should be LionHit1, LionHit2 or Tigre.")
+        var rate := float((cry.stream as AudioStreamWAV).mix_rate) if cry.stream is AudioStreamWAV else 22050.0
+        var frequency := cry.pitch_scale * 1024.0 / 10.0
+        _expect(frequency >= 200.0 * 0.62 - 25.5 and frequency <= 200.0 * 0.62 + 25.5, "The cry frequency should be 200 * WeightForce +-25 (got %s at %s Hz)." % [frequency, rate])
+    var wasp_script := load("res://src/weapons/wasp_projectile.gd") as GDScript
+    var wasp := Area3D.new()
+    wasp.set_script(wasp_script)
+    _expect((wasp.get("hit_sound_asset_ids") as PackedStringArray).size() == 3, "Dying wasps should pick one of the three WaspKaputt sounds.")
+    wasp.free()
+    lion.queue_free()
+    audio.call("stop_sfx")
+    await process_frame
+
+
+func _tuned_sfx_players(audio: Node) -> Array:
+    return audio.get_children().filter(func(child: Node) -> bool: return child is AudioStreamPlayer and String(child.name).begins_with("TunedSfxPlayer"))
 
 
 func _test_eye_of_truth_state(game: Node) -> void:

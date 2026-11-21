@@ -1,0 +1,582 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/levels/level_world.gd" id="1_6rjv5"]
+[ext_resource type="PackedScene" path="res://assets/levels/10001/10001.gltf" id="2_1foqi"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/diamond_pickup.tscn" id="3_417h1"]
+[ext_resource type="Script" path="res://src/props/model_prop.gd" id="4_eif3v"]
+[ext_resource type="PackedScene" path="res://assets/models/menu/solmenu5/solmenu5.gltf" id="5_ewe04"]
+[ext_resource type="PackedScene" path="res://assets/models/sky3/sky3.gltf" id="6_4i1a4"]
+[ext_resource type="PackedScene" path="res://scenes/props/level_sprite.tscn" id="7_7u5v4"]
+[ext_resource type="Texture2D" path="res://assets/textures/sprites/herbes1.png" id="8_sdemu"]
+[ext_resource type="PackedScene" path="res://scenes/gates/key_gate.tscn" id="9_icwiw"]
+[ext_resource type="PackedScene" path="res://scenes/props/exit_pad.tscn" id="10_nd3sa"]
+[ext_resource type="Script" path="res://src/levels/level_entity_marker.gd" id="11_0snlh"]
+[ext_resource type="Script" path="res://src/camera/third_person_camera.gd" id="12_djywk"]
+[ext_resource type="PackedScene" path="res://scenes/ui/debug_overlay.tscn" id="13_8wqg1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="14_15mnf"]
+
+[sub_resource type="Environment" id="Environment_level"]
+background_mode = 1
+background_color = Color(0.55, 0.68, 0.82, 1)
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.55
+
+[node name="Level_10001" type="Node3D" unique_id=898612200]
+script = ExtResource("1_6rjv5")
+level_stem = "10001"
+level_number = 1
+source_wmb = "extract-sammy-assets/sammy-suricate/10001.wmb"
+sky_path = NodePath("Entities/Sky")
+camera_path = NodePath("LevelCamera")
+score_goal_points = 540
+metadata/wmb_light_count = 4
+metadata/wmb_unmapped_actions = {
+"inittitle": 1
+}
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1938029200]
+environment = SubResource("Environment_level")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1084838704]
+transform = Transform3D(0.8660254, 0.32139382, -0.38302222, 0, 0.76604444, 0.64278764, 0.5, -0.5566704, 0.66341394, 0, 0, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Geometry" type="Node3D" parent="." unique_id=1156411677]
+
+[node name="LevelGeometry" parent="Geometry" unique_id=773506722 instance=ExtResource("2_1foqi")]
+
+[node name="Entities" type="Node3D" parent="." unique_id=836580967]
+
+[node name="Pickups" type="Node3D" parent="Entities" unique_id=546973843]
+
+[node name="E002_initbonus3" parent="Entities/Pickups" unique_id=1601095861 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.56, 0, -1.28)
+points = 30
+metadata/wmb_index = 2
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E003_initbonus3" parent="Entities/Pickups" unique_id=798230379 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.56, 0, 0)
+points = 30
+metadata/wmb_index = 3
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E004_initbonus3" parent="Entities/Pickups" unique_id=178714838 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.56, 0, 1.28)
+points = 30
+metadata/wmb_index = 4
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E005_initbonus3" parent="Entities/Pickups" unique_id=436579802 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.56, 0, 2.56)
+points = 30
+metadata/wmb_index = 5
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E006_initbonus3" parent="Entities/Pickups" unique_id=484486989 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.28, 0, 2.56)
+points = 30
+metadata/wmb_index = 6
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E007_initbonus3" parent="Entities/Pickups" unique_id=657987837 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.56)
+points = 30
+metadata/wmb_index = 7
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E008_initbonus3" parent="Entities/Pickups" unique_id=246810935 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.28, 0, 2.56)
+points = 30
+metadata/wmb_index = 8
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E009_initbonus3" parent="Entities/Pickups" unique_id=873129661 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.56, 0, 2.56)
+points = 30
+metadata/wmb_index = 9
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E010_initbonus3" parent="Entities/Pickups" unique_id=1371501620 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.84, 0, 2.56)
+points = 30
+metadata/wmb_index = 10
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E011_initbonus3" parent="Entities/Pickups" unique_id=1101874503 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.12, 0, 2.56)
+points = 30
+metadata/wmb_index = 11
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E012_initbonus3" parent="Entities/Pickups" unique_id=1716407304 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.12, 0, 1.28)
+points = 30
+metadata/wmb_index = 12
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E013_initbonus3" parent="Entities/Pickups" unique_id=1089907904 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.12, 0, 0)
+points = 30
+metadata/wmb_index = 13
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E014_initbonus3" parent="Entities/Pickups" unique_id=497937573 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.12, 0, -1.28)
+points = 30
+metadata/wmb_index = 14
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E015_initbonus3" parent="Entities/Pickups" unique_id=1775165288 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.56, 0, -1.28)
+points = 30
+metadata/wmb_index = 15
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E016_initbonus3" parent="Entities/Pickups" unique_id=1036438760 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.84, 0, -1.28)
+points = 30
+metadata/wmb_index = 16
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E017_initbonus3" parent="Entities/Pickups" unique_id=571215767 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.28, 0, -1.28)
+points = 30
+metadata/wmb_index = 17
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E018_initbonus3" parent="Entities/Pickups" unique_id=788521932 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.28)
+points = 30
+metadata/wmb_index = 18
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="E019_initbonus3" parent="Entities/Pickups" unique_id=1931398710 instance=ExtResource("3_417h1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.28, 0, -1.28)
+points = 30
+metadata/wmb_index = 19
+metadata/wmb_action = "initbonus3"
+metadata/wmb_file = "gemgr+17.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="Props" type="Node3D" parent="Entities" unique_id=80112156]
+
+[node name="E020_initdecor" type="Node3D" parent="Entities/Props" unique_id=2077439552]
+transform = Transform3D(1.75, 0, 0, 0, 1.5, 0, 0, 0, 1.75, 0.16, -1, -1.56)
+script = ExtResource("4_eif3v")
+asset_id = "model.menu.floor"
+metadata/wmb_index = 20
+metadata/wmb_action = "initDecor"
+metadata/wmb_file = "solmenu5.MDL"
+metadata/wmb_skills = PackedFloat32Array(0, 0, -100, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="Visual" parent="Entities/Props/E020_initdecor" unique_id=1886437917 instance=ExtResource("5_ewe04")]
+transform = Transform3D(0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01, 0, 0, 0)
+
+[node name="Sky" type="Node3D" parent="Entities" unique_id=543071590]
+
+[node name="E021_initskymenu" type="Node3D" parent="Entities/Sky" unique_id=233310411]
+transform = Transform3D(5, 0, 0, 0, 3, 0, 0, 0, 5, -8.8, -93, -3.1599998)
+script = ExtResource("4_eif3v")
+asset_id = "model.sky3"
+metadata/wmb_index = 21
+metadata/wmb_action = "initSkyMenu"
+metadata/wmb_file = "sky3.MDL"
+metadata/wmb_skills = PackedFloat32Array(0, 0, -600, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="Visual" parent="Entities/Sky/E021_initskymenu" unique_id=1353589587 instance=ExtResource("6_4i1a4")]
+transform = Transform3D(0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01, 0, 0, 0)
+
+[node name="Sprites" type="Node3D" parent="Entities" unique_id=2017755680]
+
+[node name="E023_initarbre" parent="Entities/Sprites" unique_id=1687197144 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -11.416249, -0.72499996, 6.805)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 23
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E024_initarbre" parent="Entities/Sprites" unique_id=1108934798 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -11.416249, -0.72499996, 6.805)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 24
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E025_initarbre" parent="Entities/Sprites" unique_id=928644184 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -10.376249, -0.72499996, -0.635)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 25
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E026_initarbre" parent="Entities/Sprites" unique_id=1852971589 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -10.376249, -0.72499996, -0.635)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 26
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E027_initarbre" parent="Entities/Sprites" unique_id=48324462 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -5.17625, -0.72499996, -8.075)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 27
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E028_initarbre" parent="Entities/Sprites" unique_id=3360139 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -5.17625, -0.72499996, -8.075)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 28
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E029_initarbre" parent="Entities/Sprites" unique_id=609170896 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 4.02375, -0.72499996, -5.835)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 29
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E030_initarbre" parent="Entities/Sprites" unique_id=844817534 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 4.02375, -0.72499996, -5.835)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 30
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E031_initarbre" parent="Entities/Sprites" unique_id=1779595162 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 10.023749, -0.72499996, -8.474999)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 31
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E032_initarbre" parent="Entities/Sprites" unique_id=1675672109 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 10.023749, -0.72499996, -8.474999)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 32
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E033_initarbre" parent="Entities/Sprites" unique_id=1449258867 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 11.46375, -0.72499996, 1.8449999)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 33
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E034_initarbre" parent="Entities/Sprites" unique_id=848639194 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 11.46375, -0.72499996, 1.8449999)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 34
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E035_initarbre" parent="Entities/Sprites" unique_id=1541667040 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 4.74375, -0.72499996, 7.685)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 35
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="E036_initarbre" parent="Entities/Sprites" unique_id=851571999 instance=ExtResource("7_7u5v4")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 4.74375, -0.72499996, 7.685)
+pixel_size = 0.015
+alpha_cut = 1
+texture = ExtResource("8_sdemu")
+metadata/wmb_index = 36
+metadata/wmb_action = "initarbre"
+metadata/wmb_file = "herbes1.pcx"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
+metadata/wmb_flags = 0
+
+[node name="Gates" type="Node3D" parent="Entities" unique_id=2112197844]
+
+[node name="E048_initdoor" parent="Entities/Gates" unique_id=1644869090 instance=ExtResource("9_icwiw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.8799999)
+use_wdl_door_fields = true
+wdl_skill6_required_key = 7
+wdl_skill8_hold_units = 0.0
+open_height = 3.0
+source_wmb_name = "doorexit.wmb"
+align_source_model_to_origin = true
+metadata/wmb_index = 48
+metadata/wmb_action = "initDoor"
+metadata/wmb_file = "doorexit.wmb"
+metadata/wmb_skills = PackedFloat32Array(0, 250, 0, 40, 0, 7, 25, 0)
+metadata/wmb_flags = 0
+
+[node name="Pads" type="Node3D" parent="Entities" unique_id=202755240]
+
+[node name="E049_initexit" parent="Entities/Pads" unique_id=1506558984 instance=ExtResource("10_nd3sa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.08, -4.4)
+metadata/wmb_index = 49
+metadata/wmb_action = "initExit"
+metadata/wmb_file = "tileexit.wmb"
+metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
+metadata/wmb_flags = 0
+
+[node name="Config" type="Node3D" parent="." unique_id=856728732]
+
+[node name="E037_initextraballes" type="Marker3D" parent="Config" unique_id=1762208245]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.445, -4.24, -4.4)
+script = ExtResource("11_0snlh")
+source_index = 37
+action = "initextraballes"
+source_action = "initextraballes"
+source_name = "small_mdl_004"
+source_file = "small.pcx"
+skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
+acknex_position = Vector3(-944.5, 440, -424)
+
+[node name="E038_initnextraballes" type="Marker3D" parent="Config" unique_id=1653295714]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.445, -4.24, -3.1)
+script = ExtResource("11_0snlh")
+source_index = 38
+action = "initnextraballes"
+source_action = "initNextraballes"
+source_name = "small_mdl_00"
+source_file = "small.pcx"
+skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
+acknex_position = Vector3(-944.5, 310, -424)
+
+[node name="E039_initgame" type="Marker3D" parent="Config" unique_id=1136544483]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.445, -4.24, -1.8399999)
+script = ExtResource("11_0snlh")
+source_index = 39
+action = "initgame"
+source_action = "initgame"
+source_name = "small_mdl_022"
+source_file = "small.pcx"
+skills = PackedFloat32Array(25, -64, -524, 0, 3000, 0, 540, 0)
+flags = 1
+acknex_position = Vector3(-944.5, 184, -424)
+
+[node name="E040_initcamera2" type="Marker3D" parent="Config" unique_id=1070276713]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.335, -4.0499997, -0.32999998)
+script = ExtResource("11_0snlh")
+source_index = 40
+action = "initcamera2"
+source_action = "initcamera2"
+source_name = "small_mdl_246"
+source_file = "small.pcx"
+skills = PackedFloat32Array(10, 0, 1, 0.1, 1, 2, 0, 0)
+acknex_position = Vector3(-933.5, 33, -405)
+
+[node name="E041_initpublic" type="Marker3D" parent="Config" unique_id=421389270]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.445, -4.24, 0.71999997)
+script = ExtResource("11_0snlh")
+source_index = 41
+action = "initpublic"
+source_action = "initpublic"
+source_name = "small_mdl_056"
+source_file = "small.pcx"
+skills = PackedFloat32Array(54, 78, 875, 0, 0, 0, 0, 0)
+acknex_position = Vector3(-944.5, -72, -424)
+
+[node name="E042_initcamera3" type="Marker3D" parent="Config" unique_id=1734493015]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.615, -4.0499997, -0.32999998)
+script = ExtResource("11_0snlh")
+source_index = 42
+action = "initcamera3"
+source_action = "initcamera3"
+source_name = "small_mdl_291"
+source_file = "small.pcx"
+skills = PackedFloat32Array(0, 0, 0, 1, 64, 0, 0, 0.6)
+acknex_position = Vector3(-1061.5, 33, -405)
+
+[node name="E043_initgame2" type="Marker3D" parent="Config" unique_id=1991925309]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.745, -3.9199998, -1.86)
+script = ExtResource("11_0snlh")
+source_index = 43
+action = "initgame2"
+source_action = "initgame2"
+source_name = "small_mdl_177"
+source_file = "small.pcx"
+skills = PackedFloat32Array(1, -500, -1200, 1000, 90, 30, 0, 0)
+flags = 14
+acknex_position = Vector3(-1074.5, 186, -392)
+
+[node name="E044_initgame4" type="Marker3D" parent="Config" unique_id=1922280191]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.105, -3.9199998, -1.6999999)
+script = ExtResource("11_0snlh")
+source_index = 44
+action = "initgame4"
+source_action = "initgame4"
+source_name = "small_mdl_450"
+source_file = "small.pcx"
+skills = PackedFloat32Array(0.5, 0.5, 20000, 0, 0, 0, 0, 0)
+flags = 14
+acknex_position = Vector3(-1210.5, 170, -392)
+
+[node name="E045_initgame3" type="Marker3D" parent="Config" unique_id=1969471631]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.025, -3.12, -0.56)
+script = ExtResource("11_0snlh")
+source_index = 45
+action = "initgame3"
+source_action = "initgame3"
+source_name = "small_mdl_181"
+source_file = "small.pcx"
+skills = PackedFloat32Array(30, 4.5, 60, 23.5, -12, 3, 0, 0)
+acknex_position = Vector3(-1202.5, 56, -312)
+
+[node name="E046_initgame5" type="Marker3D" parent="Config" unique_id=234351223]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.545, -3.9199998, -1.6999999)
+script = ExtResource("11_0snlh")
+source_index = 46
+action = "initgame5"
+source_action = "initgame5"
+source_name = "small_mdl_397"
+source_file = "small.pcx"
+skills = PackedFloat32Array(10, 9, 0, 0.9, 0, 100, 0.3, 0)
+flags = 14
+acknex_position = Vector3(-1354.5, 170, -392)
+
+[node name="E047_initcamera1" type="Marker3D" parent="Config" unique_id=830652152]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.103749, -3.300002, 0.32833302)
+script = ExtResource("11_0snlh")
+source_index = 47
+action = "initcamera1"
+source_action = "initcamera1"
+source_name = "setcam_mdl_249"
+source_file = "setcam.wmb"
+skills = PackedFloat32Array(400, 200, 1500, 400, 32, 1000, 180, 100)
+flags = 9
+acknex_position = Vector3(-1310.375, -32.8333, -330.0002)
+
+[node name="Unmapped" type="Node3D" parent="." unique_id=1295279858]
+
+[node name="E022_inittitle" type="Marker3D" parent="Unmapped" unique_id=931696751]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.68, 0.64, 1.76)
+script = ExtResource("11_0snlh")
+source_index = 22
+action = "inittitle"
+source_action = "inittitle"
+source_name = "Tut01F02_mdl_294"
+source_file = "Tut01E5b.pcx"
+skills = PackedFloat32Array(1, 215, 0, 50, 8, 8.3, 8, 90)
+flags = 16
+acknex_position = Vector3(-568, -176, 64)
+acknex_scale = Vector3(0.38, 0.38, 0.38)
+
+[node name="PlayerStart" type="Marker3D" parent="." unique_id=1155265949]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.68, 0, 2.6799998)
+
+[node name="LevelCamera" type="Camera3D" parent="." unique_id=311267755]
+script = ExtResource("12_djywk")
+target_path = NodePath("../Player")
+
+[node name="DebugOverlay" parent="." unique_id=1648677012 instance=ExtResource("13_8wqg1")]
+player_path = NodePath("../Player")
+
+[node name="KeyDiamondPanel" parent="." unique_id=26093439 instance=ExtResource("14_15mnf")]
+player_path = NodePath("../Player")

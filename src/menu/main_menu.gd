@@ -621,7 +621,21 @@ func _on_level_selected(level_data: Dictionary) -> void:
 				String(level_data.get("source_wmb", "")),
 				StringName(level_data.get("category", &""))
 		)
-	_route_to_prototype_world()
+	_route_to_level(level_number)
+
+
+func _route_to_level(level_number: int) -> Error:
+	if bool(ProjectSettings.get_setting("sammy/test/skip_menu_routes", false)):
+		return OK
+	var game := get_node_or_null("/root/Game")
+	if game == null or not game.has_method("show_level"):
+		return _route_to_prototype_world()
+	_stop_menu_music()
+	var err := int(game.call("show_level", level_number))
+	if err == ERR_DOES_NOT_EXIST:
+		# Level not converted/baked yet: keep the old prototype route.
+		return _route_to_prototype_world()
+	return err
 
 
 func _start_menu_music() -> void:

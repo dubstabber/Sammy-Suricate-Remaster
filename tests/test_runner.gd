@@ -10,6 +10,11 @@ const SCORPION_SCENE_PATH := "res://scenes/enemies/scorpion_enemy.tscn"
 const EDITOR_PREVIEW_SCRIPT_PATH := "res://src/editor/sammy_editor_model_preview.gd"
 const CAMERA_SCRIPT_PATH := "res://src/camera/third_person_camera.gd"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
+const LEVEL_10001_SCENE_PATH := "res://scenes/levels/10001.tscn"
+const LEVEL_10008_SCENE_PATH := "res://scenes/levels/10008.tscn"
+const LEVEL_BUILDER_SCRIPT_PATH := "res://src/levels/level_builder.gd"
+const ACKNEX_COORDS_SCRIPT_PATH := "res://src/levels/acknex_coords.gd"
+const MENU_LEVEL_CATALOG_SCRIPT_PATH := "res://src/menu/menu_level_catalog.gd"
 const WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/wasp_pickup.tscn"
 const LAUNCHED_WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/launched_wasp_pickup.tscn"
 const BOOST_PICKUP_SCENE_PATH := "res://scenes/pickups/boost_pickup.tscn"
@@ -114,6 +119,10 @@ func _run() -> void:
     _test_animation_libraries()
     _test_model_skin_alpha()
     _test_wmb_manifest()
+    _test_acknex_coords()
+    _test_level_catalog_availability()
+    _test_level_entities_json()
+    await _test_level_select_routes(game)
     _test_wasp_resources(assets)
     _test_wasp_inventory()
     await _test_key_diamond_system(assets)
@@ -150,6 +159,8 @@ func _run() -> void:
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
     await _test_prototype_world()
+    await _test_level_world_10001()
+    await _test_level_world_10008()
     ProjectSettings.set_setting("sammy/test/skip_music", false)
 
     _stop_audio_for_shutdown()
@@ -6810,6 +6821,251 @@ func _audio_service_count_spatial_stream_players(audio: Node, stream: AudioStrea
         if player != null and player.stream == stream:
             count += 1
     return count
+
+
+func _test_acknex_coords() -> void:
+    var coords: GDScript = load(ACKNEX_COORDS_SCRIPT_PATH)
+    _expect(coords != null, "Acknex coordinate helpers should load.")
+    if coords == null:
+        return
+    var godot_position: Vector3 = coords.call("to_godot_position", Vector3(100.0, 200.0, 300.0))
+    _expect(godot_position.is_equal_approx(Vector3(1.0, 3.0, -2.0)), "Acknex (x, y, z-up) quants should map to Godot (x, z, -y) meters.")
+    var prop_forward: Vector3 = (coords.call("prop_basis", 0.0) as Basis) * Vector3.RIGHT
+    _expect(prop_forward.is_equal_approx(Vector3.RIGHT), "Acknex pan 0 should leave props facing +X.")
+    var character_forward: Vector3 = (coords.call("character_basis", 90.0) as Basis) * Vector3.FORWARD
+    _expect(character_forward.is_equal_approx(Vector3(0.0, 0.0, -1.0)), "A character at Acknex pan 90 (Acknex +Y) should face Godot -Z.")
+    for pan in [0.0, 45.0, 135.0, 240.0]:
+        var pan_direction: Vector3 = coords.call("pan_direction", pan)
+        var prop_direction: Vector3 = (coords.call("prop_basis", pan) as Basis) * Vector3.RIGHT
+        var character_direction: Vector3 = (coords.call("character_basis", pan) as Basis) * Vector3.FORWARD
+        _expect(prop_direction.is_equal_approx(pan_direction), "Prop yaw should follow the Acknex pan direction at %s degrees." % pan)
+        _expect(character_direction.is_equal_approx(pan_direction), "Character forward (-Z) should follow the Acknex pan direction at %s degrees." % pan)
+
+
+func _test_level_catalog_availability() -> void:
+    var catalog: GDScript = load(MENU_LEVEL_CATALOG_SCRIPT_PATH)
+    var level_1: Dictionary = catalog.call("level_by_number", 1)
+    _expect(String(level_1.get("scene_path", "")) == LEVEL_10001_SCENE_PATH, "Tutorial level 1 should point at the baked 10001 level scene.")
+    _expect(bool(level_1.get("selectable", false)), "Tutorial level 1 should be selectable once 10001 is converted and baked.")
+    _expect(String(catalog.call("stem_for_source_wmb", "102N_t.WMB")) == "102n_t", "Level stems should be the lower-case WMB basename.")
+    _expect(int(catalog.call("level_number_for_stem", "173b_t05")) == 39, "Stem lookup should map 173b_t05 back to Think level 7 (InitLevel39).")
+    for english_bonus in [13, 14, 15, 16]:
+        var english_bonus_data: Dictionary = catalog.call("level_by_number", english_bonus)
+        _expect(bool(english_bonus_data.get("selectable", false)), "Bonus level %d ships in the English v1.4 build and should be playable." % english_bonus)
+    for missing_bonus in [29, 30, 31, 32, 45, 46, 47, 48]:
+        var bonus_data: Dictionary = catalog.call("level_by_number", missing_bonus)
+        _expect(not bool(bonus_data.get("selectable", true)), "Bonus level %d is not shipped in any original build and should stay unavailable." % missing_bonus)
+
+
+func _test_level_entities_json() -> void:
+    var builder: GDScript = load(LEVEL_BUILDER_SCRIPT_PATH)
+    var data: Dictionary = builder.call("load_level_data", "10001")
+    _expect(not data.is_empty(), "Converted 10001 entity JSON should load.")
+    if data.is_empty():
+        return
+    var entities: Array = data.get("entities", [])
+    _expect(entities.size() == 49, "10001.wmb should decode 49 type-3 entity records.")
+    _expect((data.get("lights", []) as Array).size() == 4, "10001.wmb should decode its 4 static WED lights.")
+    var sun: Dictionary = data.get("sun", {})
+    _expect(is_equal_approx(float(sun.get("pan", 0.0)), 240.0) and is_equal_approx(float(sun.get("tilt", 0.0)), 40.0), "10001.wmb sun record should decode pan 240 / tilt 40.")
+    var action_counts: Dictionary = data.get("action_counts", {})
+    _expect(int(action_counts.get("initbonus3", 0)) == 18, "10001.wmb should place 18 InitBonus3 score gems.")
+    var score_goal := 0
+    var gem_points := 0
+    for entity: Dictionary in entities:
+        var skills: Array = entity.get("skills", [])
+        if String(entity.get("action", "")) == "initgame":
+            score_goal = int(skills[6])
+        elif String(entity.get("action", "")) == "initbonus3":
+            gem_points += int(skills[1])
+    _expect(score_goal == 540, "10001 InitGame Skill7 (ScoreGoal) should decode as 540.")
+    _expect(gem_points == score_goal, "10001 score gems (Skill2 points) should add up exactly to the decoded ScoreGoal.")
+
+    # 178d_t grates are InitMDL Flag1 (WDL overlay): black texels must be keyed out.
+    var grate_level := load("res://scenes/levels/generated/178d_t.tscn") as PackedScene
+    _expect(grate_level != null, "Baked 178d_t level scene should load.")
+    if grate_level != null:
+        var state := grate_level.get_state()
+        var overlay_props := 0
+        for node_index in state.get_node_count():
+            for property_index in state.get_node_property_count(node_index):
+                if state.get_node_property_name(node_index, property_index) == &"overlay_texture":
+                    var overlay_texture := state.get_node_property_value(node_index, property_index) as Texture2D
+                    if overlay_texture != null and overlay_texture.resource_path.ends_with("grate1_skin0_overlay.png"):
+                        overlay_props += 1
+        _expect(overlay_props == 102, "All 102 178d_t InitMDL grates should use the black-keyed overlay skin.")
+
+
+func _test_level_select_routes(game: Node) -> void:
+    if game == null or not game.has_method("show_level"):
+        _expect(false, "Game should expose show_level for menu level selection.")
+        return
+    var spy := _make_level_route_spy()
+    root.add_child(spy)
+    game.call("set_scene_router", spy)
+    _expect(int(game.call("show_level", 1)) == OK, "Game.show_level(1) should route the baked 10001 level.")
+    _expect(String(spy.get("last_scene_path")) == LEVEL_10001_SCENE_PATH, "Selecting tutorial level 1 should load the baked 10001 scene, not the prototype.")
+    _expect(int(game.call("get_current_level_number")) == 1, "Game should remember the loaded level number.")
+    _expect(int(game.call("reload_current_level")) == OK and int(spy.get("show_scene_calls")) == 2, "Reloading the current level should route the same level scene again.")
+    _expect(int(game.call("show_level", 29)) == ERR_DOES_NOT_EXIST, "Unavailable levels should not route anywhere.")
+    _expect(int(spy.get("show_scene_calls")) == 2, "An unavailable level should not trigger a scene change.")
+    game.call("set_scene_router", null)
+    spy.queue_free()
+    await process_frame
+
+
+func _make_level_route_spy() -> Node:
+    var script := GDScript.new()
+    script.source_code = "extends Node\n" \
+            + "var show_scene_calls: int = 0\n" \
+            + "var last_scene_path: String = \"\"\n" \
+            + "func show_scene(scene_path: String) -> int:\n" \
+            + "    show_scene_calls += 1\n" \
+            + "    last_scene_path = scene_path\n" \
+            + "    return OK\n"
+    var err := script.reload()
+    _expect(err == OK, "Level route spy script should compile.")
+    var node := Node.new()
+    node.name = "LevelRouteSpy"
+    node.set_script(script)
+    return node
+
+
+func _test_level_world_10001() -> void:
+    var game := root.get_node_or_null("Game")
+    if game != null and game.has_method("clear_score"):
+        game.call("clear_score")
+    var level_scene := load(LEVEL_10001_SCENE_PATH) as PackedScene
+    _expect(level_scene != null, "Baked 10001 level scene should load.")
+    if level_scene == null:
+        return
+    var world := level_scene.instantiate() as Node3D
+    root.add_child(world)
+    await process_frame
+    await physics_frame
+
+    var geometry_body := _find_first_static_body(world.get_node_or_null("Geometry"))
+    _expect(geometry_body != null, "10001 geometry should import with a trimesh StaticBody3D from the -colonly node.")
+    if geometry_body != null:
+        _expect(geometry_body.collision_layer == WORLD_LAYER, "Level collision should live on the world layer.")
+
+    var diamonds := 0
+    var diamond_points := 0
+    var pickups := world.get_node_or_null("Entities/Pickups")
+    if pickups != null:
+        for child in pickups.get_children():
+            if child is DiamondPickup:
+                diamonds += 1
+                diamond_points += int(child.get("points"))
+    _expect(diamonds == 18 and diamond_points == 540, "10001 should place 18 InitBonus3 diamonds worth 540 points.")
+    if game != null:
+        _expect(int(game.call("get_score_goal_points")) == 540, "10001 should configure the decoded InitGame ScoreGoal.")
+
+    var gates := world.get_node_or_null("Entities/Gates")
+    _expect(gates != null and gates.get_child_count() == 1, "10001 should place its single exit door.")
+    if gates != null and gates.get_child_count() == 1:
+        var gate := gates.get_child(0)
+        _expect(String(gate.get("source_wmb_name")) == "doorexit.wmb", "10001 exit door should use the original doorexit.wmb model.")
+        _expect(bool(gate.get("use_wdl_door_fields")) and int(gate.get("wdl_skill6_required_key")) == 7, "10001 exit door should require WDL key 7 (all primary colours) from its skills.")
+        var gate_visual := gate.get_node_or_null("GateVisual") as Node3D
+        _expect(gate_visual != null and gate_visual.position.is_zero_approx(), "Level doors should keep the converted WMB model at the entity origin.")
+        var gate_shape := gate.get_node_or_null("CollisionShape3D") as CollisionShape3D
+        if gate_shape != null and gate_shape.shape is BoxShape3D:
+            _expect(is_equal_approx((gate_shape.shape as BoxShape3D).size.y, 2.8), "Level door collision should fit the 280-quant doorexit model.")
+    var pads := world.get_node_or_null("Entities/Pads")
+    _expect(pads != null and pads.get_child_count() == 1 and pads.get_child(0) is ExitPad, "10001 should place its exit tile as an ExitPad.")
+
+    var unmapped := world.get_node_or_null("Unmapped")
+    var unmapped_names: Array[String] = []
+    if unmapped != null:
+        for child in unmapped.get_children():
+            unmapped_names.append(String(child.name))
+    _expect(unmapped_names == ["E022_inittitle"], "Only the 10001 tutorial title panel should remain unmapped.")
+    _expect(world.call("get_sky") != null, "10001 should wire its InitSkyMenu sky model.")
+
+    var player := world.get_node_or_null("Player") as CharacterBody3D
+    _expect(player != null, "Level worlds should spawn the player at the InitMarche start.")
+    if player == null:
+        world.queue_free()
+        await process_frame
+        return
+    _expect(player.global_position.is_equal_approx(Vector3(-5.68, 0.0, 2.68)), "10001 player should start at the decoded InitMarche position on the ground.")
+    _expect(absf(wrapf(player.rotation.y, -PI, PI)) < 0.01, "10001 player should face the exit door (Acknex pan 90 -> Godot -Z).")
+    var query := PhysicsRayQueryParameters3D.create(player.global_position + Vector3.UP * 0.5, player.global_position + Vector3.DOWN * 1.0, WORLD_LAYER)
+    var hit := world.get_world_3d().direct_space_state.intersect_ray(query)
+    _expect(not hit.is_empty(), "A ray down from the 10001 spawn should hit level collision.")
+    for _frame in 30:
+        await physics_frame
+    _expect(player.global_position.y > -0.25, "The player should stand on 10001 collision instead of falling through the floor.")
+    _expect(player.is_on_floor(), "The player should be grounded on 10001 collision after settling.")
+
+    if game != null and game.has_method("set_scene_router"):
+        var pause_route_spy := _make_level_route_spy()
+        root.add_child(pause_route_spy)
+        game.call("set_scene_router", pause_route_spy)
+        game.call("show_level", 1)
+        var calls_before := int(pause_route_spy.get("show_scene_calls"))
+        world.call("_on_pause_restart_requested")
+        await process_frame
+        _expect(int(pause_route_spy.get("show_scene_calls")) == calls_before + 1 and String(pause_route_spy.get("last_scene_path")) == LEVEL_10001_SCENE_PATH, "Pause Restart inside a level should reload that level, not the prototype.")
+        game.call("set_scene_router", null)
+        pause_route_spy.queue_free()
+
+    world.queue_free()
+    await process_frame
+
+
+func _test_level_world_10008() -> void:
+    var level_scene := load(LEVEL_10008_SCENE_PATH) as PackedScene
+    _expect(level_scene != null, "Baked 10008 level scene should load.")
+    if level_scene == null:
+        return
+    var world := level_scene.instantiate() as Node3D
+    root.add_child(world)
+    await process_frame
+    await physics_frame
+
+    var teleporters := world.get_node_or_null("Entities/Teleporters")
+    var teleporter_count := 0
+    if teleporters != null:
+        for child in teleporters.get_children():
+            if child is Teleporter:
+                teleporter_count += 1
+                var destination := child.get_node_or_null(child.get("destination_path")) as Marker3D
+                _expect(destination != null, "Level teleporter %s should point at its decoded Skill1-3 destination marker." % child.name)
+    _expect(teleporter_count == 4, "10008 should place its 4 original teleporters.")
+
+    var statics := world.get_node_or_null("Entities/Statics")
+    _expect(statics != null and statics.get_child_count() == 3, "10008 should place its 3 action-less solid brush/model statics.")
+    if statics != null:
+        for child in statics.get_children():
+            _expect(int(child.call("get_generated_shape_count")) > 0, "Static level prop %s should generate collision from its visual." % child.name)
+
+    var enemies := world.get_node_or_null("Entities/Enemies")
+    _expect(enemies != null and enemies.get_child_count() == 2, "10008 should place its 2 InitLion enemies.")
+    _expect(world.call("get_sky") != null, "10008 should wire its InitSkyMenu sky.")
+
+    var player := world.get_node_or_null("Player") as CharacterBody3D
+    _expect(player != null, "10008 should spawn the player.")
+    if player != null:
+        var start_y := player.global_position.y
+        for _frame in 30:
+            await physics_frame
+        _expect(player.is_on_floor() and player.global_position.y > start_y - 0.25, "The player should stand on 10008 collision after settling.")
+    world.queue_free()
+    await process_frame
+
+
+func _find_first_static_body(node: Node) -> StaticBody3D:
+    if node == null:
+        return null
+    if node is StaticBody3D:
+        return node as StaticBody3D
+    for child in node.get_children():
+        var found := _find_first_static_body(child)
+        if found != null:
+            return found
+    return null
 
 
 func _expect(condition: bool, message: String) -> void:

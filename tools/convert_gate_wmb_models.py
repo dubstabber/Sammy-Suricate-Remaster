@@ -9,16 +9,18 @@ the full WMB level format.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
 import struct
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from PIL import Image
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import wmb4  # noqa: E402
 
 
 SOURCE_WMB_NAMES = [
@@ -50,10 +52,9 @@ SOURCE_WMB_NAMES = [
     "donegree.wmb",
 ]
 
-WMB_MAGIC = b"WMB4"
 ACKNEX_TO_GODOT_SCALE = 0.01
-UNUSED_POLY_LINK = 0xFFFF
-TEXINFO_NO_RENDER_FLAG = 0x8
+PROP_MAX_TEXTURE_COUNT = 16
+TEXINFO_NO_RENDER_FLAG = wmb4.TEXINFO_NO_RENDER_FLAG
 
 
 @dataclass(frozen=True)
@@ -111,85 +112,34 @@ def pack_indices(indices: list[int]) -> bytes:
     return struct.pack(f"<{len(indices)}I", *indices) if indices else b""
 
 
-def read_c_string(raw: bytes) -> str:
-    return raw.split(b"\0", 1)[0].decode("ascii", errors="ignore")
-
-
-def rgb565_to_rgba(pixel: int) -> tuple[int, int, int, int]:
-    red = ((pixel >> 11) & 0x1F) * 255 // 31
-    green = ((pixel >> 5) & 0x3F) * 255 // 63
-    blue = (pixel & 0x1F) * 255 // 31
-    return red, green, blue, 255
-
-
 def decode_texture(
     data: bytes,
-    offset: int,
+    record: wmb4.TextureRecord,
     texture_dir: Path,
     source_stem: str,
     colliding_texture_names: set[str],
 ) -> TextureInfo:
-    name = read_c_string(data[offset : offset + 16])
-    width, height, _format_hint = struct.unpack_from("<3I", data, offset + 16)
-    if width <= 0 or height <= 0:
-        raise ValueError(f"invalid WMB texture dimensions for {name!r}: {width}x{height}")
-
-    pixel_offset = offset + 40
-    pixel_count = width * height
-    image = Image.new("RGBA", (width, height))
-    pixels = image.load()
-    for index in range(pixel_count):
-        value = struct.unpack_from("<H", data, pixel_offset + index * 2)[0]
-        x = index % width
-        y = index // width
-        pixels[x, y] = rgb565_to_rgba(value)
-
-    texture_name = clean_name(name)
+    image = wmb4.texture_image(data, record)
+    texture_name = clean_name(record.name)
     filename = f"{source_stem}_{texture_name}.png" if texture_name in colliding_texture_names else f"{texture_name}.png"
     image_path = texture_dir / filename
     image_path.parent.mkdir(parents=True, exist_ok=True)
     image.save(image_path)
-    return TextureInfo(name=name, filename=filename, width=width, height=height, image_path=image_path)
+    return TextureInfo(name=record.name, filename=filename, width=record.width, height=record.height, image_path=image_path)
 
 
 def decode_textures(data: bytes, texture_dir: Path, source_stem: str, colliding_texture_names: set[str]) -> list[TextureInfo]:
-    words = struct.unpack_from("<32I", data, 0)
-    texture_offset = words[5]
-    texture_size = words[6]
-    texture_count = struct.unpack_from("<I", data, texture_offset)[0]
-    if texture_count <= 0 or texture_count > 16:
-        raise ValueError(f"unexpected WMB texture count: {texture_count}")
-
-    table_values = struct.unpack_from(f"<{texture_count}I", data, texture_offset + 4)
-    textures: list[TextureInfo] = []
-    for relative_offset in table_values:
-        if relative_offset <= 0 or relative_offset >= texture_size:
-            raise ValueError(f"invalid WMB texture offset: {relative_offset}")
-        textures.append(decode_texture(data, texture_offset + relative_offset, texture_dir, source_stem, colliding_texture_names))
-    return textures
+    records = wmb4.read_texture_records(data, max_count=PROP_MAX_TEXTURE_COUNT)
+    if not records:
+        raise ValueError("unexpected WMB texture count: 0")
+    return [decode_texture(data, record, texture_dir, source_stem, colliding_texture_names) for record in records]
 
 
 def embedded_texture_hashes(source_path: Path) -> dict[str, set[str]]:
     data = source_path.read_bytes()
-    words = struct.unpack_from("<32I", data, 0)
-    texture_offset = words[5]
-    texture_size = words[6]
-    texture_count = struct.unpack_from("<I", data, texture_offset)[0]
-    if texture_count <= 0 or texture_count > 16:
-        raise ValueError(f"unexpected WMB texture count in {source_path}: {texture_count}")
-
-    table_values = struct.unpack_from(f"<{texture_count}I", data, texture_offset + 4)
     hashes: dict[str, set[str]] = {}
-    for relative_offset in table_values:
-        if relative_offset <= 0 or relative_offset >= texture_size:
-            raise ValueError(f"invalid WMB texture offset in {source_path}: {relative_offset}")
-        offset = texture_offset + relative_offset
-        name = clean_name(read_c_string(data[offset : offset + 16]))
-        width, height, _format_hint = struct.unpack_from("<3I", data, offset + 16)
-        payload = data[offset + 40 : offset + 40 + width * height * 2]
-        if len(payload) != width * height * 2:
-            raise ValueError(f"truncated WMB texture payload in {source_path}: {name}")
-        hashes.setdefault(name, set()).add(hashlib.sha256(payload).hexdigest())
+    for record in wmb4.read_texture_records(data, max_count=PROP_MAX_TEXTURE_COUNT):
+        hashes.setdefault(clean_name(record.name), set()).add(wmb4.texture_payload_hash(data, record))
     return hashes
 
 
@@ -286,63 +236,36 @@ def apply_source_uv_fixups(
 
 
 def read_vertices(data: bytes) -> list[tuple[float, float, float]]:
-    words = struct.unpack_from("<32I", data, 0)
-    vertex_offset = words[7]
-    vertex_count = words[8] // 12
-    return [struct.unpack_from("<3f", data, vertex_offset + index * 12) for index in range(vertex_count)]
+    return wmb4.read_vertices(data)
 
 
 def read_texture_mappings(data: bytes, texture_count: int) -> list[TextureMappingInfo]:
-    words = struct.unpack_from("<32I", data, 0)
-    texinfo_offset = words[13]
-    texinfo_count = words[14] // 64
     mappings: list[TextureMappingInfo] = []
-    for index in range(texinfo_count):
-        offset = texinfo_offset + index * 64
-        values = struct.unpack_from("<16f", data, offset)
-        ints = struct.unpack_from("<16i", data, offset)
-        texture_index = ints[8]
+    for texinfo in wmb4.read_texinfos(data):
+        texture_index = texinfo.texture_index
         if texture_index < 0 or texture_index >= texture_count:
             texture_index = 0
         mappings.append(
             TextureMappingInfo(
                 texture_index=texture_index,
-                s_vector=values[0:4],
-                t_vector=values[4:8],
-                flags=ints[9],
+                s_vector=texinfo.s_vector,
+                t_vector=texinfo.t_vector,
+                flags=texinfo.flags,
             )
         )
     return mappings
 
 
 def read_polygons(data: bytes) -> list[PolygonInfo]:
-    words = struct.unpack_from("<32I", data, 0)
-    polygon_offset = words[15]
-    polygon_count = words[16] // 24
-    ref_offset = words[27]
-    ref_count = words[28] // 4
-    edge_offset = words[25]
-    edge_count = words[26] // 8
-    edge_values = struct.unpack_from(f"<{edge_count * 2}I", data, edge_offset)
-    edges = [edge_values[index : index + 2] for index in range(0, len(edge_values), 2)]
-    refs = struct.unpack_from(f"<{ref_count}i", data, ref_offset)
+    edges = wmb4.read_edges(data)
+    refs = wmb4.read_surfedges(data)
 
     polygons: list[PolygonInfo] = []
-    for index in range(polygon_count):
-        record = struct.unpack_from("<12H", data, polygon_offset + index * 24)
-        ref_start = record[2]
-        vertex_count = record[4]
-        vertices: list[int] = []
-        for ref in refs[ref_start : ref_start + vertex_count]:
-            edge = edges[abs(ref)]
-            vertex = edge[0] if ref >= 0 else edge[1]
-            if not vertices or vertices[-1] != vertex:
-                vertices.append(vertex)
-        if len(vertices) > 1 and vertices[0] == vertices[-1]:
-            vertices.pop()
+    for face in wmb4.read_faces(data):
+        vertices = wmb4.face_edge_vertices(face, edges, refs)
         if len(set(vertices)) < 3:
             vertices = []
-            for ref in refs[ref_start : ref_start + vertex_count]:
+            for ref in refs[face.first_edge : face.first_edge + face.edge_count]:
                 edge = edges[abs(ref)]
                 directed = edge if ref >= 0 else (edge[1], edge[0])
                 for vertex in directed:
@@ -352,9 +275,9 @@ def read_polygons(data: bytes) -> list[PolygonInfo]:
             polygons.append(
                 PolygonInfo(
                     vertices=vertices,
-                    field_side=record[1],
-                    field_mapping=record[5],
-                    plane_index=record[10],
+                    field_side=face.side,
+                    field_mapping=face.texinfo_index,
+                    plane_index=face.plane_index,
                 )
             )
     return polygons
@@ -598,11 +521,12 @@ def polygon_triangle_indices(polygon_indices: list[int], points: list[tuple[floa
 
 def convert_wmb(source_path: Path, model_root: Path, texture_root: Path, colliding_texture_names: set[str]) -> dict[str, Any]:
     data = source_path.read_bytes()
-    if len(data) < 0x80 or data[:4] != WMB_MAGIC:
-        raise ValueError(f"{source_path} is not a WMB4 file")
+    try:
+        header = wmb4.read_header(data)
+    except ValueError as error:
+        raise ValueError(f"{source_path} is not a WMB4 file") from error
 
-    words = struct.unpack_from("<32I", data, 0)
-    source_polygon_count = words[16] // 24
+    source_polygon_count = header[wmb4.LIST_FACES].length // wmb4.FACE_SIZE
     stem = clean_name(source_path.stem)
     textures = decode_textures(data, texture_root, stem, colliding_texture_names)
     texture_mappings = read_texture_mappings(data, len(textures))

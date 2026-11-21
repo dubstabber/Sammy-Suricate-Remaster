@@ -1,0 +1,289 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "convert_level_wmb.py"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "10005",
+   "nodes": [
+    0,
+    1
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "10005_render",
+   "mesh": 0
+  },
+  {
+   "name": "10005_collision-colonly",
+   "mesh": 1
+  }
+ ],
+ "meshes": [
+  {
+   "name": "10005_render",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    },
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 4,
+     "material": 1
+    },
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 5,
+     "material": 2
+    }
+   ]
+  },
+  {
+   "name": "10005_collision",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 6
+     },
+     "indices": 7
+    }
+   ]
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "10005.bin",
+   "byteLength": 95704
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 20616,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 20616,
+   "byteLength": 20616,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 41232,
+   "byteLength": 13744,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 54976,
+   "byteLength": 3120,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 58096,
+   "byteLength": 264,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 58360,
+   "byteLength": 6672,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 65032,
+   "byteLength": 20616,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 85648,
+   "byteLength": 10056,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 1718,
+   "type": "VEC3",
+   "min": [
+    -193.92000000000002,
+    -4.0,
+    -178.24
+   ],
+   "max": [
+    193.6,
+    1.28,
+    186.24
+   ]
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 1718,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 1718,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5125,
+   "count": 780,
+   "type": "SCALAR",
+   "min": [
+    58
+   ],
+   "max": [
+    577
+   ]
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5125,
+   "count": 66,
+   "type": "SCALAR",
+   "min": [
+    0
+   ],
+   "max": [
+    1717
+   ]
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5125,
+   "count": 1668,
+   "type": "SCALAR",
+   "min": [
+    582
+   ],
+   "max": [
+    1693
+   ]
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 1718,
+   "type": "VEC3",
+   "min": [
+    -193.92000000000002,
+    -4.0,
+    -178.24
+   ],
+   "max": [
+    193.6,
+    1.28,
+    186.24
+   ]
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5125,
+   "count": 2514,
+   "type": "SCALAR",
+   "min": [
+    0
+   ],
+   "max": [
+    1717
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "name": "stone_002_128d",
+   "doubleSided": false,
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0.0,
+    "roughnessFactor": 1.0
+   }
+  },
+  {
+   "name": "01dummy1",
+   "doubleSided": false,
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 1
+    },
+    "metallicFactor": 0.0,
+    "roughnessFactor": 1.0
+   }
+  },
+  {
+   "name": "stone011_064b",
+   "doubleSided": false,
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 2
+    },
+    "metallicFactor": 0.0,
+    "roughnessFactor": 1.0
+   }
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "textures": [
+  {
+   "source": 0,
+   "sampler": 0
+  },
+  {
+   "source": 1,
+   "sampler": 0
+  },
+  {
+   "source": 2,
+   "sampler": 0
+  }
+ ],
+ "images": [
+  {
+   "uri": "../../textures/levels/stone_002_128d.png"
+  },
+  {
+   "uri": "../../textures/levels/01dummy1.png"
+  },
+  {
+   "uri": "../../textures/levels/stone011_064b.png"
+  }
+ ]
+}

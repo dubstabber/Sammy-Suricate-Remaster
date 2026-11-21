@@ -1,0 +1,7185 @@
+{
+ "stem": "10007",
+ "source": "extract-sammy-assets/sammy-suricate/10007.wmb",
+ "source_build": "polish",
+ "format": "WMB4",
+ "acknex_to_godot_scale": 0.01,
+ "geometry": {
+  "gltf": "assets/levels/10007/10007.gltf",
+  "face_count": 965,
+  "render_face_count": 853,
+  "render_triangle_count": 2198,
+  "collision_triangle_count": 2427,
+  "textures": [
+   "mur_terre_rouge.png",
+   "01dummy1.png",
+   "porte_hutte.png",
+   "wood_004_064.png",
+   "wood_003_064_c10f421c.png",
+   "wood_005_064.png",
+   "sand5a_256.png",
+   "wood_001_128.png",
+   "default_34716c98.png",
+   "lockgem_green.png",
+   "lockgem_orange.png",
+   "plank_green_128.png",
+   "plank_greenb_12.png",
+   "plank_orange_12.png",
+   "plank_orangeb_1.png",
+   "plank_whiteb_12.png",
+   "tile_nextlevel.png",
+   "txt_doorexit.png",
+   "black.png"
+  ],
+  "used_textures": [
+   "mur_terre_rouge.png",
+   "01dummy1.png",
+   "porte_hutte.png",
+   "wood_004_064.png",
+   "wood_003_064_c10f421c.png",
+   "wood_005_064.png",
+   "sand5a_256.png",
+   "wood_001_128.png"
+  ],
+  "godot_bounds_min": [
+   -148.24,
+   -2.72,
+   -154.8
+  ],
+  "godot_bounds_max": [
+   153.36,
+   4.56,
+   154.8
+  ]
+ },
+ "sun": null,
+ "lights": [],
+ "positions": [],
+ "action_counts": {
+  "": 3,
+  "initammo1": 11,
+  "initarbre": 36,
+  "initbonus3": 25,
+  "initboost": 10,
+  "initcamera1": 1,
+  "initcamera2": 1,
+  "initcamera3": 1,
+  "initdecor": 1,
+  "initdoor": 3,
+  "initexit": 1,
+  "initextraballes": 1,
+  "initgame": 1,
+  "initgame2": 1,
+  "initgame3": 1,
+  "initgame4": 1,
+  "initgame5": 1,
+  "initgame6": 1,
+  "initkey": 4,
+  "initlion": 2,
+  "initmarche": 1,
+  "initmdl": 4,
+  "initnextraballes": 1,
+  "initpath": 58,
+  "initpublic": 1,
+  "initskymenu": 1,
+  "inittitle": 1
+ },
+ "sprite_textures": [
+  "herbes1.png"
+ ],
+ "entities": [
+  {
+   "index": 0,
+   "name": "suricat1_mdl_248",
+   "file": "suricat1.MDL",
+   "action": "initmarche",
+   "action_source": "initmarche",
+   "position": [
+    384.0,
+    -1700.0,
+    56.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.85,
+    1.85,
+    1.85
+   ],
+   "skills": [
+    0.0,
+    25.0,
+    400.0,
+    0.0,
+    104.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 28,
+   "extra_0x84": 80.0,
+   "godot_position": [
+    3.84,
+    0.56,
+    17.0
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 1,
+   "name": "solmenu3_mdl_375",
+   "file": "solmenu5.MDL",
+   "action": "initdecor",
+   "action_source": "initDecor",
+   "position": [
+    488.0,
+    -168.0,
+    -480.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.25,
+    1.25,
+    1.25
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    -10.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    4.88,
+    -4.8,
+    1.68
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 2,
+   "name": "sky4_mdl_346",
+   "file": "sky2.MDL",
+   "action": "initskymenu",
+   "action_source": "initSkyMenu",
+   "position": [
+    984.0,
+    -312.0,
+    -480.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    -600.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    9.84,
+    -4.8,
+    3.12
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 3,
+   "name": "small_mdl_004",
+   "file": "small.pcx",
+   "action": "initextraballes",
+   "action_source": "initextraballes",
+   "position": [
+    -2907.0,
+    1781.0,
+    -738.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -29.07,
+    -7.38,
+    -17.81
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 4,
+   "name": "small_mdl_00",
+   "file": "small.pcx",
+   "action": "initnextraballes",
+   "action_source": "initNextraballes",
+   "position": [
+    -2907.0,
+    1651.0,
+    -738.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -29.07,
+    -7.38,
+    -16.51
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 5,
+   "name": "small_mdl_022",
+   "file": "small.pcx",
+   "action": "initgame",
+   "action_source": "initgame",
+   "position": [
+    -2907.0,
+    1525.0,
+    -738.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    25.0,
+    -64.0,
+    -524.0,
+    0.0,
+    3000.0,
+    0.0,
+    750.0,
+    0.0
+   ],
+   "flags": 1,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -29.07,
+    -7.38,
+    -15.25
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 6,
+   "name": "small_mdl_246",
+   "file": "small.pcx",
+   "action": "initcamera2",
+   "action_source": "initcamera2",
+   "position": [
+    -2896.0,
+    1374.0,
+    -719.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    10.0,
+    0.0,
+    1.0,
+    0.1,
+    1.0,
+    2.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -28.96,
+    -7.19,
+    -13.74
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 7,
+   "name": "small_mdl_056",
+   "file": "small.pcx",
+   "action": "initpublic",
+   "action_source": "initpublic",
+   "position": [
+    -2907.0,
+    1269.0,
+    -738.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    54.0,
+    78.0,
+    875.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -29.07,
+    -7.38,
+    -12.69
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 8,
+   "name": "small_mdl_291",
+   "file": "small.pcx",
+   "action": "initcamera3",
+   "action_source": "initcamera3",
+   "position": [
+    -3024.0,
+    1374.0,
+    -719.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    64.0,
+    0.0,
+    0.0,
+    0.6
+   ],
+   "flags": 2,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -30.24,
+    -7.19,
+    -13.74
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 9,
+   "name": "small_mdl_177",
+   "file": "small.pcx",
+   "action": "initgame2",
+   "action_source": "initgame2",
+   "position": [
+    -3037.0,
+    1527.0,
+    -706.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    5.0,
+    -3000.0,
+    -128.0,
+    2000.0,
+    0.0,
+    30.0,
+    0.0,
+    0.0
+   ],
+   "flags": 14,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -30.37,
+    -7.06,
+    -15.27
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 10,
+   "name": "small_mdl_450",
+   "file": "small.pcx",
+   "action": "initgame4",
+   "action_source": "initgame4",
+   "position": [
+    -3173.0,
+    1511.0,
+    -706.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.5,
+    0.5,
+    20000.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 14,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -31.73,
+    -7.06,
+    -15.11
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 11,
+   "name": "small_mdl_181",
+   "file": "small.pcx",
+   "action": "initgame3",
+   "action_source": "initgame3",
+   "position": [
+    -3165.0,
+    1397.0,
+    -626.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    30.0,
+    4.5,
+    60.0,
+    23.5,
+    -12.0,
+    3.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -31.65,
+    -6.26,
+    -13.97
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 12,
+   "name": "small_mdl_397",
+   "file": "small.pcx",
+   "action": "initgame5",
+   "action_source": "initgame5",
+   "position": [
+    -3317.0,
+    1511.0,
+    -706.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    10.0,
+    10.0,
+    0.0,
+    0.9,
+    0.0,
+    100.0,
+    0.3,
+    0.0
+   ],
+   "flags": 14,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -33.17,
+    -7.06,
+    -15.11
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 13,
+   "name": "huttop_mdl_393",
+   "file": "huttop2.MDL",
+   "action": "initmdl",
+   "action_source": "initMDL",
+   "position": [
+    380.0,
+    -154.0,
+    140.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    2.75,
+    2.75,
+    2.75
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    10.0,
+    0.0
+   ],
+   "flags": 513,
+   "extra_0x84": 90.0,
+   "godot_position": [
+    3.8,
+    1.4,
+    1.54
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 14,
+   "name": "huttop_mdl_394",
+   "file": "huttop2.MDL",
+   "action": "initmdl",
+   "action_source": "initMDL",
+   "position": [
+    -672.0,
+    680.0,
+    152.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.25,
+    1.25,
+    1.25
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    10.0,
+    0.0
+   ],
+   "flags": 513,
+   "extra_0x84": 60.0,
+   "godot_position": [
+    -6.72,
+    1.52,
+    -6.8
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 15,
+   "name": "gembl+17_mdl_290",
+   "file": "gembl+17.pcx",
+   "action": "initkey",
+   "action_source": "initKey",
+   "position": [
+    1528.0,
+    1416.0,
+    40.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    4.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    15.28,
+    0.4,
+    -14.16
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 16,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    2428.0,
+    2056.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    24.28,
+    -0.83,
+    -20.56
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 17,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    2428.0,
+    2056.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    24.28,
+    -0.83,
+    -20.56
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 18,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    2164.0,
+    2432.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    21.64,
+    -0.83,
+    -24.32
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 19,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    2164.0,
+    2432.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    21.64,
+    -0.83,
+    -24.32
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 20,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    260.0,
+    3048.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    2.6,
+    -0.83,
+    -30.48
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 21,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    260.0,
+    3048.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    2.6,
+    -0.83,
+    -30.48
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 22,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -316.0,
+    2568.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -3.16,
+    -0.83,
+    -25.68
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 23,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -316.0,
+    2568.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -3.16,
+    -0.83,
+    -25.68
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 24,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -740.0,
+    2408.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -7.4,
+    -0.83,
+    -24.08
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 25,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -740.0,
+    2408.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -7.4,
+    -0.83,
+    -24.08
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 26,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -916.0,
+    2488.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -9.16,
+    -0.83,
+    -24.88
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 27,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -916.0,
+    2488.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -9.16,
+    -0.83,
+    -24.88
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 28,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -1564.0,
+    1944.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -15.64,
+    -0.83,
+    -19.44
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 29,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -1564.0,
+    1944.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -15.64,
+    -0.83,
+    -19.44
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 30,
+   "name": "wasp1_mdl_725",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    -547.0,
+    -1091.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -5.47,
+    0.57,
+    10.91
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 31,
+   "name": "small_mdl_732",
+   "file": "small.pcx",
+   "action": "initgame6",
+   "action_source": "initgame6",
+   "position": [
+    -3376.0,
+    1500.0,
+    -704.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -33.76,
+    -7.04,
+    -15.0
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 32,
+   "name": "boost_mdl_733",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    152.0,
+    -1656.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    1.52,
+    0.72,
+    16.56
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 33,
+   "name": "tileexit_mdl_287",
+   "file": "tileexit.wmb",
+   "action": "initexit",
+   "action_source": "initExit",
+   "position": [
+    384.0,
+    1664.0,
+    0.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    3.84,
+    0.0,
+    -16.64
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 34,
+   "name": "doorexit_mdl_250",
+   "file": "doorexit.wmb",
+   "action": "initdoor",
+   "action_source": "initDoor",
+   "position": [
+    384.0,
+    1512.0,
+    0.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    150.0,
+    0.0,
+    40.0,
+    0.0,
+    7.0,
+    25.0,
+    0.0
+   ],
+   "flags": 64,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    3.84,
+    0.0,
+    -15.12
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 35,
+   "name": "dfixGreen",
+   "file": "doneOran.wmb",
+   "action": "initdoor",
+   "action_source": "initDoor",
+   "position": [
+    384.0,
+    1136.0,
+    0.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    150.0,
+    0.0,
+    40.0,
+    0.0,
+    3.0,
+    25.0,
+    0.0
+   ],
+   "flags": 64,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    3.84,
+    0.0,
+    -11.36
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 36,
+   "name": "dfixGreen",
+   "file": "dfixgree.wmb",
+   "action": "initdoor",
+   "action_source": "initDoor",
+   "position": [
+    384.0,
+    784.0,
+    0.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    150.0,
+    0.0,
+    40.0,
+    80.0,
+    6.0,
+    25.0,
+    0.0
+   ],
+   "flags": 80,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    3.84,
+    0.0,
+    -7.84
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 37,
+   "name": "gemYellow",
+   "file": "gemye+17.pcx",
+   "action": "initkey",
+   "action_source": "initKey",
+   "position": [
+    -768.0,
+    120.0,
+    40.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -7.68,
+    0.4,
+    -1.2
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 38,
+   "name": "gemye+17_mdl_735",
+   "file": "gemye+17.pcx",
+   "action": "initkey",
+   "action_source": "initKey",
+   "position": [
+    -544.0,
+    1232.0,
+    40.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -5.44,
+    0.4,
+    -12.32
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 39,
+   "name": "gemRed",
+   "file": "gemre+17.pcx",
+   "action": "initkey",
+   "action_source": "initKey",
+   "position": [
+    1496.0,
+    -504.0,
+    40.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    14.96,
+    0.4,
+    5.04
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 40,
+   "name": "Tut09D02_mdl_292",
+   "file": "tut07E5a.pcx",
+   "action": "inittitle",
+   "action_source": "inittitle",
+   "position": [
+    384.0,
+    -1640.0,
+    56.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    0.38,
+    0.38,
+    0.38
+   ],
+   "skills": [
+    1.0,
+    215.0,
+    0.0,
+    50.0,
+    8.0,
+    16.0,
+    8.0,
+    99.0
+   ],
+   "flags": 16,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    3.84,
+    0.56,
+    16.4
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 41,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    3516.0,
+    944.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    35.16,
+    -0.83,
+    -9.44
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 42,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    3516.0,
+    944.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    35.16,
+    -0.83,
+    -9.44
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 43,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    3676.0,
+    1440.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    36.76,
+    -0.83,
+    -14.4
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 44,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    3676.0,
+    1440.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    36.76,
+    -0.83,
+    -14.4
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 45,
+   "name": "huttop_mdl_394",
+   "file": "huttop2.MDL",
+   "action": "initmdl",
+   "action_source": "initMDL",
+   "position": [
+    1472.0,
+    -1088.0,
+    152.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.25,
+    1.25,
+    1.25
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    10.0,
+    0.0
+   ],
+   "flags": 513,
+   "extra_0x84": 60.0,
+   "godot_position": [
+    14.72,
+    1.52,
+    10.88
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 46,
+   "name": "huttop_mdl_394",
+   "file": "huttop2.MDL",
+   "action": "initmdl",
+   "action_source": "initMDL",
+   "position": [
+    1264.0,
+    576.0,
+    152.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.25,
+    1.25,
+    1.25
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    10.0,
+    0.0
+   ],
+   "flags": 513,
+   "extra_0x84": 60.0,
+   "godot_position": [
+    12.64,
+    1.52,
+    -5.76
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 47,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -2124.0,
+    -2200.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -21.24,
+    -0.83,
+    22.0
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 48,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -2124.0,
+    -2200.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -21.24,
+    -0.83,
+    22.0
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 49,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -2428.0,
+    -2072.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -24.28,
+    -0.83,
+    20.72
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 50,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -2428.0,
+    -2072.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -24.28,
+    -0.83,
+    20.72
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 51,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -2796.0,
+    -2456.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -27.96,
+    -0.83,
+    24.56
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 52,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -2796.0,
+    -2456.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -27.96,
+    -0.83,
+    24.56
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 53,
+   "name": "bigrock2_mdl_694",
+   "file": "bigrock2.wmb",
+   "action": "",
+   "action_source": "",
+   "position": [
+    2136.0,
+    3262.0,
+    -8.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    21.36,
+    -0.08,
+    -32.62
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 54,
+   "name": "bigrock4_mdl_691",
+   "file": "bigrock4.wmb",
+   "action": "",
+   "action_source": "",
+   "position": [
+    -1785.0,
+    3005.0,
+    -8.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -17.85,
+    -0.08,
+    -30.05
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 55,
+   "name": "bigrock5_mdl_692",
+   "file": "bigrock5.wmb",
+   "action": "",
+   "action_source": "",
+   "position": [
+    1296.0,
+    -3114.0,
+    -8.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    12.96,
+    -0.08,
+    31.14
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 56,
+   "name": "boost_mdl_736",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    -168.0,
+    608.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -1.68,
+    0.72,
+    -6.08
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 57,
+   "name": "boost_mdl_737",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    1392.0,
+    1192.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    13.92,
+    0.72,
+    -11.92
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 58,
+   "name": "boost_mdl_738",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    1320.0,
+    -56.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    13.2,
+    0.72,
+    0.56
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 59,
+   "name": "boost_mdl_739",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    1360.0,
+    -776.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    13.6,
+    0.72,
+    7.76
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 60,
+   "name": "wasp1_mdl_740",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    -475.0,
+    -115.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -4.75,
+    0.57,
+    1.15
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 61,
+   "name": "wasp1_mdl_741",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    -755.0,
+    1021.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -7.55,
+    0.57,
+    -10.21
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 62,
+   "name": "wasp1_mdl_742",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    -131.0,
+    1013.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -1.31,
+    0.57,
+    -10.13
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 63,
+   "name": "wasp1_mdl_743",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    373.0,
+    261.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    3.73,
+    0.57,
+    -2.61
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 64,
+   "name": "wasp1_mdl_744",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    893.0,
+    981.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    8.93,
+    0.57,
+    -9.81
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 65,
+   "name": "wasp1_mdl_745",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    1669.0,
+    821.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.69,
+    0.57,
+    -8.21
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 66,
+   "name": "wasp1_mdl_746",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    1669.0,
+    253.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.69,
+    0.57,
+    -2.53
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 67,
+   "name": "wasp1_mdl_747",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    925.0,
+    -203.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    9.25,
+    0.57,
+    2.03
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 68,
+   "name": "wasp1_mdl_748",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    1653.0,
+    -1547.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.53,
+    0.57,
+    15.47
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 69,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    2604.0,
+    -496.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    26.04,
+    -0.83,
+    4.96
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 70,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    2604.0,
+    -496.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    26.04,
+    -0.83,
+    4.96
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 71,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    1756.0,
+    -2200.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    17.56,
+    -0.83,
+    22.0
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 72,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    1756.0,
+    -2200.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    17.56,
+    -0.83,
+    22.0
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 73,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    188.0,
+    -2560.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    1.88,
+    -0.83,
+    25.6
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 74,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    188.0,
+    -2560.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    1.88,
+    -0.83,
+    25.6
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 75,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    52.0,
+    -2648.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    0.52,
+    -0.83,
+    26.48
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 76,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    52.0,
+    -2648.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    0.52,
+    -0.83,
+    26.48
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 77,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -2116.0,
+    -1296.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -21.16,
+    -0.83,
+    12.96
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 78,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -2116.0,
+    -1296.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -21.16,
+    -0.83,
+    12.96
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 79,
+   "name": "herbes1_mdl_627",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -1700.0,
+    856.0,
+    -83.0
+   ],
+   "angles": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -17.0,
+    -0.83,
+    -8.56
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 80,
+   "name": "herbes1_mdl_617",
+   "file": "herbes1.pcx",
+   "action": "initarbre",
+   "action_source": "initarbre",
+   "position": [
+    -1700.0,
+    856.0,
+    -83.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "skills": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    -17.0,
+    -0.83,
+    -8.56
+   ],
+   "ground_z": -256.0,
+   "godot_ground_y": -2.56
+  },
+  {
+   "index": 81,
+   "name": "nanolion_mdl_715",
+   "file": "rockerA.MDL",
+   "action": "initlion",
+   "action_source": "InitLion",
+   "position": [
+    1053.0,
+    -573.0,
+    2.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    13.0,
+    10.0,
+    900.0,
+    31.03,
+    1.32,
+    10000.0,
+    0.0,
+    4.0
+   ],
+   "flags": 4,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    10.53,
+    0.02,
+    5.73
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 82,
+   "name": "rockerA_mdl_749",
+   "file": "nanolion.MDL",
+   "action": "initlion",
+   "action_source": "InitLion",
+   "position": [
+    397.0,
+    403.0,
+    2.0
+   ],
+   "angles": [
+    180.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    10.0,
+    10.0,
+    900.0,
+    31.03,
+    1.3,
+    10000.0,
+    0.0,
+    4.0
+   ],
+   "flags": 4,
+   "extra_0x84": 100.0,
+   "godot_position": [
+    3.97,
+    0.02,
+    -4.03
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 83,
+   "name": "gemgr+17_mdl_756",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1315.0,
+    -1233.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    13.15,
+    0.43,
+    12.33
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 84,
+   "name": "gemgr+17_mdl_750",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1483.0,
+    -1289.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    14.83,
+    0.43,
+    12.89
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 85,
+   "name": "gemgr+17_mdl_322",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1627.0,
+    -1241.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.27,
+    0.43,
+    12.41
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 86,
+   "name": "gemgr+17_mdl_751",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1667.0,
+    -1097.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.67,
+    0.43,
+    10.97
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 87,
+   "name": "gemgr+17_mdl_752",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1627.0,
+    -937.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.27,
+    0.43,
+    9.37
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 88,
+   "name": "gemgr+17_mdl_753",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1475.0,
+    -897.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    14.75,
+    0.43,
+    8.97
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 89,
+   "name": "gemgr+17_mdl_754",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1315.0,
+    -937.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    13.15,
+    0.43,
+    9.37
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 90,
+   "name": "gemgr+17_mdl_755",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1275.0,
+    -1097.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    12.75,
+    0.43,
+    10.97
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 91,
+   "name": "gemgr+17_mdl_756",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1107.0,
+    431.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    11.07,
+    0.43,
+    -4.31
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 92,
+   "name": "gemgr+17_mdl_750",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1275.0,
+    375.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    12.75,
+    0.43,
+    -3.75
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 93,
+   "name": "gemgr+17_mdl_322",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1419.0,
+    423.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    14.19,
+    0.43,
+    -4.23
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 94,
+   "name": "gemgr+17_mdl_751",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1459.0,
+    567.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    14.59,
+    0.43,
+    -5.67
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 95,
+   "name": "gemgr+17_mdl_752",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1419.0,
+    727.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    14.19,
+    0.43,
+    -7.27
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 96,
+   "name": "gemgr+17_mdl_753",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1267.0,
+    767.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    12.67,
+    0.43,
+    -7.67
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 97,
+   "name": "gemgr+17_mdl_754",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1107.0,
+    727.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    11.07,
+    0.43,
+    -7.27
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 98,
+   "name": "gemgr+17_mdl_755",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    1067.0,
+    567.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    10.67,
+    0.43,
+    -5.67
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 99,
+   "name": "gemgr+17_mdl_756",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    -829.0,
+    527.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -8.29,
+    0.43,
+    -5.27
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 100,
+   "name": "gemgr+17_mdl_750",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    -661.0,
+    471.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -6.61,
+    0.43,
+    -4.71
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 101,
+   "name": "gemgr+17_mdl_322",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    -517.0,
+    519.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -5.17,
+    0.43,
+    -5.19
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 102,
+   "name": "gemgr+17_mdl_751",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    -477.0,
+    663.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -4.77,
+    0.43,
+    -6.63
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 103,
+   "name": "gemgr+17_mdl_752",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    -517.0,
+    823.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -5.17,
+    0.43,
+    -8.23
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 104,
+   "name": "gemgr+17_mdl_753",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    -669.0,
+    863.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -6.69,
+    0.43,
+    -8.63
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 105,
+   "name": "gemgr+17_mdl_754",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    -829.0,
+    823.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -8.29,
+    0.43,
+    -8.23
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 106,
+   "name": "gemgr+17_mdl_755",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    -869.0,
+    663.0,
+    43.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -8.69,
+    0.43,
+    -6.63
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 107,
+   "name": "boost_mdl_757",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    -800.0,
+    1528.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -8.0,
+    0.72,
+    -15.28
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 108,
+   "name": "boost_mdl_758",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    40.0,
+    -768.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    0.4,
+    0.72,
+    7.68
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 109,
+   "name": "boost_mdl_759",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    -848.0,
+    -1376.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -8.48,
+    0.72,
+    13.76
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 110,
+   "name": "wasp1_mdl_760",
+   "file": "wasp1.MDL",
+   "action": "initammo1",
+   "action_source": "initammo1",
+   "position": [
+    485.0,
+    -723.0,
+    57.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    1.0,
+    1.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    4.85,
+    0.57,
+    7.23
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 111,
+   "name": "boost_mdl_761",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    -952.0,
+    -384.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -9.52,
+    0.72,
+    3.84
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 112,
+   "name": "boost_mdl_762",
+   "file": "boost.MDL",
+   "action": "initboost",
+   "action_source": "initboost",
+   "position": [
+    824.0,
+    1456.0,
+    72.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    15.0,
+    128.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    8.24,
+    0.72,
+    -14.56
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 113,
+   "name": "gemgr+17_mdl_764",
+   "file": "gemgr+17.pcx",
+   "action": "initbonus3",
+   "action_source": "initbonus3",
+   "position": [
+    384.0,
+    1328.0,
+    48.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    0.0,
+    30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    3.84,
+    0.48,
+    -13.28
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 114,
+   "name": "setcam_mdl_249",
+   "file": "setcam.wmb",
+   "action": "initcamera1",
+   "action_source": "initcamera1",
+   "position": [
+    -3304.0,
+    1153.0,
+    -583.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    90.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    350.0,
+    200.0,
+    1500.0,
+    400.0,
+    32.0,
+    1000.0,
+    180.0,
+    180.0
+   ],
+   "flags": 9,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -33.04,
+    -5.83,
+    -11.53
+   ],
+   "ground_z": null,
+   "godot_ground_y": null
+  },
+  {
+   "index": 115,
+   "name": "setpath_mdl_g265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1061.0,
+    -773.0,
+    50.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    10.61,
+    0.5,
+    7.73
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 116,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1069.0,
+    -541.0,
+    50.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    10.69,
+    0.5,
+    5.41
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 117,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1069.0,
+    -325.0,
+    50.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    10.69,
+    0.5,
+    3.25
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 118,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    472.0,
+    389.0,
+    50.0
+   ],
+   "angles": [
+    180.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    4.72,
+    0.5,
+    -3.89
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 119,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    248.0,
+    389.0,
+    50.0
+   ],
+   "angles": [
+    180.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    2.48,
+    0.5,
+    -3.89
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 120,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -4.0,
+    389.0,
+    50.0
+   ],
+   "angles": [
+    225.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -0.04,
+    0.5,
+    -3.89
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 121,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -140.0,
+    221.0,
+    50.0
+   ],
+   "angles": [
+    225.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -1.4,
+    0.5,
+    -2.21
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 122,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -283.0,
+    48.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -2.83,
+    0.5,
+    -0.48
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 123,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -283.0,
+    -168.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -2.83,
+    0.5,
+    1.68
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 124,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -275.0,
+    -400.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -2.75,
+    0.5,
+    4.0
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 125,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -267.0,
+    -632.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -2.67,
+    0.5,
+    6.32
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 126,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -243.0,
+    -835.0,
+    50.0
+   ],
+   "angles": [
+    315.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -2.43,
+    0.5,
+    8.35
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 127,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -70.0,
+    -955.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -0.7,
+    0.5,
+    9.55
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 128,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    162.0,
+    -955.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    1.62,
+    0.5,
+    9.55
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 129,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    394.0,
+    -947.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    3.94,
+    0.5,
+    9.47
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 130,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    650.0,
+    -939.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    6.5,
+    0.5,
+    9.39
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 131,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    885.0,
+    -946.0,
+    50.0
+   ],
+   "angles": [
+    45.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    8.85,
+    0.5,
+    9.46
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 132,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1061.0,
+    -66.0,
+    50.0
+   ],
+   "angles": [
+    45.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    10.61,
+    0.5,
+    0.66
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 133,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1205.0,
+    46.0,
+    50.0
+   ],
+   "angles": [
+    45.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    12.05,
+    0.5,
+    -0.46
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 134,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1373.0,
+    158.0,
+    50.0
+   ],
+   "angles": [
+    45.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    13.73,
+    0.5,
+    -1.58
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 135,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1493.0,
+    294.0,
+    50.0
+   ],
+   "angles": [
+    45.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    14.93,
+    0.5,
+    -2.94
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 136,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1645.0,
+    387.0,
+    50.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.45,
+    0.5,
+    -3.87
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 137,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1637.0,
+    571.0,
+    50.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.37,
+    0.5,
+    -5.71
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 138,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1629.0,
+    715.0,
+    50.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.29,
+    0.5,
+    -7.15
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 139,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1628.0,
+    902.0,
+    50.0
+   ],
+   "angles": [
+    135.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.28,
+    0.5,
+    -9.02
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 140,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1544.0,
+    997.0,
+    50.0
+   ],
+   "angles": [
+    180.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    15.44,
+    0.5,
+    -9.97
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 141,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1360.0,
+    997.0,
+    50.0
+   ],
+   "angles": [
+    180.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    13.6,
+    0.5,
+    -9.97
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 142,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1224.0,
+    989.0,
+    50.0
+   ],
+   "angles": [
+    180.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    12.24,
+    0.5,
+    -9.89
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 143,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1044.0,
+    1005.0,
+    50.0
+   ],
+   "angles": [
+    225.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    10.44,
+    0.5,
+    -10.05
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 144,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    884.0,
+    797.0,
+    50.0
+   ],
+   "angles": [
+    225.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    8.84,
+    0.5,
+    -7.97
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 145,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    732.0,
+    653.0,
+    50.0
+   ],
+   "angles": [
+    225.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    7.32,
+    0.5,
+    -6.53
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 146,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    580.0,
+    517.0,
+    50.0
+   ],
+   "angles": [
+    225.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    5.8,
+    0.5,
+    -5.17
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 147,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1172.0,
+    -1482.0,
+    50.0
+   ],
+   "angles": [
+    135.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    11.72,
+    0.5,
+    14.82
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 148,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1668.0,
+    -770.0,
+    50.0
+   ],
+   "angles": [
+    135.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    16.68,
+    0.5,
+    7.7
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 149,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1700.0,
+    -282.0,
+    50.0
+   ],
+   "angles": [
+    135.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    17.0,
+    0.5,
+    2.82
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 150,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    629.0,
+    -1349.0,
+    50.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    6.29,
+    0.5,
+    13.49
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 151,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    181.0,
+    -1357.0,
+    50.0
+   ],
+   "angles": [
+    90.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    1.81,
+    0.5,
+    13.57
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 152,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -443.0,
+    -1482.0,
+    50.0
+   ],
+   "angles": [
+    45.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -4.43,
+    0.5,
+    14.82
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 153,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -987.0,
+    -1506.0,
+    50.0
+   ],
+   "angles": [
+    45.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -9.87,
+    0.5,
+    15.06
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 154,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -771.0,
+    -970.0,
+    50.0
+   ],
+   "angles": [
+    45.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -7.71,
+    0.5,
+    9.7
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 155,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -934.0,
+    -547.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -9.34,
+    0.5,
+    5.47
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 156,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -550.0,
+    -547.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -5.5,
+    0.5,
+    5.47
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 157,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -550.0,
+    -107.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -5.5,
+    0.5,
+    1.07
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 158,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -926.0,
+    -99.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -9.26,
+    0.5,
+    0.99
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 159,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -926.0,
+    293.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -9.26,
+    0.5,
+    -2.93
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 160,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -478.0,
+    285.0,
+    50.0
+   ],
+   "angles": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -4.78,
+    0.5,
+    -2.85
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 161,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -283.0,
+    717.0,
+    50.0
+   ],
+   "angles": [
+    315.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -2.83,
+    0.5,
+    -7.17
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 162,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -595.0,
+    1077.0,
+    50.0
+   ],
+   "angles": [
+    315.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -5.95,
+    0.5,
+    -10.77
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 163,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -923.0,
+    1469.0,
+    50.0
+   ],
+   "angles": [
+    315.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -9.23,
+    0.5,
+    -14.69
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 164,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    29.0,
+    776.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    0.29,
+    0.5,
+    -7.76
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 165,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    29.0,
+    1200.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    0.29,
+    0.5,
+    -12.0
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 166,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    29.0,
+    1608.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    0.29,
+    0.5,
+    -16.08
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 167,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    -379.0,
+    1501.0,
+    50.0
+   ],
+   "angles": [
+    315.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    -3.79,
+    0.5,
+    -15.01
+   ],
+   "ground_z": 0.0,
+   "godot_ground_y": 0.0
+  },
+  {
+   "index": 168,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    749.0,
+    1152.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    7.49,
+    0.5,
+    -11.52
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 169,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    741.0,
+    1592.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    7.41,
+    0.5,
+    -15.92
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 170,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1157.0,
+    1568.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    11.57,
+    0.5,
+    -15.68
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 171,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1157.0,
+    1256.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    11.57,
+    0.5,
+    -12.56
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  },
+  {
+   "index": 172,
+   "name": "setpath_mdl_265",
+   "file": "setpath.wmb",
+   "action": "initpath",
+   "action_source": "initpath",
+   "position": [
+    1493.0,
+    1568.0,
+    50.0
+   ],
+   "angles": [
+    270.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "skills": [
+    31.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "flags": 0,
+   "extra_0x84": 0.0,
+   "godot_position": [
+    14.93,
+    0.5,
+    -15.68
+   ],
+   "ground_z": -0.0,
+   "godot_ground_y": -0.0
+  }
+ ]
+}

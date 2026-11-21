@@ -72,6 +72,54 @@ const CATALOG := {
         "kind": "model",
         "description": "Original solmenu5 model used by menu_greenpepper.WMB"
     },
+    "model.sky2": {
+        "path": "res://assets/models/sky2/sky2.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/sky2/sky2.gltf",
+        "kind": "model",
+        "description": "Original level sky model (InitSkyMenu)"
+    },
+    "model.sky4": {
+        "path": "res://assets/models/sky4/sky4.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/sky4/sky4.gltf",
+        "kind": "model",
+        "description": "Original level sky model (InitSkyMenu)"
+    },
+    "model.sky5": {
+        "path": "res://assets/models/sky5/sky5.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/sky5/sky5.gltf",
+        "kind": "model",
+        "description": "Original level sky model (InitSkyMenu)"
+    },
+    "model.solmenu4": {
+        "path": "res://assets/models/solmenu4/solmenu4.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/solmenu4/solmenu4.gltf",
+        "kind": "model",
+        "description": "Original level floor/sky decor model (InitDecor/InitSkyMenu)"
+    },
+    "model.bigtree1": {
+        "path": "res://assets/models/bigtree1/bigtree1.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/bigtree1/bigtree1.gltf",
+        "kind": "model",
+        "description": "Original big tree backdrop model (InitSkyMenu)"
+    },
+    "model.greenhi1": {
+        "path": "res://assets/models/greenhi1/greenhi1.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/greenhi1/greenhi1.gltf",
+        "kind": "model",
+        "description": "Original green hill decor model (InitDecor)"
+    },
+    "model.grate1": {
+        "path": "res://assets/models/grate1/grate1.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/grate1/grate1.gltf",
+        "kind": "model",
+        "description": "Original grate level model (InitMDL)"
+    },
+    "model.huttop2": {
+        "path": "res://assets/models/huttop2/huttop2.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/huttop2/huttop2.gltf",
+        "kind": "model",
+        "description": "Original hut roof level model (InitMDL)"
+    },
     "model.menu.title": {
         "path": "res://assets/models/menu/titre/titre.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/titre/titre.gltf",

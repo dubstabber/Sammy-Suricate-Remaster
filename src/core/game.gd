@@ -1,6 +1,7 @@
 extends Node
 
 const KEY_DIAMOND_RULES_SCRIPT := preload("res://src/resources/key_diamond_rules.gd")
+const MENU_LEVEL_CATALOG_SCRIPT := preload("res://src/menu/menu_level_catalog.gd")
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const MAIN_MENU_SCENE_PATH := "res://scenes/menu/main_menu.tscn"
 const PROTOTYPE_SCENE_PATH := "res://scenes/prototype/prototype_world.tscn"
@@ -24,6 +25,8 @@ var _score_goal_reward_granted := false
 var _selected_menu_level_number := 0
 var _selected_menu_level_source_wmb := ""
 var _selected_menu_level_category: StringName = &""
+var _current_level_number := 0
+var _current_level_scene_path := ""
 
 
 func _process(delta: float) -> void:
@@ -55,6 +58,8 @@ func show_main_menu() -> Error:
 
 
 func show_prototype_world() -> Error:
+    _current_level_number = 0
+    _current_level_scene_path = ""
     var route_err := _try_scene_router(&"show_prototype_world")
     if route_err != ERR_UNAVAILABLE:
         return route_err
@@ -63,6 +68,38 @@ func show_prototype_world() -> Error:
 
 func reload_prototype() -> Error:
     return show_prototype_world()
+
+
+## Loads a level baked from its original WMB (see tools/build_level_scenes.gd).
+func show_level(level_number: int) -> Error:
+    var level_data: Dictionary = MENU_LEVEL_CATALOG_SCRIPT.level_by_number(level_number)
+    if level_data.is_empty() or not bool(level_data.get("selectable", false)):
+        return ERR_DOES_NOT_EXIST
+    _current_level_number = level_number
+    _current_level_scene_path = String(level_data["scene_path"])
+    return _show_level_scene(_current_level_scene_path)
+
+
+## Restarts the level that is currently loaded, or the prototype when none is.
+func reload_current_level() -> Error:
+    if _current_level_scene_path.is_empty():
+        return reload_prototype()
+    return _show_level_scene(_current_level_scene_path)
+
+
+func get_current_level_number() -> int:
+    return _current_level_number
+
+
+func get_current_level_scene_path() -> String:
+    return _current_level_scene_path
+
+
+func _show_level_scene(scene_path: String) -> Error:
+    var route_err := _try_scene_router(&"show_scene", [scene_path])
+    if route_err != ERR_UNAVAILABLE:
+        return route_err
+    return change_to_scene(scene_path)
 
 
 func select_menu_level(level_number: int, source_wmb: String, category_key: StringName) -> void:
@@ -98,13 +135,13 @@ func get_selected_menu_level() -> Dictionary:
     }
 
 
-func _try_scene_router(method_name: StringName) -> Error:
+func _try_scene_router(method_name: StringName, args: Array = []) -> Error:
     if scene_router == null or not is_instance_valid(scene_router):
         return ERR_UNAVAILABLE
     if not scene_router.has_method(method_name):
         return ERR_UNAVAILABLE
 
-    var result = scene_router.call(method_name)
+    var result = scene_router.callv(method_name, args)
     if typeof(result) == TYPE_INT:
         return int(result)
     return OK

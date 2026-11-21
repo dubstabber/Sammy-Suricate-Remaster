@@ -1,0 +1,44 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/levels/level_world.gd" id="1_world"]
+[ext_resource type="Script" path="res://src/camera/third_person_camera.gd" id="3_camera"]
+[ext_resource type="PackedScene" path="res://scenes/ui/debug_overlay.tscn" id="4_debug"]
+[ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="5_key_panel"]
+
+[sub_resource type="Environment" id="Environment_level"]
+background_mode = 1
+background_color = Color(0.55, 0.68, 0.82, 1)
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.55
+
+[node name="LevelWorld" type="Node3D"]
+script = ExtResource("1_world")
+camera_path = NodePath("LevelCamera")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_level")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Entities" type="Node3D" parent="."]
+
+[node name="Config" type="Node3D" parent="."]
+
+[node name="Unmapped" type="Node3D" parent="."]
+
+[node name="PlayerStart" type="Marker3D" parent="."]
+
+[node name="LevelCamera" type="Camera3D" parent="."]
+script = ExtResource("3_camera")
+target_path = NodePath("../Player")
+
+[node name="DebugOverlay" parent="." instance=ExtResource("4_debug")]
+player_path = NodePath("../Player")
+
+[node name="KeyDiamondPanel" parent="." instance=ExtResource("5_key_panel")]
+player_path = NodePath("../Player")

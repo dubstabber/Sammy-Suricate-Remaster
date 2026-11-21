@@ -1,0 +1,334 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "convert_level_wmb.py"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "106g_t",
+   "nodes": [
+    0,
+    1
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "106g_t_render",
+   "mesh": 0
+  },
+  {
+   "name": "106g_t_collision-colonly",
+   "mesh": 1
+  }
+ ],
+ "meshes": [
+  {
+   "name": "106g_t_render",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    },
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 4,
+     "material": 1
+    },
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 5,
+     "material": 2
+    },
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 6,
+     "material": 3
+    }
+   ]
+  },
+  {
+   "name": "106g_t_collision",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 7
+     },
+     "indices": 8
+    }
+   ]
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "106g_t.bin",
+   "byteLength": 218072
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 46164,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 46164,
+   "byteLength": 46164,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 92328,
+   "byteLength": 30776,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 123104,
+   "byteLength": 1980,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 125084,
+   "byteLength": 6348,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 131432,
+   "byteLength": 156,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 131588,
+   "byteLength": 14928,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 146516,
+   "byteLength": 47520,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 194036,
+   "byteLength": 24036,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 3847,
+   "type": "VEC3",
+   "min": [
+    -62.77,
+    0.0,
+    -73.12
+   ],
+   "max": [
+    79.4,
+    2.56,
+    62.08
+   ]
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 3847,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 3847,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5125,
+   "count": 495,
+   "type": "SCALAR",
+   "min": [
+    0
+   ],
+   "max": [
+    868
+   ]
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5125,
+   "count": 1587,
+   "type": "SCALAR",
+   "min": [
+    80
+   ],
+   "max": [
+    1343
+   ]
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5125,
+   "count": 39,
+   "type": "SCALAR",
+   "min": [
+    1344
+   ],
+   "max": [
+    1366
+   ]
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5125,
+   "count": 3732,
+   "type": "SCALAR",
+   "min": [
+    1367
+   ],
+   "max": [
+    3846
+   ]
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5126,
+   "count": 3960,
+   "type": "VEC3",
+   "min": [
+    -62.77,
+    -0.16,
+    -73.12
+   ],
+   "max": [
+    79.4,
+    2.56,
+    62.08
+   ]
+  },
+  {
+   "bufferView": 8,
+   "componentType": 5125,
+   "count": 6009,
+   "type": "SCALAR",
+   "min": [
+    0
+   ],
+   "max": [
+    3959
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "name": "herbe6_128",
+   "doubleSided": false,
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0.0,
+    "roughnessFactor": 1.0
+   }
+  },
+  {
+   "name": "herbe6_064",
+   "doubleSided": false,
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 1
+    },
+    "metallicFactor": 0.0,
+    "roughnessFactor": 1.0
+   }
+  },
+  {
+   "name": "wood_001_128",
+   "doubleSided": false,
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 2
+    },
+    "metallicFactor": 0.0,
+    "roughnessFactor": 1.0
+   }
+  },
+  {
+   "name": "mur_pierre2_64x",
+   "doubleSided": false,
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 3
+    },
+    "metallicFactor": 0.0,
+    "roughnessFactor": 1.0
+   }
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "textures": [
+  {
+   "source": 0,
+   "sampler": 0
+  },
+  {
+   "source": 1,
+   "sampler": 0
+  },
+  {
+   "source": 2,
+   "sampler": 0
+  },
+  {
+   "source": 3,
+   "sampler": 0
+  }
+ ],
+ "images": [
+  {
+   "uri": "../../textures/levels/herbe6_128.png"
+  },
+  {
+   "uri": "../../textures/levels/herbe6_064.png"
+  },
+  {
+   "uri": "../../textures/levels/wood_001_128.png"
+  },
+  {
+   "uri": "../../textures/levels/mur_pierre2_64x.png"
+  }
+ ]
+}

@@ -22,12 +22,22 @@ Normal gameplay controls are mapped from the original WDL scripts:
 
 - Arrow keys: move forward/back and turn left/right.
 - Ctrl / joy button 1: jump.
-- Space / joy button 2: fire wasps; projectile spawning is still a placeholder until the weapon/ammo pass.
+- Space / joy button 2: fire wasps.
 - Shift / joy button 3: boost.
 - Alt / joy button 4: quick 180 degree turn.
 - C: change camera mode.
 - R: restart the current level.
 - Esc, Enter, left mouse, and joy button 1 are reserved for menu cancel/confirm/accept flows.
+
+## Original Levels
+
+The 36 original levels (Polish install) and the English v1.4 bonus levels 1-4 are converted from their WMB4 files and baked into `scenes/levels/<stem>.tscn`; the level-select menu loads them. Regenerate after converter or mapper changes:
+
+```bash
+python3 tools/convert_level_wmb.py --all
+env HOME=/tmp/sammy-godot-home XDG_DATA_HOME=/tmp/sammy-godot-xdg /path/to/Godot_v4.6.2-stable_linux.x86_64 --headless --path . --import
+env HOME=/tmp/sammy-godot-home XDG_DATA_HOME=/tmp/sammy-godot-xdg /path/to/Godot_v4.6.2-stable_linux.x86_64 --headless --path . --script res://tools/build_level_scenes.gd -- --all
+```
 
 ## Validation
 

@@ -98,6 +98,9 @@ const WEAK_DEBRIS_ROTATIONS := [
 # Empty means infer the original door WMB from required_key_id. Set this when a
 # level uses a special source model such as doorexit.wmb, doordark.wmb, or doorwk4.wmb.
 @export var source_wmb_name: String = ""
+# Level-baked doors use the WMB entity origin as the door origin: the converted
+# model sits at the gate root and collision/trigger fit the model bounds.
+@export var align_source_model_to_origin: bool = false
 @export var destructible_by_wasps: bool = false
 @export_range(0, 16, 1) var weak_door_resistance: int = 0
 @export var weak_hit_sound_asset_id: String = "sfx.plank1"
@@ -127,12 +130,16 @@ func _ready() -> void:
 	add_to_group("key_gate")
 	_closed_collision_layer = collision_layer
 	_closed_collision_mask = collision_mask
+	if align_source_model_to_origin and _visual != null:
+		_visual.position = Vector3.ZERO
 	_closed_visual_position = _visual.position if _visual != null else Vector3.ZERO
 	if _trigger != null:
 		_trigger.body_entered.connect(_on_trigger_body_entered)
 	_initialize_weak_door_state()
 	_apply_key_color()
 	_rebuild_door_visual_model()
+	if align_source_model_to_origin:
+		_fit_collision_to_source_model()
 
 
 func _process(delta: float) -> void:
@@ -438,6 +445,27 @@ func _source_wmb_stem(source: String) -> String:
 		else:
 			cleaned += "_"
 	return cleaned
+
+
+func _fit_collision_to_source_model() -> void:
+	var model_root := get_visual_model_root()
+	if model_root == null or _visual_source_path.is_empty() or not is_inside_tree():
+		return
+	var bounds_state := [false, AABB()]
+	_accumulate_mesh_bounds(self, model_root, bounds_state)
+	if not bool(bounds_state[0]):
+		return
+	var bounds: AABB = bounds_state[1]
+	if _collision_shape != null:
+		var solid_shape := BoxShape3D.new()
+		solid_shape.size = bounds.size
+		_collision_shape.shape = solid_shape
+		_collision_shape.position = bounds.get_center()
+	if _trigger_shape != null:
+		var trigger_box := BoxShape3D.new()
+		trigger_box.size = Vector3(bounds.size.x + 0.8, maxf(bounds.size.y, 2.0), bounds.size.z + 2.05)
+		_trigger_shape.shape = trigger_box
+		_trigger_shape.position = Vector3(bounds.get_center().x, trigger_box.size.y * 0.5, bounds.get_center().z)
 
 
 func _count_mesh_instances(node: Node) -> int:

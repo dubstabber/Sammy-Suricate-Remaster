@@ -1,5 +1,7 @@
 extends RefCounted
 
+const LEVEL_SCENE_DIR := "res://scenes/levels"
+
 const CATEGORY_TUTORIAL := &"tutorial"
 const CATEGORY_JUMP := &"jump"
 const CATEGORY_THINK := &"think"
@@ -87,10 +89,30 @@ static func has_category(category_key: StringName) -> bool:
 	return CATEGORY_TITLES.has(category_key)
 
 
+## Lower-case level stem used by the converted assets and baked scenes,
+## e.g. "102N_t.WMB" -> "102n_t".
+static func stem_for_source_wmb(source_wmb: String) -> String:
+	return source_wmb.get_basename().to_lower()
+
+
+static func scene_path_for_source_wmb(source_wmb: String) -> String:
+	return "%s/%s.tscn" % [LEVEL_SCENE_DIR, stem_for_source_wmb(source_wmb)]
+
+
+static func level_number_for_stem(stem: String) -> int:
+	for level_data: Dictionary in LEVELS:
+		if stem_for_source_wmb(String(level_data["source_wmb"])) == stem.to_lower():
+			return int(level_data["level_number"])
+	return 0
+
+
 static func _with_runtime_fields(level_data: Dictionary) -> Dictionary:
 	var result := level_data.duplicate(true)
 	var level_number := int(result["level_number"])
+	var scene_path := scene_path_for_source_wmb(String(result["source_wmb"]))
 	result["action_id"] = 100 + level_number
 	result["source"] = "Loads.wdl:InitLevel%d" % level_number
-	result["selectable"] = true
+	result["scene_path"] = scene_path
+	# Only levels converted and baked from original WMB files can be played.
+	result["selectable"] = ResourceLoader.exists(scene_path)
 	return result

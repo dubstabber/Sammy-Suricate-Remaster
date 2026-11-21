@@ -478,6 +478,12 @@ func _test_asset_catalog(assets: Node) -> void:
     if menu_music != null:
         var menu_music_length := menu_music.get_length()
         _expect(menu_music_length > 227.5 and menu_music_length < 228.5, "Main menu music should use the TiMidity GM render, not the old libmodplug MIDI approximation.")
+    # Level tracks are FluidR3 renders (tools/render_midi_music.py): MIDI length + 2 s
+    # tail. The old libopenmpt extraction renders were ~1.5 s shorter and sounded wrong.
+    var level_track_lengths := {"music.sammy02": 67.83, "music.sammy03": 194.0, "music.sammy04": 125.41, "music.sammy05": 92.36, "music.sammy06": 198.0, "music.sammy07": 145.99}
+    for track_id: String in level_track_lengths:
+        var track := assets.load_asset(track_id) as AudioStream
+        _expect(track != null and absf(track.get_length() - float(level_track_lengths[track_id])) < 0.5, "%s should be the FluidR3 soundfont render, not the libopenmpt approximation." % track_id)
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
     _expect(assets.load_asset("sfx.diamond") != null, "Unable to load original Diam_son score pickup sound.")
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")

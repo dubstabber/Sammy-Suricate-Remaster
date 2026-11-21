@@ -916,37 +916,37 @@ const CATALOG := {
         "path": "res://assets/audio/sammy02.ogg",
         "source": "extract-sammy-assets/extracted/wrs/sounds/sammy02.mid",
         "kind": "music",
-        "description": "Original sammy02.mid level track (sons.wdl musique2) rendered to OGG"
+        "description": "Original sammy02.mid level track (sons.wdl musique2) rendered with FluidSynth + FluidR3 GM/GS like sammy01 (tools/render_midi_music.py)"
     },
     "music.sammy03": {
         "path": "res://assets/audio/sammy03.ogg",
         "source": "extract-sammy-assets/extracted/wrs/sounds/sammy03.mid",
         "kind": "music",
-        "description": "Original sammy03.mid level track (sons.wdl musique3) rendered to OGG"
+        "description": "Original sammy03.mid level track (sons.wdl musique3) rendered with FluidSynth + FluidR3 GM/GS like sammy01 (tools/render_midi_music.py)"
     },
     "music.sammy04": {
         "path": "res://assets/audio/sammy04.ogg",
         "source": "extract-sammy-assets/extracted/wrs/sounds/sammy04.mid",
         "kind": "music",
-        "description": "Original sammy04.mid level track (sons.wdl musique4) rendered to OGG"
+        "description": "Original sammy04.mid level track (sons.wdl musique4) rendered with FluidSynth + FluidR3 GM/GS like sammy01 (tools/render_midi_music.py)"
     },
     "music.sammy05": {
         "path": "res://assets/audio/sammy05.ogg",
         "source": "extract-sammy-assets/extracted/wrs/sounds/sammy05.mid",
         "kind": "music",
-        "description": "Original sammy05.mid level track (sons.wdl musique5) rendered to OGG"
+        "description": "Original sammy05.mid level track (sons.wdl musique5) rendered with FluidSynth + FluidR3 GM/GS like sammy01 (tools/render_midi_music.py)"
     },
     "music.sammy06": {
         "path": "res://assets/audio/sammy06.ogg",
         "source": "extract-sammy-assets/extracted/wrs/sounds/sammy06.mid",
         "kind": "music",
-        "description": "Original sammy06.mid level track (sons.wdl musique6) rendered to OGG"
+        "description": "Original sammy06.mid level track (sons.wdl musique6) rendered with FluidSynth + FluidR3 GM/GS like sammy01 (tools/render_midi_music.py)"
     },
     "music.sammy07": {
         "path": "res://assets/audio/sammy07.ogg",
         "source": "extract-sammy-assets/extracted/wrs/sounds/sammy07.mid",
         "kind": "music",
-        "description": "Original sammy07.mid level track (sons.wdl musique7) rendered to OGG"
+        "description": "Original sammy07.mid level track (sons.wdl musique7) rendered with FluidSynth + FluidR3 GM/GS like sammy01 (tools/render_midi_music.py)"
     },
     "sfx.beep1": {
         "path": "res://assets/audio/beep1.wav",

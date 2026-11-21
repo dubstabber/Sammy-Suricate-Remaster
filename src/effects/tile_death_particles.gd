@@ -14,11 +14,13 @@ const DEFAULT_SMOKE_TEXTURES: Array[String] = [
 	"texture.particle.tile_death_fumee9",
 ]
 const FRAME_TICKS: Array[float] = [0.0, 4.0, 6.0, 7.0, 10.0, 12.0, 15.0, 17.0, 19.0]
+const WdlParticlesScript := preload("res://src/effects/wdl_particles.gd")
+const MAX_AGE_TICKS := 22.0
+const MAX_WDL_SIZE := 2500.0
 
 @export var smoke_texture_asset_ids: Array[String] = DEFAULT_SMOKE_TEXTURES.duplicate()
 @export var idle_enabled: bool = true
 @export var idle_emit_interval_seconds: float = 2.0 / ACKNEX_TICKS_PER_SECOND
-@export var particle_pixel_size: float = 0.012
 @export var auto_free_when_empty: bool = false
 
 var _textures: Array[Texture2D] = []
@@ -75,33 +77,31 @@ func _load_textures() -> void:
 			_textures.append(texture)
 
 
+## particul.wdl particle_TileDeath (InitTileDeath emits one every 2 ticks).
 func _emit_particle(origin: Vector3) -> void:
 	if _textures.is_empty():
 		return
-	var sprite := Sprite3D.new()
-	sprite.name = "TileDeathSmoke"
-	sprite.texture = _textures[0]
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	sprite.pixel_size = particle_pixel_size
+	var sprite := WdlParticlesScript.make_sprite("TileDeathSmoke", _textures[0], true)
 	sprite.position = origin
-	sprite.scale = Vector3.ONE * randf_range(0.55, 1.2)
 	add_child(sprite)
-
+	var size := WdlParticlesScript.wdl_random(1500.0)
+	WdlParticlesScript.set_sprite_size(sprite, size)
 	_particles.append({
 		"sprite": sprite,
-		"velocity": Vector3(
-				randf_range(-0.32, 0.32),
-				randf_range(0.03, 0.13),
-				randf_range(-0.32, 0.32)
+		"velocity": WdlParticlesScript.velocity(
+				WdlParticlesScript.wdl_random(64.0) - 32.0,
+				WdlParticlesScript.wdl_random(64.0) - 32.0,
+				WdlParticlesScript.wdl_random(10.0) + 3.0
 		),
 		"age": 0.0,
+		"size": size,
 	})
 
 
 func _update_particles(delta: float) -> void:
 	if delta <= 0.0:
 		return
+	var ticks := delta * ACKNEX_TICKS_PER_SECOND
 	for index in range(_particles.size() - 1, -1, -1):
 		var particle := _particles[index]
 		var sprite := particle["sprite"] as Sprite3D
@@ -111,25 +111,31 @@ func _update_particles(delta: float) -> void:
 
 		var age := float(particle["age"]) + delta
 		var age_ticks := age * ACKNEX_TICKS_PER_SECOND
-		if age_ticks >= 22.0:
+		if age_ticks >= MAX_AGE_TICKS:
 			sprite.queue_free()
 			_particles.remove_at(index)
 			continue
 
 		var texture_index := _texture_index_for_age_ticks(age_ticks)
-		sprite.texture = _textures[mini(texture_index, _textures.size() - 1)]
+		var texture := _textures[mini(texture_index, _textures.size() - 1)]
+		if sprite.texture != texture:
+			WdlParticlesScript.set_sprite_texture(sprite, texture, true)
 
 		var velocity := particle["velocity"] as Vector3
-		velocity.x *= pow(0.9, ACKNEX_TICKS_PER_SECOND * delta)
-		velocity.z *= pow(0.9, ACKNEX_TICKS_PER_SECOND * delta)
-		velocity.y += 0.01 * ACKNEX_TICKS_PER_SECOND * delta
+		var damping := WdlParticlesScript.damping(0.9, delta)
+		velocity.x *= damping
+		velocity.z *= damping
+		velocity.y += WdlParticlesScript.acceleration(1.0) * delta
 		sprite.position += velocity * delta
 
-		var grow_target := 1.65
-		sprite.scale = sprite.scale.move_toward(Vector3.ONE * grow_target, delta * 0.8)
-		sprite.modulate.a = clampf(1.0 - (age_ticks / 22.0), 0.0, 1.0)
+		# If (My_size < 2500) {my_size += 50 * time;}
+		var size := float(particle["size"])
+		if size < MAX_WDL_SIZE:
+			size = minf(size + 50.0 * ticks, MAX_WDL_SIZE)
+		WdlParticlesScript.set_sprite_size(sprite, size)
 
 		particle["age"] = age
+		particle["size"] = size
 		particle["velocity"] = velocity
 		_particles[index] = particle
 

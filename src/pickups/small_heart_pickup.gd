@@ -1,7 +1,16 @@
 extends Area3D
 class_name SmallHeartPickup
 
+const WdlParticlesScript := preload("res://src/effects/wdl_particles.gd")
 const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
+## particul.wdl particle_SmallHeart: speed normalised to 10 quants/tick, size
+## 400 + random(400) shrinking 30/tick down to 50, 12-tick life, My_Flare.
+const PARTICLE_SPEED := 10.0
+const PARTICLE_BASE_SIZE := 400.0
+const PARTICLE_SIZE_RANDOM := 400.0
+const PARTICLE_MIN_SIZE := 50.0
+const PARTICLE_SIZE_DECAY_PER_TICK := 30.0
+const PARTICLE_LIFE_TICKS := 12.0
 const DEFAULT_FRAME_ADVANCE_PER_TIME_UNIT := 1.0
 const DEFAULT_HEALTH_AMOUNT := 12.0
 const DEFAULT_HEIGHT_GEM := 25.0 * 0.01
@@ -22,7 +31,6 @@ const SECONDARY_COLLECT_SOUND_WDL_RANGE_UNITS := 500.0
 @export var visual_pixel_size: float = 0.01
 @export var visual_ground_clearance: float = DEFAULT_HEIGHT_GEM
 @export var particle_count: int = 30
-@export var particle_pixel_size: float = 0.01
 @export var reject_hidden_seconds: float = 48.0 / ACKNEX_TIME_UNITS_PER_SECOND
 
 var _collected := false
@@ -197,48 +205,44 @@ func _emit_heart_burst() -> void:
 	if _particle_texture == null:
 		return
 	for _index in maxi(particle_count, 0):
-		var sprite := Sprite3D.new()
-		sprite.name = "SmallHeartParticle"
-		sprite.texture = _particle_texture
-		sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-		sprite.pixel_size = particle_pixel_size
-		sprite.position = Vector3.ZERO
-		sprite.scale = Vector3.ONE * randf_range(0.75, 1.35)
+		var sprite := WdlParticlesScript.make_sprite("SmallHeartParticle", _particle_texture, true)
 		sprite.modulate = Color(1.0, 0.0, 0.0, 1.0)
+		var size := PARTICLE_BASE_SIZE + WdlParticlesScript.wdl_random(PARTICLE_SIZE_RANDOM)
+		WdlParticlesScript.set_sprite_size(sprite, size)
 		add_child(sprite)
-		var velocity := Vector3(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
-		if velocity.length_squared() > 0.0:
-			velocity = velocity.normalized() * 0.1
+		var direction := Vector3(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
+		if direction.length_squared() <= 0.0:
+			direction = Vector3.UP
 		_particles.append({
 			"sprite": sprite,
-			"velocity": velocity,
+			"velocity": direction.normalized() * WdlParticlesScript.speed(PARTICLE_SPEED),
+			"size": size,
 			"age": 0.0,
-			"lifetime": 12.0 / ACKNEX_TIME_UNITS_PER_SECOND,
 		})
 
 
 func _update_particles(delta: float) -> void:
 	if delta <= 0.0:
 		return
+	var ticks := delta * ACKNEX_TIME_UNITS_PER_SECOND
 	for index in range(_particles.size() - 1, -1, -1):
 		var particle := _particles[index]
 		var sprite := particle["sprite"] as Sprite3D
 		if sprite == null or not is_instance_valid(sprite):
 			_particles.remove_at(index)
 			continue
-		var age := float(particle["age"]) + delta
-		var lifetime := maxf(float(particle["lifetime"]), 0.001)
-		if age >= lifetime:
+		var age := float(particle["age"]) + ticks
+		if age >= PARTICLE_LIFE_TICKS:
 			sprite.queue_free()
 			_particles.remove_at(index)
 			continue
-		var velocity := particle["velocity"] as Vector3
-		sprite.position += velocity * delta
-		sprite.scale = sprite.scale.move_toward(Vector3.ONE * 0.08, 0.3 * ACKNEX_TIME_UNITS_PER_SECOND * delta)
-		sprite.modulate.a = clampf(1.0 - age / lifetime, 0.0, 1.0)
+		sprite.position += (particle["velocity"] as Vector3) * delta
+		var size := float(particle["size"])
+		if size > PARTICLE_MIN_SIZE:
+			size = maxf(size - PARTICLE_SIZE_DECAY_PER_TICK * ticks, PARTICLE_MIN_SIZE)
+			particle["size"] = size
+			WdlParticlesScript.set_sprite_size(sprite, size)
 		particle["age"] = age
-		_particles[index] = particle
 
 
 func _play_collect_sounds() -> void:

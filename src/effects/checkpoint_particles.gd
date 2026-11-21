@@ -2,6 +2,9 @@ extends Node3D
 class_name CheckpointParticles
 
 const ACKNEX_TICKS_PER_SECOND := 16.0
+const WdlParticlesScript := preload("res://src/effects/wdl_particles.gd")
+const MAX_AGE_TICKS := 30.0
+const MIN_WDL_SIZE := 100.0
 const DEFAULT_GREEN_TEXTURES: Array[String] = [
 	"texture.particle.checkpoint_green_1",
 	"texture.particle.checkpoint_green_2",
@@ -10,7 +13,7 @@ const DEFAULT_GREEN_TEXTURES: Array[String] = [
 @export var green_texture_asset_ids: Array[String] = DEFAULT_GREEN_TEXTURES.duplicate()
 @export var idle_enabled: bool = true
 @export var idle_emit_interval_seconds: float = 4.0 / ACKNEX_TICKS_PER_SECOND
-@export var particle_pixel_size: float = 0.011
+@export var idle_emit_offset: Vector3 = Vector3(0.0, -1.0, 0.0)
 @export var auto_free_when_empty: bool = false
 
 var _textures: Array[Texture2D] = []
@@ -98,37 +101,34 @@ func _update_scheduled_bursts(delta: float) -> void:
 		_scheduled_bursts.remove_at(index)
 
 
+## particul.wdl particle_GemRestart (same function for the idle emitter and
+## the activation bursts).
 func _emit_particle(origin: Vector3, idle_particle: bool) -> void:
 	if _textures.is_empty():
 		return
-	var sprite := Sprite3D.new()
-	sprite.name = "CheckpointGreenSpark"
-	sprite.texture = _textures[randi_range(0, _textures.size() - 1)]
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	sprite.pixel_size = particle_pixel_size
-	sprite.position = origin
-	sprite.scale = Vector3.ONE * (randf_range(0.55, 1.15) if idle_particle else randf_range(0.8, 1.75))
+	var texture := _textures[randi_range(0, _textures.size() - 1)]
+	var sprite := WdlParticlesScript.make_sprite("CheckpointGreenSpark", texture, true)
+	# mm1.wdl InitRestart emits idle sparks at my.z - 100, below the hovering entity.
+	sprite.position = origin + (idle_emit_offset if idle_particle else Vector3.ZERO)
 	add_child(sprite)
-
-	var horizontal_range := 0.24 if idle_particle else 0.36
-	var vertical_min := 0.02 if idle_particle else 0.03
-	var vertical_max := 0.10 if idle_particle else 0.13
+	var size := WdlParticlesScript.wdl_random(2000.0)
+	WdlParticlesScript.set_sprite_size(sprite, size)
 	_particles.append({
 		"sprite": sprite,
-		"velocity": Vector3(
-				randf_range(-horizontal_range, horizontal_range),
-				randf_range(vertical_min, vertical_max),
-				randf_range(-horizontal_range, horizontal_range)
+		"velocity": WdlParticlesScript.velocity(
+				WdlParticlesScript.wdl_random(40.0) - 20.0,
+				WdlParticlesScript.wdl_random(40.0) - 20.0,
+				WdlParticlesScript.wdl_random(10.0) + 3.0
 		),
 		"age": 0.0,
-		"lifetime": 30.0 / ACKNEX_TICKS_PER_SECOND,
+		"size": size,
 	})
 
 
 func _update_particles(delta: float) -> void:
 	if delta <= 0.0:
 		return
+	var ticks := delta * ACKNEX_TICKS_PER_SECOND
 	for index in range(_particles.size() - 1, -1, -1):
 		var particle := _particles[index]
 		var sprite := particle["sprite"] as Sprite3D
@@ -137,22 +137,25 @@ func _update_particles(delta: float) -> void:
 			continue
 
 		var age := float(particle["age"]) + delta
-		var lifetime := maxf(float(particle["lifetime"]), 0.001)
-		if age >= lifetime:
+		if age * ACKNEX_TICKS_PER_SECOND >= MAX_AGE_TICKS:
 			sprite.queue_free()
 			_particles.remove_at(index)
 			continue
 
 		var velocity := particle["velocity"] as Vector3
-		velocity.x *= pow(0.9, ACKNEX_TICKS_PER_SECOND * delta)
-		velocity.z *= pow(0.9, ACKNEX_TICKS_PER_SECOND * delta)
-		velocity.y += 0.012 * ACKNEX_TICKS_PER_SECOND * delta
+		var damping := WdlParticlesScript.damping(0.9, delta)
+		velocity.x *= damping
+		velocity.z *= damping
+		velocity.y += WdlParticlesScript.acceleration(1.0) * delta
 		sprite.position += velocity * delta
 
-		var remaining_ratio := clampf(1.0 - age / lifetime, 0.0, 1.0)
-		sprite.scale = sprite.scale.move_toward(Vector3.ONE * maxf(remaining_ratio, 0.08), delta * 0.65)
-		sprite.modulate.a = remaining_ratio
+		# If (My_size > 100) {my_size -= 50 * time;}
+		var size := float(particle["size"])
+		if size > MIN_WDL_SIZE:
+			size = maxf(size - 50.0 * ticks, MIN_WDL_SIZE)
+		WdlParticlesScript.set_sprite_size(sprite, size)
 
 		particle["age"] = age
+		particle["size"] = size
 		particle["velocity"] = velocity
 		_particles[index] = particle

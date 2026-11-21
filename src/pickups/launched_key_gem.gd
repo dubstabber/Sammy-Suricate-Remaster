@@ -376,7 +376,7 @@ func _emit_collect_effect() -> void:
 		return
 	var effect := _ensure_particle_effect()
 	if effect != null and effect.has_method("emit_collect_burst"):
-		effect.call("emit_collect_burst", get_key_id(), _particle_origin(effect), 15)
+		effect.call("emit_collect_burst", get_key_id(), _particle_origin(effect))
 
 
 func _emit_expire_effect() -> void:
@@ -384,7 +384,7 @@ func _emit_expire_effect() -> void:
 		return
 	var effect := _ensure_particle_effect()
 	if effect != null and effect.has_method("emit_explosion"):
-		effect.call("emit_explosion", get_key_id(), _particle_origin(effect), 10)
+		effect.call("emit_explosion", get_key_id(), _particle_origin(effect))
 
 
 func _ensure_particle_effect() -> Node:

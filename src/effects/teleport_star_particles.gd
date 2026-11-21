@@ -9,11 +9,13 @@ const DEFAULT_STAR_TEXTURES: Array[String] = [
 	"texture.particle.teleport_star_5",
 ]
 const ACKNEX_TICKS_PER_SECOND := 16.0
+const WdlParticlesScript := preload("res://src/effects/wdl_particles.gd")
+# particul.wdl: the star dies once My_Size has decayed to 100.
+const MIN_WDL_SIZE := 100.0
 
 @export var star_texture_asset_ids: Array[String] = DEFAULT_STAR_TEXTURES.duplicate()
 @export var idle_enabled: bool = true
 @export var idle_emit_interval_seconds: float = 4.0 / ACKNEX_TICKS_PER_SECOND
-@export var particle_pixel_size: float = 0.01
 @export var auto_free_when_empty: bool = false
 
 var _textures: Array[Texture2D] = []
@@ -70,62 +72,64 @@ func _load_textures() -> void:
 			_textures.append(texture)
 
 
+## particul.wdl particle_Teleport (idle, emitted by InitTeleport) and
+## particle_Teleport2 (player teleport transition).
 func _emit_particle(origin: Vector3, idle_particle: bool) -> void:
 	if _textures.is_empty():
 		return
-	var sprite := Sprite3D.new()
-	sprite.name = "TeleportStar"
-	sprite.texture = _textures[randi_range(0, _textures.size() - 1)]
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	sprite.pixel_size = particle_pixel_size
+	var sprite := WdlParticlesScript.make_sprite("TeleportStar", _textures[0], true)
 	sprite.position = origin
-	var start_scale := randf_range(0.65, 1.25) if idle_particle else randf_range(0.85, 1.55)
-	sprite.scale = Vector3.ONE * start_scale
 	add_child(sprite)
-
-	var horizontal_range := 0.32 if idle_particle else 0.16
-	var vertical_min := 0.03 if idle_particle else 0.03
-	var vertical_max := 0.13 if idle_particle else 0.08
+	var spread := 64.0 if idle_particle else 32.0
+	var size := WdlParticlesScript.wdl_random(1500.0) + (1500.0 if idle_particle else 1000.0)
+	WdlParticlesScript.set_sprite_size(sprite, size)
 	_particles.append({
 		"sprite": sprite,
-		"velocity": Vector3(
-				randf_range(-horizontal_range, horizontal_range),
-				randf_range(vertical_min, vertical_max),
-				randf_range(-horizontal_range, horizontal_range)
+		"velocity": WdlParticlesScript.velocity(
+				WdlParticlesScript.wdl_random(spread) - spread * 0.5,
+				WdlParticlesScript.wdl_random(spread) - spread * 0.5,
+				WdlParticlesScript.wdl_random(10.0 if idle_particle else 5.0) + 3.0
 		),
-		"age": 0.0,
-		"lifetime": 1.25 if idle_particle else 1.0,
+		"age_ticks": 0.0,
+		"size": size,
+		"next_map_tick": 0.0,
+		"map_interval_ticks": 5.0 if idle_particle else 6.0,
+		"damping": 0.9 if idle_particle else 0.85,
+		"lift": WdlParticlesScript.acceleration(1.2 if idle_particle else 1.1),
+		"max_age_ticks": 20.0 if idle_particle else 16.0,
 	})
 
 
 func _update_particles(delta: float) -> void:
 	if delta <= 0.0:
 		return
+	var ticks := delta * ACKNEX_TICKS_PER_SECOND
 	for index in range(_particles.size() - 1, -1, -1):
 		var particle := _particles[index]
 		var sprite := particle["sprite"] as Sprite3D
 		if sprite == null or not is_instance_valid(sprite):
 			_particles.remove_at(index)
 			continue
-		var age := float(particle["age"]) + delta
-		var lifetime := maxf(float(particle["lifetime"]), 0.001)
-		if age >= lifetime:
+		var age_ticks := float(particle["age_ticks"])
+		var size := float(particle["size"])
+		if age_ticks >= float(particle["max_age_ticks"]) or size <= MIN_WDL_SIZE:
 			sprite.queue_free()
 			_particles.remove_at(index)
 			continue
-
+		# StarHit1-5 is re-picked every 5 (6) ticks.
+		if age_ticks >= float(particle["next_map_tick"]):
+			WdlParticlesScript.set_sprite_texture(sprite, _textures[randi_range(0, _textures.size() - 1)], true)
+			particle["next_map_tick"] = float(particle["next_map_tick"]) + float(particle["map_interval_ticks"])
 		var velocity := particle["velocity"] as Vector3
-		velocity.x *= pow(0.85, ACKNEX_TICKS_PER_SECOND * delta)
-		velocity.z *= pow(0.85, ACKNEX_TICKS_PER_SECOND * delta)
-		velocity.y += 0.035 * ACKNEX_TICKS_PER_SECOND * delta
+		var damping := WdlParticlesScript.damping(float(particle["damping"]), delta)
+		velocity.x *= damping
+		velocity.z *= damping
+		velocity.y += float(particle["lift"]) * delta
 		sprite.position += velocity * delta
-
-		var remaining_ratio := clampf(1.0 - age / lifetime, 0.0, 1.0)
-		var shrink := maxf(remaining_ratio, 0.1)
-		sprite.scale = sprite.scale.move_toward(Vector3.ONE * shrink * 0.2, delta * 2.0)
-		sprite.modulate.a = remaining_ratio
-
-		particle["age"] = age
+		# My_Size += (100 - My_Size) * 0.1 * time
+		size = MIN_WDL_SIZE + (size - MIN_WDL_SIZE) * pow(0.9, ticks)
+		WdlParticlesScript.set_sprite_size(sprite, size)
+		particle["age_ticks"] = age_ticks + ticks
+		particle["size"] = size
 		particle["velocity"] = velocity
 		_particles[index] = particle

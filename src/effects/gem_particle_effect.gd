@@ -1,10 +1,27 @@
 extends Node3D
 class_name GemParticleEffect
 
+## Key-gem particles ported from particul.wdl / gems.wdl (all `My_Flare`):
+## - trail / spawn: Particle_GemKeys -> particle_<colour>Bmp stars
+## - collect: GemCatch -> particle_GemCatch<colour> (waves of 5, 10, 10)
+## - expire: GemExplose -> particle_GemExplose<colour> fragments
+
 const KEY_RULES := preload("res://src/resources/key_diamond_rules.gd")
-const ACKNEX_TICKS_PER_SECOND := 16.0
-const STAR_LIFETIME_SECONDS := 10.0 / ACKNEX_TICKS_PER_SECOND
-const FRAGMENT_LIFETIME_SECONDS := 30.0 / ACKNEX_TICKS_PER_SECOND
+const WdlParticlesScript := preload("res://src/effects/wdl_particles.gd")
+
+const STAR_LIFE_TICKS := 10.0
+const CATCH_LIFE_TICKS := 30.0
+const EXPLOSION_LIFE_TICKS := 30.0
+## skills.wdl TaillePartGems.
+const STAR_BASE_SIZE := 750.0
+## gems.wdl GemExplose: Set SizePartExplo,2000.
+const EXPLOSION_BASE_SIZE := 2000.0
+const CATCH_MIN_SIZE := 100.0
+const CATCH_SIZE_DECAY_PER_TICK := 50.0
+## GemCatch: Emit 5, waitt 2, Emit 10, waitt 4, Emit 10.
+const CATCH_WAVES := [[0.0, 5], [2.0, 10], [6.0, 10]]
+## GemExplose emits averageFps * 0.3 fragments; the engine runs at fps_max 70.
+const EXPLOSION_COUNT := 21
 
 const GEM_STAR_TEXTURES := {
 	KEY_RULES.KEY_RED: ["texture.particle.gem_star_1a", "texture.particle.gem_star_1b"],
@@ -24,50 +41,59 @@ const GEM_FRAGMENT_TEXTURES := {
 	KEY_RULES.KEY_GREEN: "texture.particle.gem_fragment_6",
 }
 
-@export var particle_pixel_size: float = 0.01
 @export var auto_free_when_empty: bool = false
 
 var _texture_cache: Dictionary = {}
 var _particles: Array[Dictionary] = []
+var _pending_waves: Array[Dictionary] = []
 
 
 func _process(delta: float) -> void:
-	_update_particles(maxf(delta, 0.0))
-	if auto_free_when_empty and _particles.is_empty():
+	var ticks := maxf(delta, 0.0) * WdlParticlesScript.TICKS_PER_SECOND
+	_update_pending_waves(ticks)
+	_update_particles(delta, ticks)
+	if auto_free_when_empty and _particles.is_empty() and _pending_waves.is_empty():
 		queue_free()
 
 
 func emit_spawn_burst(key_id: int, origin: Vector3, count: int = 8) -> void:
-	_emit_star_burst(key_id, origin, count, 0.24, 0.06, 0.22, 0.85, 1.35)
+	_emit_stars(key_id, origin, count)
 
 
+## Particle_GemKeys (AverageFps > 35): 3 star bitmaps every 3 ticks.
 func emit_trail(key_id: int, origin: Vector3, count: int = 3) -> void:
-	_emit_star_burst(key_id, origin, count, 0.18, -0.04, 0.04, 0.55, 0.95)
+	_emit_stars(key_id, origin, count)
 
 
-func emit_collect_burst(key_id: int, origin: Vector3, count: int = 15) -> void:
-	_emit_star_burst(key_id, origin, count, 0.32, 0.05, 0.24, 0.9, 1.85)
+## GemCatch: `count` scales the original 5 + 10 + 10 waves (25 = original).
+func emit_collect_burst(key_id: int, origin: Vector3, count: int = 25) -> void:
+	var spread := WdlParticlesScript.wdl_random(2.0) + 1.0
+	var scale := float(maxi(count, 0)) / 25.0
+	for wave: Array in CATCH_WAVES:
+		var wave_count := roundi(float(wave[1]) * scale)
+		if wave_count <= 0:
+			continue
+		if float(wave[0]) <= 0.0:
+			_emit_catch_wave(key_id, origin, wave_count, spread)
+		else:
+			_pending_waves.append({"key_id": key_id, "origin": origin, "count": wave_count, "spread": spread, "delay": float(wave[0])})
 
 
-func emit_explosion(key_id: int, origin: Vector3, count: int = 10) -> void:
+func emit_explosion(key_id: int, origin: Vector3, count: int = EXPLOSION_COUNT) -> void:
 	var texture := _load_texture(_fragment_texture_asset_id(key_id))
 	if texture == null:
-		_emit_star_burst(key_id, origin, count, 0.36, 0.08, 0.32, 1.0, 2.0)
 		return
+	var spread := WdlParticlesScript.wdl_random(5.0) + 5.0
 	for _index in maxi(count, 0):
-		_emit_particle(
-				texture,
-				origin,
-				Vector3(
-						randf_range(-0.55, 0.55),
-						randf_range(0.18, 0.85),
-						randf_range(-0.55, 0.55)
-				),
-				FRAGMENT_LIFETIME_SECONDS,
-				randf_range(1.15, 2.6),
-				Vector3.DOWN * 3.6,
-				"GemFragment"
-		)
+		_emit_particle(texture, origin, {
+			"velocity": WdlParticlesScript.velocity(
+					spread * (WdlParticlesScript.wdl_random(6.0) - 3.0),
+					spread * (WdlParticlesScript.wdl_random(6.0) - 3.0),
+					spread + WdlParticlesScript.wdl_random(30.0)),
+			"gravity": WdlParticlesScript.acceleration(4.0),
+			"size": WdlParticlesScript.wdl_random(200.0) + EXPLOSION_BASE_SIZE,
+			"life": EXPLOSION_LIFE_TICKS,
+		}, "GemFragment")
 
 
 func get_live_particle_count() -> int:
@@ -82,50 +108,71 @@ func get_configured_fragment_texture_count() -> int:
 	return GEM_FRAGMENT_TEXTURES.size()
 
 
-func _emit_star_burst(key_id: int, origin: Vector3, count: int, horizontal_range: float, vertical_min: float, vertical_max: float, scale_min: float, scale_max: float) -> void:
+## particle_<colour>Bmp: +-3 quants/tick sideways, falling 3-4 quants/tick.
+func _emit_stars(key_id: int, origin: Vector3, count: int) -> void:
 	var textures := _star_textures(key_id)
 	if textures.is_empty():
 		return
 	for _index in maxi(count, 0):
-		var texture := textures[randi_range(0, textures.size() - 1)]
-		_emit_particle(
-				texture,
-				origin,
-				Vector3(
-						randf_range(-horizontal_range, horizontal_range),
-						randf_range(vertical_min, vertical_max),
-						randf_range(-horizontal_range, horizontal_range)
-				),
-				STAR_LIFETIME_SECONDS,
-				randf_range(scale_min, scale_max),
-				Vector3.ZERO,
-				"GemStar"
-		)
+		_emit_particle(textures[randi_range(0, textures.size() - 1)], origin, {
+			"velocity": WdlParticlesScript.velocity(
+					WdlParticlesScript.wdl_random(6.0) - 3.0,
+					WdlParticlesScript.wdl_random(6.0) - 3.0,
+					WdlParticlesScript.wdl_random(1.0) - 4.0),
+			"size": WdlParticlesScript.wdl_random(300.0) + STAR_BASE_SIZE,
+			"life": STAR_LIFE_TICKS,
+		}, "GemStar")
 
 
-func _emit_particle(texture: Texture2D, origin: Vector3, velocity: Vector3, lifetime: float, start_scale: float, acceleration: Vector3, sprite_name: String) -> void:
+## particle_GemCatch<colour>: a fountain rising V4 + random(20) quants/tick.
+func _emit_catch_wave(key_id: int, origin: Vector3, count: int, spread: float) -> void:
+	var textures := _star_textures(key_id)
+	if textures.is_empty():
+		return
+	for _index in maxi(count, 0):
+		_emit_particle(textures[randi_range(0, textures.size() - 1)], origin, {
+			"velocity": WdlParticlesScript.velocity(
+					spread * (WdlParticlesScript.wdl_random(2.0) - 1.0),
+					spread * (WdlParticlesScript.wdl_random(2.0) - 1.0),
+					spread + WdlParticlesScript.wdl_random(20.0)),
+			"gravity": WdlParticlesScript.acceleration(1.0),
+			"size": WdlParticlesScript.wdl_random(2000.0),
+			"size_decay": CATCH_SIZE_DECAY_PER_TICK,
+			"min_size": CATCH_MIN_SIZE,
+			"life": CATCH_LIFE_TICKS,
+		}, "GemStar")
+
+
+func _emit_particle(texture: Texture2D, origin: Vector3, motion: Dictionary, sprite_name: String) -> void:
 	if texture == null:
 		return
-	var sprite := Sprite3D.new()
-	sprite.name = sprite_name
-	sprite.texture = texture
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	sprite.pixel_size = particle_pixel_size
+	var sprite := WdlParticlesScript.make_sprite(sprite_name, texture, true)
 	sprite.position = origin
-	sprite.scale = Vector3.ONE * start_scale
 	add_child(sprite)
-	_particles.append({
+	var particle := {
 		"sprite": sprite,
-		"velocity": velocity,
-		"acceleration": acceleration,
+		"velocity": motion.get("velocity", Vector3.ZERO),
+		"gravity": float(motion.get("gravity", 0.0)),
+		"size": float(motion.get("size", STAR_BASE_SIZE)),
+		"size_decay": float(motion.get("size_decay", 0.0)),
+		"min_size": float(motion.get("min_size", 0.0)),
 		"age": 0.0,
-		"lifetime": maxf(lifetime, 0.001),
-		"start_scale": start_scale,
-	})
+		"life": float(motion.get("life", STAR_LIFE_TICKS)),
+	}
+	WdlParticlesScript.set_sprite_size(sprite, float(particle["size"]))
+	_particles.append(particle)
 
 
-func _update_particles(delta: float) -> void:
+func _update_pending_waves(ticks: float) -> void:
+	for index in range(_pending_waves.size() - 1, -1, -1):
+		var wave := _pending_waves[index]
+		wave["delay"] = float(wave["delay"]) - ticks
+		if float(wave["delay"]) <= 0.0:
+			_pending_waves.remove_at(index)
+			_emit_catch_wave(int(wave["key_id"]), wave["origin"] as Vector3, int(wave["count"]), float(wave["spread"]))
+
+
+func _update_particles(delta: float, ticks: float) -> void:
 	if delta <= 0.0:
 		return
 	for index in range(_particles.size() - 1, -1, -1):
@@ -134,22 +181,20 @@ func _update_particles(delta: float) -> void:
 		if sprite == null or not is_instance_valid(sprite):
 			_particles.remove_at(index)
 			continue
-		var age := float(particle["age"]) + delta
-		var lifetime := float(particle["lifetime"])
-		if age >= lifetime:
+		var age := float(particle["age"]) + ticks
+		if age >= float(particle["life"]):
 			sprite.queue_free()
 			_particles.remove_at(index)
 			continue
 		var velocity := particle["velocity"] as Vector3
-		velocity += (particle["acceleration"] as Vector3) * delta
+		velocity.y -= float(particle["gravity"]) * delta
 		sprite.position += velocity * delta
-		var remaining_ratio := clampf(1.0 - age / lifetime, 0.0, 1.0)
-		var start_scale := float(particle["start_scale"])
-		sprite.scale = Vector3.ONE * maxf(start_scale * remaining_ratio, 0.08)
-		sprite.modulate.a = remaining_ratio
+		var size_decay := float(particle["size_decay"])
+		if size_decay > 0.0 and float(particle["size"]) > float(particle["min_size"]):
+			particle["size"] = maxf(float(particle["size"]) - size_decay * ticks, float(particle["min_size"]))
+			WdlParticlesScript.set_sprite_size(sprite, float(particle["size"]))
 		particle["age"] = age
 		particle["velocity"] = velocity
-		_particles[index] = particle
 
 
 func _star_textures(key_id: int) -> Array[Texture2D]:

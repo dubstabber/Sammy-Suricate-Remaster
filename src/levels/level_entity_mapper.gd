@@ -105,6 +105,7 @@ const WDL_HEIGHT_GEM := 25.0
 # WDL lion speed: SpeedEnnemy units/tick at 16 ticks/s and 0.01 m/quant.
 const WDL_SPEED_UNIT_TO_METERS_PER_SECOND := 0.16
 const WDL_DEFAULT_LION_ATTACK_RANGE := 500.0
+const WDL_DEFAULT_LION_REACT_RANGE := 1000.0
 ## lion.wdl LionForce: BounceForce when Frc(SpeedEnnemy) is 0.
 const WDL_LION_FORCE := 1.5
 ## lion.wdl InitLion: Int(IdEnnemy) -> [IdEnnemySpec, WeightForce, default
@@ -486,6 +487,15 @@ static func _make_enemy(entity: Dictionary) -> Node3D:
 	_apply_lion_family(node, entity)
 	# lion.wdl Flag7: only these lions roar to call friends (hurt or stuck).
 	node.set("roar_calls_friends", _flag(entity, 7))
+	# LionEtat 0: stand by until the player is within LionReactRange (Skill6).
+	var react_units := _skill(entity, 6)
+	node.set("wake_range", (react_units if react_units > 0.0 else WDL_DEFAULT_LION_REACT_RANGE) * AcknexCoordsScript.SCALE)
+	node.set("time_for_nothing_ticks", _skill(entity, 8))
+	# Flag3 patrol: path id Int(Skill4), scan range Frc(Skill4)*10000.
+	var path_skill := _skill(entity, 4)
+	if _flag(entity, 3) and int(floorf(path_skill)) != 0:
+		node.set("patrol_path_id", int(floorf(path_skill)))
+		node.set("patrol_path_range", floorf((path_skill - floorf(path_skill)) * 10000.0 + 0.5) * AcknexCoordsScript.SCALE)
 	var speed_ennemy := floorf(_skill(entity, 2))
 	var accel_attack := (_skill(entity, 5) - floorf(_skill(entity, 5))) * 10.0
 	var run_speed := speed_ennemy * accel_attack * WDL_SPEED_UNIT_TO_METERS_PER_SECOND

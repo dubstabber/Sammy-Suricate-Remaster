@@ -171,6 +171,7 @@ func _run() -> void:
     await _test_player_death_resets(game)
     await _test_tutorial_title_flow()
     await _test_player_slide_sound()
+    await _test_lion_patrol_and_wake()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
     await _test_prototype_world()
@@ -799,6 +800,98 @@ func _test_player_slide_sound() -> void:
     if audio != null:
         _expect(not bool(audio.call("is_tuned_sfx_playing", handle)), "The stopped slide sound should not keep playing.")
     player.queue_free()
+    await process_frame
+
+
+## lion.wdl InitPath / PathScanned / patrol block, LionEtat 0 standby, and
+## mm1.wdl InitStartEnnemy.
+func _test_lion_patrol_and_wake() -> void:
+    var network_script := load("res://src/levels/level_path_network.gd") as GDScript
+    var network := network_script.new() as RefCounted
+    # A trail of three markers along Acknex +X (Godot +X), heading pan 0.
+    for index in 3:
+        network.call("add_marker", 7, 0, Vector3(2.0 + index * 1.7, 0.0, 0.0), 0.0, 0.0, index)
+    network.call("add_marker", 8, 0, Vector3(0.0, 0.0, -2.0), 90.0, 0.0, 10)
+    _expect(bool(network.call("has_path", 7)) and int(network.call("marker_count", 7)) == 3, "The path network should index markers by path id.")
+    var ahead: Dictionary = network.call("scan", 7, Vector3.ZERO, 0.0, 30.0, 3.0, Vector3.ZERO)
+    _expect(bool(ahead.get("found", false)) and (ahead["position"] as Vector3).is_equal_approx(Vector3(2.0, 0.0, 0.0)), "A forward scan should find the first trail marker in range.")
+    var behind: Dictionary = network.call("scan", 7, Vector3.ZERO, 180.0, 30.0, 3.0, Vector3.ZERO)
+    _expect(behind.is_empty(), "Markers outside the scan cone should be ignored.")
+    var next: Dictionary = network.call("scan", 7, Vector3(2.0, 0.0, 0.0), 0.0, 30.0, 3.0, Vector3.ZERO, Vector3(2.0, 0.0, 0.0))
+    _expect(not next.is_empty() and (next["position"] as Vector3).is_equal_approx(Vector3(3.7, 0.0, 0.0)), "Rescanning from a reached marker should skip it and find the next one.")
+
+    var level_script := GDScript.new()
+    level_script.source_code = "extends Node3D\nvar network: RefCounted\nfunc get_path_network() -> RefCounted:\n    return network\n"
+    level_script.reload()
+    var level := Node3D.new()
+    level.set_script(level_script)
+    level.set("network", network)
+    level.position = Vector3(0.0, 0.0, 400.0)
+    root.add_child(level)
+    var player := Node3D.new()
+    player.name = "PatrolTestPlayer"
+    player.add_to_group("player")
+    level.add_child(player)
+    player.position = Vector3(0.0, 0.0, 30.0)
+    for index in 3:
+        network.call("add_marker", 9, 0, level.global_position + Vector3(2.0 + index * 1.7, 0.0, 0.0), 0.0, 0.0, 20 + index)
+    var lion := (load("res://scenes/enemies/rasta_enemy.tscn") as PackedScene).instantiate() as CharacterBody3D
+    lion.set("affected_by_gravity", false)
+    lion.set("wake_range", 20.0)
+    lion.set("patrol_path_id", 9)
+    lion.set("patrol_path_range", 3.0)
+    lion.set_physics_process(false)
+    lion.rotation.y = -PI / 2.0
+    level.add_child(lion)
+    await process_frame
+    lion.call("_physics_process", 0.5)
+    _expect(not bool(lion.call("is_awake")) and lion.position.is_zero_approx(), "LionEtat 0: a lion should stand still until the player is within LionReactRange.")
+    player.position = Vector3(0.0, 0.0, 15.0)
+    var furthest_target_x := -INF
+    var max_off_trail := 0.0
+    # The synthetic trail ends after three markers (shipped trails loop), so
+    # only follow it until the last marker is reached.
+    for step in 35:
+        lion.call("_physics_process", 1.0 / 30.0)
+        var target: Dictionary = lion.call("get_patrol_target")
+        if not target.is_empty():
+            furthest_target_x = maxf(furthest_target_x, (target["position"] as Vector3).x)
+        max_off_trail = maxf(max_off_trail, absf(lion.position.z))
+    _expect(bool(lion.call("is_awake")), "The player within LionReactRange should wake the lion.")
+    _expect(furthest_target_x >= 5.39, "A patrol lion should advance marker by marker to the end of its trail.")
+    _expect(lion.position.x > 3.0 and max_off_trail < 0.6, "A patrol lion should walk along the trail (at %s, max %.2f m off it)." % [lion.position, max_off_trail])
+
+    var sleeper := (load("res://scenes/enemies/rasta_enemy.tscn") as PackedScene).instantiate() as CharacterBody3D
+    sleeper.set("affected_by_gravity", false)
+    sleeper.set("wake_range", 1.0)
+    sleeper.set_physics_process(false)
+    level.add_child(sleeper)
+    sleeper.position = Vector3(-20.0, 0.0, 0.0)
+    await process_frame
+    var zone := (load("res://src/levels/start_enemy_zone.gd") as GDScript).new() as Node3D
+    zone.set("scan_range_units", 300.0)
+    zone.set("react_range_units", 10000.0)
+    zone.set("attack_range_units", 600.0)
+    zone.set_physics_process(false)
+    level.add_child(zone)
+    zone.position = Vector3(-21.0, 0.0, 0.0)
+    zone.call("advance", 0.01)
+    _expect(bool(sleeper.call("is_awake")) and is_equal_approx(float(sleeper.get("wake_range")), 100.0) and is_equal_approx(float(sleeper.get("react_range")), 6.0), "InitStartEnnemy should wake the first matching enemy with its react/attack ranges.")
+    _expect(bool(zone.call("is_done")), "A zone with Skill4 0 should stop after its first enemy.")
+
+    var mapper: GDScript = load("res://src/levels/level_entity_mapper.gd")
+    var patrol_entity := {
+        "name": "patrol_lion", "file": "nanolion.MDL", "action": "initlion",
+        "position": [0.0, 0.0, 0.0], "angles": [0.0, 0.0, 0.0], "scale": [1.0, 1.0, 1.0],
+        "skills": [10.0, 10.0, 600.0, 29.05, 1.3, 0.0, 0.0, 4.0], "flags": 4,
+    }
+    var mapped := (mapper.call("map_entity", patrol_entity) as Dictionary).get("node") as Node3D
+    if mapped != null:
+        _expect(int(mapped.get("patrol_path_id")) == 29 and is_equal_approx(float(mapped.get("patrol_path_range")), 5.0), "Flag3 lions should patrol path Int(Skill4) within Frc(Skill4)*10000 quants.")
+        _expect(is_equal_approx(float(mapped.get("wake_range")), 10.0), "LionReactRange 0 should default to 1000 quants.")
+        _expect(is_equal_approx(float(mapped.get("time_for_nothing_ticks")), 4.0), "Skill8 should map to TimeForNothing.")
+        mapped.free()
+    level.queue_free()
     await process_frame
 
 

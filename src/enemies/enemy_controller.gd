@@ -3,6 +3,7 @@ class_name SammyEnemyController
 
 const ACKNEX_TO_GODOT_SCALE := 0.01
 const ACKNEX_TICKS_PER_SECOND := 16.0
+const AcknexCoordsScript := preload("res://src/levels/acknex_coords.gd")
 const PLAYER_BOUNCE_TICKS_PER_SECOND := ACKNEX_TICKS_PER_SECOND * 1.5
 const WDL_SPEED_UNITS_TO_METERS_PER_SECOND := ACKNEX_TO_GODOT_SCALE * ACKNEX_TICKS_PER_SECOND
 const MINIMUM_ANIMATION_SPEED_SCALE := 0.001
@@ -22,6 +23,23 @@ const LION_CALL_ROAR_RANGE_UNITS := 2000.0
 const LION_CALL_ATTACK_RANGE_UNITS := 1500.0
 ## IdEnnemySpec of the standard lions (scorpions are 3).
 const LION_FAMILY_ID := 1.0
+## lion.wdl patrol (skills.wdl defaults): FarTargetPath / NearTargetPath in
+## quants, SpeedRotationLion{Far,Near} and the 0.5 used when a marker is first
+## reached, LionLovePatrol (pull = offset * min(love * 0.5, 1) per tick) and
+## LimitTimeWithoutPatrol ticks before a fresh scan.
+const PATROL_FAR_UNITS := 150.0
+const PATROL_NEAR_UNITS := 100.0
+const PATROL_ROTATION_FAR := 0.2
+const PATROL_ROTATION_NEAR := 0.02
+const PATROL_ROTATION_ARRIVE := 0.5
+const PATROL_LOVE := 0.05
+const PATROL_LOST_TICKS := 64.0
+const PATROL_FIRST_SCAN_CONE := 30.0
+const PATROL_SCAN_CONE := 90.0
+## HandleSpeedLion: walk only while |BallDeltaPan| (turn step per tick) < 10.
+const PATROL_WALK_MAX_TURN_STEP_DEGREES := 10.0
+## English lion.wdl: closer than 32 quants (3D) while attacking -> U-turn.
+const TOO_CLOSE_UNITS := 32.0
 const ENEMY_VISIBILITY_RANGE_SCRIPT := preload("res://src/effects/enemy_visibility_range.gd")
 
 # WDL lion.wdl LionEtat parity. Numeric values match the original states so
@@ -131,6 +149,14 @@ enum EnemyState {
 @export var player_top_bounce_height: float = 0.55
 @export var player_top_bounce_velocity: float = 30.0 * ACKNEX_TO_GODOT_SCALE * PLAYER_BOUNCE_TICKS_PER_SECOND
 @export var attack_sound_asset_id: String = ""
+## lion.wdl LionEtat 0: stand still until the player is within LionReactRange
+## (Skill6, metres, 3D). 0 keeps the enemy awake from the start.
+@export var wake_range: float = 0.0
+## lion.wdl Flag3 patrol: path id (Int(Skill4)) and scan range (Frc(Skill4)*10000).
+@export var patrol_path_id: int = 0
+@export var patrol_path_range: float = 0.0
+## lion.wdl Skill8 TimeForNothing (ticks).
+@export var time_for_nothing_ticks: float = 0.0
 @export var walk_sound_asset_id: String = ""
 @export var attack_hit_sound_asset_ids: PackedStringArray = PackedStringArray(["sfx.enemy_hit_1", "sfx.enemy_hit_2", "sfx.enemy_hit_3"])
 @export var attack_hit_sound_wdl_range_units: float = 2000.0
@@ -165,6 +191,16 @@ var _hit_resolved_this_swing: bool = false
 var _contact_resolved_this_swing: bool = false
 var _death_timer: float = 0.0
 var _wander_target: Vector3 = Vector3.ZERO
+var _awake := true
+var _patrol_network: Object = null
+var _patrol_network_resolved := false
+var _patrol_target: Dictionary = {}
+var _patrol_state := 0
+var _patrol_lost_ticks := 0.0
+var _patrol_first_scan_done := false
+var _patrol_current_id := 0
+var _uturn_remaining := 0.0
+var _uturn_direction := Vector3.ZERO
 var _has_wander_target: bool = false
 var _last_target_push_frame: int = -1
 var _attack_target: Node3D = null
@@ -182,6 +218,8 @@ var _post_hit_range_multiplier: float = 1.0
 
 func _ready() -> void:
 	add_to_group("enemy")
+	_awake = wake_range <= 0.0
+	_patrol_current_id = patrol_path_id
 	_initialize_original_resistance()
 	_apply_asset_catalog_settings()
 	_ensure_visibility_range()
@@ -197,6 +235,7 @@ func take_damage(amount: float, source: Node = null) -> void:
 	if _is_dead or amount <= 0.0:
 		return
 	_health -= amount
+	_awake = true
 	damaged.emit(amount, source)
 	if _health <= 0.0:
 		_health = 0.0
@@ -526,6 +565,13 @@ func _update_ai(delta: float) -> Vector3:
 
 
 func _tick_wait(delta: float) -> Vector3:
+	if not _awake:
+		if not _player_within_wake_range():
+			return Vector3.ZERO
+		_awake = true
+	if is_patrolling():
+		_enter_state(EnemyState.WALK)
+		return Vector3.ZERO
 	_wait_remaining = maxf(0.0, _wait_remaining - delta)
 	if _should_answer_attack_call():
 		_enter_state(EnemyState.CHASE)
@@ -553,6 +599,8 @@ func _tick_walk(delta: float) -> Vector3:
 		_play_charge_cry()
 		_enter_state(EnemyState.CHASE)
 		return Vector3.ZERO
+	if is_patrolling():
+		return _tick_patrol(delta)
 	if not _has_wander_target:
 		_enter_state(EnemyState.WAIT)
 		return Vector3.ZERO
@@ -570,6 +618,18 @@ func _tick_walk(delta: float) -> Vector3:
 func _tick_chase(delta: float) -> Vector3:
 	if _target == null:
 		_enter_state(EnemyState.WAIT)
+		return Vector3.ZERO
+	if _uturn_remaining > 0.0:
+		_uturn_remaining -= delta
+		_turn_toward(_uturn_direction, delta)
+		return _forward_velocity(get_chase_movement_speed())
+	var to_player_3d := _target.global_position - global_position
+	if time_for_nothing_ticks > 0.0 and to_player_3d.length() < TOO_CLOSE_UNITS * ACKNEX_TO_GODOT_SCALE:
+		# lion.wdl: BallDestPan = DistLionPlayer.pan - 180, LionRandomTime = TimeForNothing * 2.
+		_uturn_direction = -Vector3(to_player_3d.x, 0.0, to_player_3d.z)
+		if _uturn_direction.length_squared() <= 0.0001:
+			_uturn_direction = -_forward_velocity(1.0)
+		_uturn_remaining = time_for_nothing_ticks * 2.0 / ACKNEX_TICKS_PER_SECOND
 		return Vector3.ZERO
 	var to_target := _target_horizontal_offset()
 	var dist := to_target.length()
@@ -1242,6 +1302,153 @@ func _play_random_sfx_at_node(asset_ids: PackedStringArray, source: Node3D, wdl_
 		if not asset_id.is_empty():
 			_play_sfx_at_node(asset_id, source, wdl_range_units)
 			return
+
+
+func is_awake() -> bool:
+	return _awake
+
+
+func is_patrolling() -> bool:
+	if patrol_path_id == 0 or not _awake:
+		return false
+	var network := _resolve_patrol_network()
+	return network != null and bool(network.call("has_path", _patrol_current_id))
+
+
+func get_patrol_target() -> Dictionary:
+	return _patrol_target.duplicate()
+
+
+func get_patrol_state() -> int:
+	return _patrol_state
+
+
+func set_patrol_network(network: Object) -> void:
+	_patrol_network = network
+	_patrol_network_resolved = true
+
+
+## mm1.wdl StartEnnemy: switch to LionEtat `state` with new react / attack ranges.
+func apply_start_zone(state: int, react_range_m: float, attack_range_m: float) -> void:
+	_awake = true
+	if react_range_m > 0.0:
+		wake_range = react_range_m
+	if attack_range_m > 0.0:
+		react_range = attack_range_m
+	if state == 1 and (_state == EnemyState.WAIT or _state == EnemyState.ALT_STAND):
+		_enter_state(EnemyState.WALK)
+
+
+func _player_within_wake_range() -> bool:
+	if wake_range <= 0.0:
+		return true
+	var player: Node3D = _target
+	if player == null and is_inside_tree():
+		player = get_tree().get_first_node_in_group("player") as Node3D
+	return player != null and global_position.distance_to(player.global_position) < wake_range
+
+
+func _resolve_patrol_network() -> Object:
+	if _patrol_network_resolved:
+		return _patrol_network
+	_patrol_network_resolved = true
+	var node := get_parent()
+	while node != null:
+		if node.has_method("get_path_network"):
+			_patrol_network = node.call("get_path_network")
+			break
+		node = node.get_parent()
+	return _patrol_network
+
+
+## lion.wdl patrol block (LionEtat 1, Flag3): head for the scanned marker, adopt
+## its heading within FarTargetPath while being pulled onto it, and rescan ahead
+## from it within NearTargetPath.
+func _tick_patrol(delta: float) -> Vector3:
+	var ticks := maxf(delta, 0.0) * ACKNEX_TICKS_PER_SECOND
+	_patrol_lost_ticks += ticks
+	if _patrol_lost_ticks > PATROL_LOST_TICKS:
+		_patrol_state = 0
+	if _patrol_state == 0:
+		var cone := PATROL_SCAN_CONE if _patrol_first_scan_done else PATROL_FIRST_SCAN_CONE
+		_patrol_first_scan_done = true
+		_patrol_scan(global_position, _acknex_pan(), cone)
+		if _patrol_state == 0 and _patrol_far_from_target():
+			# Security scans when the lion has wandered far from its trail:
+			# 4x range ahead (100 degrees), then 3x range behind.
+			_patrol_scan(global_position, _acknex_pan(), 100.0, null, 4.0)
+			if _patrol_state == 0:
+				_patrol_scan(global_position, _acknex_pan() + 180.0, 100.0, null, 3.0)
+			_patrol_lost_ticks = 0.0
+	if _patrol_target.is_empty():
+		return _forward_velocity(get_walk_movement_speed())
+	var target_position: Vector3 = _patrol_target["position"]
+	var offset := target_position - global_position
+	offset.y = 0.0
+	var distance_units := offset.length() / ACKNEX_TO_GODOT_SCALE
+	var desired := _forward_velocity(1.0)
+	var rate := PATROL_ROTATION_FAR
+	var pull := Vector3.ZERO
+	if distance_units < PATROL_FAR_UNITS and (_patrol_state == 1 or _patrol_state == 0):
+		desired = AcknexCoordsScript.pan_direction(float(_patrol_target["pan"]))
+		rate = PATROL_ROTATION_ARRIVE
+		_patrol_state = 2
+		pull = offset * minf(PATROL_LOVE * 0.5, 1.0) * ACKNEX_TICKS_PER_SECOND
+	elif distance_units < PATROL_FAR_UNITS and _patrol_state == 2:
+		desired = AcknexCoordsScript.pan_direction(float(_patrol_target["pan"]))
+		rate = PATROL_ROTATION_NEAR
+		pull = offset * minf(PATROL_LOVE * 0.5, 1.0) * ACKNEX_TICKS_PER_SECOND
+	elif _patrol_state == 1 and offset.length_squared() > 0.0:
+		desired = offset.normalized()
+	if distance_units > patrol_path_range / ACKNEX_TO_GODOT_SCALE and _patrol_state == 2 and offset.length_squared() > 0.0:
+		_patrol_state = 1
+		desired = offset.normalized()
+		rate = PATROL_ROTATION_FAR
+	var turn := _yaw_delta_to(desired) * minf(rate * ticks, 1.0)
+	rotation.y = wrapf(rotation.y + turn, -PI, PI)
+	var turn_step_degrees := absf(rad_to_deg(_yaw_delta_to(desired)) * rate)
+	var walk := _forward_velocity(get_walk_movement_speed()) if turn_step_degrees < PATROL_WALK_MAX_TURN_STEP_DEGREES else Vector3.ZERO
+	if distance_units < PATROL_NEAR_UNITS:
+		_patrol_state = 0
+		var reached := target_position
+		_patrol_scan(reached, float(_patrol_target["pan"]), PATROL_FIRST_SCAN_CONE, reached)
+	return walk + pull
+
+
+func _patrol_far_from_target() -> bool:
+	if _patrol_target.is_empty():
+		return true
+	var offset: Vector3 = (_patrol_target["position"] as Vector3) - global_position
+	offset.y = 0.0
+	return offset.length() > patrol_path_range * 1.8
+
+
+func _patrol_scan(origin: Vector3, heading_pan: float, cone: float, skip_position: Variant = null, range_scale: float = 1.0) -> void:
+	var network := _resolve_patrol_network()
+	if network == null:
+		return
+	if skip_position == null and not _patrol_target.is_empty():
+		skip_position = _patrol_target["position"]
+	var space := get_world_3d().direct_space_state if is_inside_tree() else null
+	var exclude: Array[RID] = [get_rid()]
+	var found: Dictionary = network.call("scan", _patrol_current_id, origin, heading_pan, cone,
+			patrol_path_range * range_scale, global_position, skip_position, space, exclude)
+	if found.is_empty():
+		return
+	_patrol_current_id = int(found.get("path_id", _patrol_current_id))
+	var previous: Variant = _patrol_target.get("position", null)
+	_patrol_target = found
+	if bool(found.get("found", false)):
+		_patrol_state = 1
+		_patrol_lost_ticks = 0.0
+	elif previous == null or not (previous as Vector3).is_equal_approx(found["position"]):
+		_patrol_state = 0
+
+
+## Acknex pan of the enemy's facing (Godot -Z forward).
+func _acknex_pan() -> float:
+	var forward := _forward_velocity(1.0)
+	return rad_to_deg(atan2(-forward.z, forward.x))
 
 
 ## lion.wdl / anims.wdl lion voices: `play_sound snd,100` then `Tune_Sound`

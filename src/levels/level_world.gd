@@ -6,6 +6,8 @@ extends "res://src/prototype/prototype_world.gd"
 ## (mm1.wdl main loop: PartieGagnee / BallesJoueur1 <= 0).
 
 const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
+const LevelPathNetworkScript := preload("res://src/levels/level_path_network.gd")
+const StartEnemyZoneScript := preload("res://src/levels/start_enemy_zone.gd")
 const WDL_FLAG1_MASK := 1
 const ACKNEX_TICKS_PER_SECOND := 16.0
 const LOSE_TITLE_ASSET_ID := "model.lose.title"
@@ -59,6 +61,7 @@ var _level_lost_routed := false
 var _lose_continue_delay_remaining := 0.0
 var _lose_auto_continue_remaining := 0.0
 var _lose_title_root: Node3D
+var _path_network: LevelPathNetworkScript = null
 
 
 func _enter_tree() -> void:
@@ -70,6 +73,29 @@ func _ready() -> void:
 	super._ready()
 	_resolve_sky()
 	_connect_player_outcome()
+	_spawn_start_enemy_zones()
+
+
+## lion.wdl InitPath markers baked under Config, built on first use.
+func get_path_network() -> LevelPathNetworkScript:
+	if _path_network == null:
+		_path_network = LevelPathNetworkScript.from_config(get_node_or_null(CONFIG_NODE_NAME))
+	return _path_network
+
+
+## mm1.wdl InitStartEnnemy markers become zones that wake nearby enemies.
+func _spawn_start_enemy_zones() -> void:
+	var config := get_node_or_null(CONFIG_NODE_NAME)
+	if config == null:
+		return
+	for marker in config.get_children():
+		if String(marker.get("action")) != "initstartennemy":
+			continue
+		var zone := StartEnemyZoneScript.new() as Node3D
+		zone.name = "%s_zone" % marker.name
+		zone.call("configure_from_marker", marker)
+		add_child(zone)
+		zone.global_position = (marker as Node3D).global_position
 
 
 func _process(delta: float) -> void:

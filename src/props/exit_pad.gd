@@ -13,6 +13,8 @@ const WIN_SOUND_WDL_RANGE_UNITS := 2000.0
 @export var win_visual_rotation_degrees: Vector3 = Vector3(0.0, -90.0, 0.0)
 @export var require_grounded: bool = true
 @export var completion_delay_seconds: float = 8.0 / ACKNEX_TICKS_PER_SECOND
+## mm1.wdl waits up to 320 ticks (or a key press) after a win before moving on.
+@export var auto_complete_seconds: float = 320.0 / ACKNEX_TICKS_PER_SECOND
 
 var _visual_source_path := ""
 var _model_instance: Node3D = null
@@ -23,6 +25,7 @@ var _activated := false
 var _completed := false
 var _continue_requested := false
 var _completion_delay_remaining := 0.0
+var _auto_complete_remaining := 0.0
 
 @onready var _visual_root: Node3D = $VisualRoot
 
@@ -43,6 +46,11 @@ func _process(delta: float) -> void:
 		_completion_delay_remaining = maxf(0.0, _completion_delay_remaining - maxf(delta, 0.0))
 	if _continue_requested and _completion_delay_remaining <= 0.0:
 		_complete_level()
+		return
+	if auto_complete_seconds > 0.0:
+		_auto_complete_remaining = maxf(0.0, _auto_complete_remaining - maxf(delta, 0.0))
+		if _auto_complete_remaining <= 0.0:
+			_complete_level()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -69,6 +77,7 @@ func try_trigger_body(body: Node) -> bool:
 
 	_activated = true
 	_completion_delay_remaining = maxf(completion_delay_seconds, 0.0)
+	_auto_complete_remaining = maxf(auto_complete_seconds, 0.0)
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
 	set_process_unhandled_input(true)
@@ -168,11 +177,15 @@ func _complete_level() -> void:
 	_completed = true
 	set_process_unhandled_input(false)
 	var game := get_node_or_null("/root/Game")
-	if game == null or not game.has_method("show_main_menu"):
+	if game == null:
 		return
-	var err := int(game.call("show_main_menu"))
+	# Game advances to the next level (or the menu when not inside a level).
+	var method := &"complete_current_level" if game.has_method("complete_current_level") else &"show_main_menu"
+	if not game.has_method(method):
+		return
+	var err := int(game.call(method))
 	if err != OK:
-		push_warning("Exit pad could not return to the main menu: %s" % error_string(err))
+		push_warning("Exit pad could not leave the level (%s): %s" % [method, error_string(err)])
 
 
 func _play_win_sound() -> void:

@@ -26,7 +26,8 @@ Normal gameplay controls are mapped from the original WDL scripts:
 - Shift / joy button 3: boost.
 - Alt / joy button 4: quick 180 degree turn.
 - C: change camera mode.
-- R: restart the current level.
+- R: restart the current level (counts as a lost level, like the original).
+- Original debug keys: Shift+V+L unlocks every level for the session, Shift+X+R wins the current level.
 - Esc, Enter, left mouse, and joy button 1 are reserved for menu cancel/confirm/accept flows.
 
 ## Original Levels
@@ -38,6 +39,10 @@ python3 tools/convert_level_wmb.py --all
 env HOME=/tmp/sammy-godot-home XDG_DATA_HOME=/tmp/sammy-godot-xdg /path/to/Godot_v4.6.2-stable_linux.x86_64 --headless --path . --import
 env HOME=/tmp/sammy-godot-home XDG_DATA_HOME=/tmp/sammy-godot-xdg /path/to/Godot_v4.6.2-stable_linux.x86_64 --headless --path . --script res://tools/build_level_scenes.gd -- --all
 ```
+
+## Progress
+
+Progress is saved to `user://progress.cfg`: unlocked levels, best scores, the level resumed by Play, and audio volumes. A fresh save unlocks the first tutorial, jump and think levels (1, 17, 33); winning a level unlocks the next one. Set `sammy/debug/unlock_all_levels` to `true` to open every level while testing.
 
 ## Validation
 

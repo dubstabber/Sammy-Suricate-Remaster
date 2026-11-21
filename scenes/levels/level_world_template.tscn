@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://src/camera/third_person_camera.gd" id="3_camera"]
 [ext_resource type="PackedScene" path="res://scenes/ui/debug_overlay.tscn" id="4_debug"]
 [ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="5_key_panel"]
+[ext_resource type="PackedScene" path="res://scenes/ui/level_hud.tscn" id="6_hud"]
 
 [sub_resource type="Environment" id="Environment_level"]
 background_mode = 1
@@ -39,6 +40,11 @@ target_path = NodePath("../Player")
 
 [node name="DebugOverlay" parent="." instance=ExtResource("4_debug")]
 player_path = NodePath("../Player")
+label_position = Vector2(12, 60)
 
 [node name="KeyDiamondPanel" parent="." instance=ExtResource("5_key_panel")]
+player_path = NodePath("../Player")
+screen_position = Vector2(582, 5)
+
+[node name="LevelHud" parent="." instance=ExtResource("6_hud")]
 player_path = NodePath("../Player")

@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 @export var player_path: NodePath
+@export var label_position: Vector2 = Vector2(12.0, 12.0)
 
 var _label: Label
 var _player: Node3D
@@ -9,7 +10,7 @@ var _player: Node3D
 func _ready() -> void:
     layer = 20
     _label = Label.new()
-    _label.position = Vector2(12.0, 12.0)
+    _label.position = label_position
     add_child(_label)
     _resolve_player()
 

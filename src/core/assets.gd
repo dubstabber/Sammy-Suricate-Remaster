@@ -133,6 +133,13 @@ const CATALOG := {
 		"description": "Original win.mdl end-level title model",
 		"acknex_entity_scale": Vector3(0.32, 0.32, 0.32)
 	},
+	"model.lose.title": {
+		"path": "res://assets/models/lose/Lose.gltf",
+		"source": "extract-sammy-assets/extracted/godot/models/Lose/Lose.gltf",
+		"kind": "model",
+		"description": "Original Lose.mdl lost-level title model (mm1.wdl InitTItleLoose)",
+		"acknex_entity_scale": Vector3(0.32, 0.32, 0.32)
+	},
     "model.menu.item.play": {
         "path": "res://assets/models/menu/items/titplay/titplay.gltf",
         "source": "extract-sammy-assets/extracted/godot/raw/levels/titplay.wmb",
@@ -904,6 +911,48 @@ const CATALOG := {
         "source": "extract-sammy-assets/extracted/wrs/sounds/sammy01.mid",
         "kind": "music",
         "description": "Original sammy01.mid rendered through a Roland GS-compatible MIDI bank"
+    },
+    "music.sammy02": {
+        "path": "res://assets/audio/sammy02.ogg",
+        "source": "extract-sammy-assets/extracted/wrs/sounds/sammy02.mid",
+        "kind": "music",
+        "description": "Original sammy02.mid level track (sons.wdl musique2) rendered to OGG"
+    },
+    "music.sammy03": {
+        "path": "res://assets/audio/sammy03.ogg",
+        "source": "extract-sammy-assets/extracted/wrs/sounds/sammy03.mid",
+        "kind": "music",
+        "description": "Original sammy03.mid level track (sons.wdl musique3) rendered to OGG"
+    },
+    "music.sammy04": {
+        "path": "res://assets/audio/sammy04.ogg",
+        "source": "extract-sammy-assets/extracted/wrs/sounds/sammy04.mid",
+        "kind": "music",
+        "description": "Original sammy04.mid level track (sons.wdl musique4) rendered to OGG"
+    },
+    "music.sammy05": {
+        "path": "res://assets/audio/sammy05.ogg",
+        "source": "extract-sammy-assets/extracted/wrs/sounds/sammy05.mid",
+        "kind": "music",
+        "description": "Original sammy05.mid level track (sons.wdl musique5) rendered to OGG"
+    },
+    "music.sammy06": {
+        "path": "res://assets/audio/sammy06.ogg",
+        "source": "extract-sammy-assets/extracted/wrs/sounds/sammy06.mid",
+        "kind": "music",
+        "description": "Original sammy06.mid level track (sons.wdl musique6) rendered to OGG"
+    },
+    "music.sammy07": {
+        "path": "res://assets/audio/sammy07.ogg",
+        "source": "extract-sammy-assets/extracted/wrs/sounds/sammy07.mid",
+        "kind": "music",
+        "description": "Original sammy07.mid level track (sons.wdl musique7) rendered to OGG"
+    },
+    "sfx.beep1": {
+        "path": "res://assets/audio/beep1.wav",
+        "source": "extract-sammy-assets/extracted/wrs/sounds/beep1.wav",
+        "kind": "sfx",
+        "description": "Original beep1.wav played by the mm1.wdl debug/cheat keys"
     },
     "sfx.collect": {
         "path": "res://assets/audio/gemding2.wav",

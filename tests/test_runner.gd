@@ -15,6 +15,8 @@ const LEVEL_10008_SCENE_PATH := "res://scenes/levels/10008.tscn"
 const LEVEL_BUILDER_SCRIPT_PATH := "res://src/levels/level_builder.gd"
 const ACKNEX_COORDS_SCRIPT_PATH := "res://src/levels/acknex_coords.gd"
 const MENU_LEVEL_CATALOG_SCRIPT_PATH := "res://src/menu/menu_level_catalog.gd"
+const PROGRESS_STORE_SCRIPT_PATH := "res://src/core/progress_store.gd"
+const TEST_PROGRESS_SAVE_PATH := "user://test_progress.cfg"
 const WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/wasp_pickup.tscn"
 const LAUNCHED_WASP_PICKUP_SCENE_PATH := "res://scenes/pickups/launched_wasp_pickup.tscn"
 const BOOST_PICKUP_SCENE_PATH := "res://scenes/pickups/boost_pickup.tscn"
@@ -123,6 +125,7 @@ func _run() -> void:
     _test_level_catalog_availability()
     _test_level_entities_json()
     await _test_level_select_routes(game)
+    await _test_progress_and_level_flow(game)
     _test_wasp_resources(assets)
     _test_wasp_inventory()
     await _test_key_diamond_system(assets)
@@ -589,7 +592,10 @@ func _test_eye_of_truth_state(game: Node) -> void:
     game.call("_process", 8.0)
     _expect(is_equal_approx(float(game.call("get_eye_of_truth_remaining_seconds")), 8.0), "Eye of Truth timer should count down in seconds.")
     game.call("_process", 9.0)
-    _expect(not bool(game.call("is_eye_of_truth_active")), "Eye of Truth should expire after its duration elapses.")
+    _expect(bool(game.call("is_eye_of_truth_active")), "Eye of Truth should stay active while its panel shrinks (mm1.wdl ReduitEyePanel).")
+    _expect(is_equal_approx(float(game.call("get_eye_of_truth_panel_scale")), 0.02 + 0.98 * (12.25 - 1.0) / 12.25), "Eye panel should shrink 0.005 per tick after DureeEyeTruth runs out.")
+    game.call("_process", 11.25)
+    _expect(not bool(game.call("is_eye_of_truth_active")), "Eye of Truth should expire once the panel has shrunk to 0.02.")
     game.call("clear_eye_of_truth")
 
 
@@ -6846,12 +6852,12 @@ func _test_level_catalog_availability() -> void:
     var catalog: GDScript = load(MENU_LEVEL_CATALOG_SCRIPT_PATH)
     var level_1: Dictionary = catalog.call("level_by_number", 1)
     _expect(String(level_1.get("scene_path", "")) == LEVEL_10001_SCENE_PATH, "Tutorial level 1 should point at the baked 10001 level scene.")
-    _expect(bool(level_1.get("selectable", false)), "Tutorial level 1 should be selectable once 10001 is converted and baked.")
+    _expect(bool(level_1.get("available", false)), "Tutorial level 1 should be available once 10001 is converted and baked.")
     _expect(String(catalog.call("stem_for_source_wmb", "102N_t.WMB")) == "102n_t", "Level stems should be the lower-case WMB basename.")
     _expect(int(catalog.call("level_number_for_stem", "173b_t05")) == 39, "Stem lookup should map 173b_t05 back to Think level 7 (InitLevel39).")
     for english_bonus in [13, 14, 15, 16]:
         var english_bonus_data: Dictionary = catalog.call("level_by_number", english_bonus)
-        _expect(bool(english_bonus_data.get("selectable", false)), "Bonus level %d ships in the English v1.4 build and should be playable." % english_bonus)
+        _expect(bool(english_bonus_data.get("available", false)), "Bonus level %d ships in the English v1.4 build and should be available." % english_bonus)
     for missing_bonus in [29, 30, 31, 32, 45, 46, 47, 48]:
         var bonus_data: Dictionary = catalog.call("level_by_number", missing_bonus)
         _expect(not bool(bonus_data.get("selectable", true)), "Bonus level %d is not shipped in any original build and should stay unavailable." % missing_bonus)
@@ -6900,9 +6906,11 @@ func _test_level_select_routes(game: Node) -> void:
     if game == null or not game.has_method("show_level"):
         _expect(false, "Game should expose show_level for menu level selection.")
         return
+    game.call("use_progress_save_path", TEST_PROGRESS_SAVE_PATH, true)
     var spy := _make_level_route_spy()
     root.add_child(spy)
     game.call("set_scene_router", spy)
+    _expect(int(game.call("show_level", 13)) == ERR_UNAUTHORIZED, "Locked levels (bonus 1 on a fresh save) should not load.")
     _expect(int(game.call("show_level", 1)) == OK, "Game.show_level(1) should route the baked 10001 level.")
     _expect(String(spy.get("last_scene_path")) == LEVEL_10001_SCENE_PATH, "Selecting tutorial level 1 should load the baked 10001 scene, not the prototype.")
     _expect(int(game.call("get_current_level_number")) == 1, "Game should remember the loaded level number.")
@@ -6910,6 +6918,108 @@ func _test_level_select_routes(game: Node) -> void:
     _expect(int(game.call("show_level", 29)) == ERR_DOES_NOT_EXIST, "Unavailable levels should not route anywhere.")
     _expect(int(spy.get("show_scene_calls")) == 2, "An unavailable level should not trigger a scene change.")
     game.call("set_scene_router", null)
+    game.call("clear_current_level")
+    spy.queue_free()
+    await process_frame
+
+
+func _check_level_hud(world: Node, player: Node, game: Node) -> void:
+    var hud := world.get_node_or_null("LevelHud")
+    _expect(hud != null, "Level worlds should show the original in-game HUD.")
+    if hud == null:
+        return
+    var key_panel := world.get_node_or_null("KeyDiamondPanel")
+    _expect(key_panel != null and (key_panel.get("screen_position") as Vector2).is_equal_approx(Vector2(582.0, 5.0)), "The gem panel should use the original 1280x960 PANFondGems position.")
+    hud.call("_process", 0.0)
+    _expect(String(hud.call("get_goal_text")) == "540", "The HUD should show the 10001 ScoreGoal with the original reach digits.")
+    _expect(String(hud.call("get_score_text")) == "0", "The HUD score should start at 0.")
+    _expect(String(hud.call("get_lives_text")) == "1", "The HUD should show the starting lives.")
+    _expect(is_equal_approx(float(hud.call("get_heart_window_offset")), 48.0), "Full health should show the whole 48-row heart window.")
+    _expect(not bool(hud.call("is_boost_visible")) and not bool(hud.call("is_wasp_panel_visible")) and not bool(hud.call("is_eye_panel_visible")), "Boost, wasp and eye panels should start hidden.")
+
+    game.call("add_points", 30)
+    player.call("take_damage", 12.0)
+    player.call("add_boost_capacity", 100.0)
+    var inventory: Object = player.call("get_wasp_inventory")
+    if inventory != null:
+        inventory.call("add_ammo", load(WASP_TYPE_3_PATH), 12)
+    game.call("activate_eye_of_truth")
+    hud.call("_process", 0.0)
+    _expect(String(hud.call("get_score_text")) == "30", "The HUD score should follow Game score changes.")
+    _expect(is_equal_approx(float(hud.call("get_heart_window_offset")), 36.0), "Losing 12 hearts should scroll the heart window to WindowHearts 36.")
+    _expect(bool(hud.call("is_boost_visible")) and is_equal_approx(float(hud.call("get_boost_bar_width")), 100.0), "The boost bar should show the stored boost (150 - WindowBoost).")
+    _expect(bool(hud.call("is_wasp_panel_visible")) and String(hud.call("get_ammo_text")) == "12", "The wasp panel and ammo digits should appear with ammo.")
+    _expect(int(hud.call("get_displayed_wasp_type")) == 3, "The rotating wasp should use the current wasp type skin.")
+    _expect(bool(hud.call("is_eye_panel_visible")) and is_equal_approx(float(hud.call("get_eye_panel_scale")), 0.01), "The Eye of Truth panel should appear at full size.")
+    game.call("request_score_goal_warning")
+    _expect(bool(hud.call("is_score_goal_warning")), "WarnScoreGoal should swap in the big score-to-reach digits.")
+    hud.call("_process", 0.5)
+    _expect(not bool(hud.call("is_score_goal_warning")), "WarnScoreGoal should end after its 4+4 tick blink.")
+    game.call("clear_eye_of_truth")
+    game.call("clear_score")
+
+
+func _test_progress_and_level_flow(game: Node) -> void:
+    if game == null or not game.has_method("complete_current_level"):
+        _expect(false, "Game should expose the level win/lose flow.")
+        return
+    game.call("use_progress_save_path", TEST_PROGRESS_SAVE_PATH, true)
+    _expect(bool(game.call("is_level_unlocked", 1)) and bool(game.call("is_level_unlocked", 17)) and bool(game.call("is_level_unlocked", 33)), "A fresh save should unlock the first tutorial, jump and think levels (MakeSAV).")
+    _expect(not bool(game.call("is_level_unlocked", 2)), "A fresh save should keep later levels locked.")
+    var level_2: Dictionary = game.call("get_level_entry", 2)
+    _expect(bool(level_2.get("available", false)) and not bool(level_2.get("selectable", true)), "Locked levels should be available but not selectable in the menu.")
+
+    var spy := _make_level_route_spy()
+    root.add_child(spy)
+    game.call("set_scene_router", spy)
+    _expect(int(game.call("show_level", 1)) == OK, "Level 1 should load on a fresh save.")
+    game.call("configure_score_goal", 540, 0)
+    game.call("add_points", 600)
+    _expect(int(game.call("complete_current_level")) == OK, "Winning a level should route onwards.")
+    _expect(int(game.call("get_level_entry", 1).get("best_score", 0)) == 600, "Winning should store the level best score (StoreBestScore).")
+    _expect(bool(game.call("is_level_unlocked", 2)), "Winning level 1 should unlock level 2 (ValideLevel/SearchNextLevel).")
+    _expect(String(spy.get("last_scene_path")) == "res://scenes/levels/10002.tscn" and int(game.call("get_current_level_number")) == 2, "Winning should load the next level.")
+
+    game.call("clear_score")
+    game.call("add_points", 100)
+    var reloads_before := int(spy.get("show_scene_calls"))
+    _expect(int(game.call("fail_current_level")) == OK, "Losing a level should reload it.")
+    _expect(int(spy.get("show_scene_calls")) == reloads_before + 1 and String(spy.get("last_scene_path")) == "res://scenes/levels/10002.tscn", "A lost level should reload the same level.")
+    _expect(int(game.call("get_level_entry", 2).get("best_score", 0)) == 100, "A lost level should still store its best score.")
+
+    var progress: Object = game.call("get_progress")
+    progress.call("unlock_level", 12)
+    _expect(int(game.call("show_level", 12)) == OK, "An unlocked level 12 should load.")
+    var menus_before := int(spy.get("show_main_menu_calls"))
+    game.call("complete_current_level")
+    _expect(int(spy.get("show_main_menu_calls")) == menus_before + 1, "Finishing the last tutorial level (12) should return to the menu.")
+    _expect(bool(game.call("is_level_unlocked", 13)) and int(progress.get("current_level")) == 13, "Finishing level 12 should unlock bonus 1 and make it the Play level.")
+
+    var reloaded: RefCounted = load(PROGRESS_STORE_SCRIPT_PATH).new()
+    reloaded.set("save_path", TEST_PROGRESS_SAVE_PATH)
+    _expect(int(reloaded.call("load_from_disk")) == OK, "Progress should be saved to disk.")
+    _expect(bool(reloaded.call("is_level_unlocked", 13)) and int(reloaded.call("get_best_score", 1)) == 600 and int(reloaded.get("current_level")) == 13, "Saved progress should restore unlocks, best scores and the current level.")
+    _expect(not bool(reloaded.get("never_played")), "Saved progress should remember that a game was played.")
+
+    game.call("record_audio_options", 40.0, 70.0)
+    reloaded.call("load_from_disk")
+    _expect(is_equal_approx(float(reloaded.get("music_volume_percent")), 40.0) and is_equal_approx(float(reloaded.get("sfx_volume_percent")), 70.0), "Audio volumes should persist like the original slider values.")
+
+    _expect(not bool(game.call("is_level_unlocked", 40)), "Level 40 should still be locked.")
+    game.call("unlock_all_levels_for_session")
+    _expect(bool(game.call("is_level_unlocked", 40)), "The original Shift+V+L cheat should unlock every level for the session.")
+
+    _expect(String(game.call("get_music_asset_id_for_level", 1)) == "music.sammy01" and String(game.call("get_music_asset_id_for_level", 2)) == "music.sammy02", "Tutorial levels should alternate tracks 1 and 2 (MusicOrder).")
+    var jump_track := String(game.call("get_music_asset_id_for_level", 17))
+    _expect(["music.sammy01", "music.sammy02", "music.sammy03"].has(jump_track), "Levels 17-20 should pick from tracks 1-3.")
+    _expect(load("res://src/core/assets.gd").CATALOG.has(String(game.call("get_music_asset_id_for_level", 40))), "Every level music track should be in the asset catalog.")
+
+    game.call("set_scene_router", null)
+    game.call("clear_current_level")
+    game.call("clear_score_goal")
+    game.call("clear_score")
+    game.call("use_progress_save_path", TEST_PROGRESS_SAVE_PATH, true)
+    DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_PROGRESS_SAVE_PATH))
     spy.queue_free()
     await process_frame
 
@@ -6918,7 +7028,11 @@ func _make_level_route_spy() -> Node:
     var script := GDScript.new()
     script.source_code = "extends Node\n" \
             + "var show_scene_calls: int = 0\n" \
+            + "var show_main_menu_calls: int = 0\n" \
             + "var last_scene_path: String = \"\"\n" \
+            + "func show_main_menu() -> int:\n" \
+            + "    show_main_menu_calls += 1\n" \
+            + "    return OK\n" \
             + "func show_scene(scene_path: String) -> int:\n" \
             + "    show_scene_calls += 1\n" \
             + "    last_scene_path = scene_path\n" \
@@ -6989,6 +7103,8 @@ func _test_level_world_10001() -> void:
         world.queue_free()
         await process_frame
         return
+    _expect(int(player.call("get_lives")) == 1, "10001 should start with InitGame2 Skill1 = 1 life (Loads.wdl NbrBallesStart).")
+    await _check_level_hud(world, player, game)
     _expect(player.global_position.is_equal_approx(Vector3(-5.68, 0.0, 2.68)), "10001 player should start at the decoded InitMarche position on the ground.")
     _expect(absf(wrapf(player.rotation.y, -PI, PI)) < 0.01, "10001 player should face the exit door (Acknex pan 90 -> Godot -Z).")
     var query := PhysicsRayQueryParameters3D.create(player.global_position + Vector3.UP * 0.5, player.global_position + Vector3.DOWN * 1.0, WORLD_LAYER)
@@ -7007,8 +7123,15 @@ func _test_level_world_10001() -> void:
         var calls_before := int(pause_route_spy.get("show_scene_calls"))
         world.call("_on_pause_restart_requested")
         await process_frame
-        _expect(int(pause_route_spy.get("show_scene_calls")) == calls_before + 1 and String(pause_route_spy.get("last_scene_path")) == LEVEL_10001_SCENE_PATH, "Pause Restart inside a level should reload that level, not the prototype.")
+        _expect(bool(world.call("is_level_lost")), "Pause Restart should count as a lost level (options.wdl OuiRestartLevel sets lives to 0).")
+        _expect(world.call("get_lose_title") != null, "A lost level should show the original Lose.mdl title.")
+        _expect(not bool(world.call("continue_after_level_lost")), "The lose title should ignore input during its short start delay.")
+        _expect(int(pause_route_spy.get("show_scene_calls")) == calls_before, "The level should not reload before the lose title is dismissed.")
+        world.call("_process", 1.0)
+        _expect(bool(world.call("continue_after_level_lost")), "A key press after the delay should dismiss the lose title.")
+        _expect(int(pause_route_spy.get("show_scene_calls")) == calls_before + 1 and String(pause_route_spy.get("last_scene_path")) == LEVEL_10001_SCENE_PATH, "A lost level should reload the same level, not the prototype.")
         game.call("set_scene_router", null)
+        game.call("clear_current_level")
         pause_route_spy.queue_free()
 
     world.queue_free()

@@ -105,12 +105,24 @@ func _on_music_volume_changed(value: float) -> void:
 	var audio := get_node_or_null("/root/Audio")
 	if audio != null and audio.has_method("set_music_volume_percent"):
 		audio.call("set_music_volume_percent", value)
+	_persist_audio_options()
 
 
 func _on_sfx_volume_changed(value: float) -> void:
 	var audio := get_node_or_null("/root/Audio")
 	if audio != null and audio.has_method("set_sfx_volume_percent"):
 		audio.call("set_sfx_volume_percent", value)
+	_persist_audio_options()
+
+
+## The original saved slider_musicvol/slider_soundvol in BestSco0.SAV.
+func _persist_audio_options() -> void:
+	var game := get_node_or_null("/root/Game")
+	if game == null or not game.has_method("record_audio_options"):
+		return
+	var music := _music_slider.value if _music_slider != null else 100.0
+	var sfx := _sfx_slider.value if _sfx_slider != null else 100.0
+	game.call("record_audio_options", music, sfx)
 
 
 func _on_close_requested() -> void:

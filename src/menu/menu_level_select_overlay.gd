@@ -24,6 +24,7 @@ func _ready() -> void:
 	_build_interface()
 	_resolve_nodes()
 	_wire_back_button()
+	_wire_progress_updates()
 	hide_category()
 
 
@@ -33,7 +34,7 @@ func show_category(category_key: StringName) -> void:
 		return
 
 	_current_category = category_key
-	_visible_levels = MenuLevelCatalog.levels_for_category(category_key)
+	_visible_levels = _decorated_levels(MenuLevelCatalog.levels_for_category(category_key))
 	_rebuild_buttons()
 	_update_title()
 	_update_detail({})
@@ -125,6 +126,29 @@ func _build_interface() -> void:
 	footer.add_child(back)
 
 
+## Applies saved unlock state / best scores from Game (falls back to the
+## static catalog when Game is not available, e.g. isolated tests).
+func _decorated_levels(levels: Array[Dictionary]) -> Array[Dictionary]:
+	var game := get_node_or_null("/root/Game")
+	if game == null or not game.has_method("decorate_level_entry"):
+		return levels
+	var decorated: Array[Dictionary] = []
+	for level_data: Dictionary in levels:
+		decorated.append(game.call("decorate_level_entry", level_data))
+	return decorated
+
+
+func _wire_progress_updates() -> void:
+	var game := get_node_or_null("/root/Game")
+	if game != null and game.has_signal("level_progress_changed") and not game.is_connected("level_progress_changed", _on_level_progress_changed):
+		game.connect("level_progress_changed", _on_level_progress_changed)
+
+
+func _on_level_progress_changed() -> void:
+	if visible and not _current_category.is_empty():
+		show_category(_current_category)
+
+
 func _resolve_nodes() -> void:
 	_title_label = get_node_or_null(title_label_path) as Label
 	_detail_label = get_node_or_null(detail_label_path) as Label
@@ -180,7 +204,15 @@ func _update_detail(level_data: Dictionary) -> void:
 	if level_data.is_empty():
 		_detail_label.text = ""
 		return
-	_detail_label.text = "%s  |  %s" % [String(level_data["display_name"]), String(level_data["source_wmb"])]
+	var detail := "%s  |  %s" % [String(level_data["display_name"]), String(level_data["source_wmb"])]
+	if not bool(level_data.get("available", true)):
+		detail += "  |  not converted"
+	elif not bool(level_data.get("unlocked", true)):
+		# interfac.wdl LevelNotReady: the previous level must be won first.
+		detail += "  |  win the previous level first"
+	elif int(level_data.get("best_score", 0)) > 0:
+		detail += "  |  best %d" % int(level_data["best_score"])
+	_detail_label.text = detail
 
 
 func _on_level_pressed(level_data: Dictionary) -> void:

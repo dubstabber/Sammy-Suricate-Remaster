@@ -40,6 +40,7 @@ const DEFAULT_KEY_FLIGHT_SPEED := 12.0 * 0.01 * 16.0
 const WASP_PROJECTILE_IDPLAYER := 9999
 const ACKNEX_TO_GODOT_SCALE := 0.01
 const DOOR_SOUND_WDL_RANGE_UNITS := 1000.0
+const WDL_WHITE_DOOR_KEY_ID := 7
 const WEAK_DEBRIS_LIFETIME_SECONDS := 1.0
 const WEAK_DEBRIS_LAUNCH_SECONDS := 0.55
 const WEAK_DEBRIS_MODEL_ASSET_IDS := [
@@ -145,6 +146,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _destroyed:
 		return
+	_request_score_goal_warning_if_blocked()
 	var safe_delta := maxf(delta, 0.0)
 	_update_open_hold(safe_delta)
 	if _visual == null:
@@ -445,6 +447,21 @@ func _source_wmb_stem(source: String) -> String:
 		else:
 			cleaned += "_"
 	return cleaned
+
+
+## mm1.wdl door scan: while Sammy stands at a closed white exit door
+## (Skill6 == 7) below ScoreGoal, WarnScoreGoal keeps blinking the score panel.
+func _request_score_goal_warning_if_blocked() -> void:
+	if _open or _trigger == null or _effective_required_key_id() != WDL_WHITE_DOOR_KEY_ID:
+		return
+	if not _trigger.monitoring:
+		return
+	for body in _trigger.get_overlapping_bodies():
+		if body.is_in_group("player"):
+			var game := get_node_or_null("/root/Game")
+			if game != null and game.has_method("request_score_goal_warning"):
+				game.call("request_score_goal_warning")
+			return
 
 
 func _fit_collision_to_source_model() -> void:

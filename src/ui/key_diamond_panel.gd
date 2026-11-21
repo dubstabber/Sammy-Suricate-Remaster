@@ -7,12 +7,16 @@ const KEY_RULES := preload("res://src/resources/key_diamond_rules.gd")
 @export var screen_position: Vector2 = Vector2(18.0, 16.0)
 @export var panel_background_asset_id: String = "texture.ui.gem_panel_background"
 @export var panel_bar_asset_id: String = "texture.ui.gem_panel_bar"
+## mm1.wdl main loop: once ScoreGoal is reached PanGems1 toggles every 12 ticks.
+@export var blink_when_score_goal_reached: bool = true
+@export var score_goal_blink_seconds: float = 12.0 / 16.0
 
 var _background: Sprite2D
 var _key_sprite: Sprite2D
 var _key_atlas: AtlasTexture
 var _player: Node
 var _displayed_key_id := KEY_RULES.KEY_NONE
+var _blink_elapsed := 0.0
 
 
 func _ready() -> void:
@@ -36,10 +40,28 @@ func _ready() -> void:
 	_update_panel()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _player == null:
 		_resolve_player()
 	_update_panel()
+	_update_score_goal_blink(delta)
+
+
+func is_blink_hidden() -> bool:
+	return is_showing_key() and not _key_sprite.visible
+
+
+func _update_score_goal_blink(delta: float) -> void:
+	if not blink_when_score_goal_reached or not is_showing_key() or score_goal_blink_seconds <= 0.0:
+		_blink_elapsed = 0.0
+		return
+	var game := get_node_or_null("/root/Game")
+	if game == null or not game.has_method("is_score_goal_reached") or not bool(game.call("is_score_goal_reached")):
+		_blink_elapsed = 0.0
+		return
+	_blink_elapsed += maxf(delta, 0.0)
+	var hidden := int(floorf(_blink_elapsed / score_goal_blink_seconds)) % 2 == 1
+	_key_sprite.visible = not hidden
 
 
 func is_showing_key() -> bool:

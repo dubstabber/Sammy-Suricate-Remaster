@@ -17,6 +17,8 @@ const CONFIG_NODE := "Config"
 const UNMAPPED_NODE := "Unmapped"
 const SKY_GROUP := "Sky"
 const PLAYER_START_NODE := "PlayerStart"
+const LEVEL_10_NUMBER := 10
+const LEVEL_10_STARTING_LIVES := 4
 
 
 static func entities_path(stem: String) -> String:
@@ -76,6 +78,9 @@ static func build(stem: String, level_number: int = 0) -> Dictionary:
 	for entity: Variant in data.get("entities", []):
 		if entity is Dictionary:
 			_place_entity(root, entity as Dictionary, report)
+	if level_number == LEVEL_10_NUMBER:
+		# Loads.wdl InitLevel10 hard-codes BallesJoueur1 = 4.
+		root.set("level_starting_lives", LEVEL_10_STARTING_LIVES)
 	root.set_meta("wmb_light_count", (data.get("lights", []) as Array).size())
 	root.set_meta("wmb_unmapped_actions", report["unmapped"])
 	return {"root": root, "report": report}
@@ -127,6 +132,11 @@ static func _place_entity(root: Node3D, entity: Dictionary, report: Dictionary) 
 		MapperScript.KIND_CONFIG:
 			_add_owned(root, root.get_node(CONFIG_NODE), node)
 			report["config"] = int(report["config"]) + 1
+			# mm1.wdl InitGame2: Skill1 is NbrBallesStart (0 keeps the previous value).
+			if String(entity.get("action", "")) == "initgame2":
+				var starting_lives := absi(int(_entity_skill(entity, 1)))
+				if starting_lives > 0:
+					root.set("level_starting_lives", starting_lives)
 			return
 		MapperScript.KIND_UNMAPPED:
 			_add_owned(root, root.get_node(UNMAPPED_NODE), node)
@@ -147,6 +157,11 @@ static func _place_entity(root: Node3D, entity: Dictionary, report: Dictionary) 
 		_add_owned(root, group, destination)
 		node.set("destination_path", node.get_path_to(destination))
 	_count_mapped(report, kind)
+
+
+static func _entity_skill(entity: Dictionary, skill_number: int) -> float:
+	var skills: Array = entity.get("skills", [])
+	return float(skills[skill_number - 1]) if skill_number >= 1 and skill_number <= skills.size() else 0.0
 
 
 static func _count_mapped(report: Dictionary, kind: StringName) -> void:

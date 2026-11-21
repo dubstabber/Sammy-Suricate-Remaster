@@ -15,7 +15,7 @@ from pathlib import Path
 
 from PIL import Image
 
-DEFAULT_MODELS = ["grate1", "huttop2"]
+DEFAULT_MODELS = ["grate1", "huttop2", "panwasp"]
 
 
 def key_black(source: Path, target: Path) -> float:

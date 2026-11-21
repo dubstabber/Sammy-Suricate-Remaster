@@ -113,6 +113,8 @@ static func _with_runtime_fields(level_data: Dictionary) -> Dictionary:
 	result["action_id"] = 100 + level_number
 	result["source"] = "Loads.wdl:InitLevel%d" % level_number
 	result["scene_path"] = scene_path
-	# Only levels converted and baked from original WMB files can be played.
-	result["selectable"] = ResourceLoader.exists(scene_path)
+	# Only levels converted and baked from original WMB files exist. Unlock
+	# state is applied on top by Game.decorate_level_entry().
+	result["available"] = ResourceLoader.exists(scene_path)
+	result["selectable"] = result["available"]
 	return result

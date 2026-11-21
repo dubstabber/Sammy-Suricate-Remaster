@@ -105,7 +105,21 @@ func request_play() -> Error:
 		last_selected_action_id = MenuMetadata.ACTION_PLAY
 		last_selected_action_key = &"play"
 		menu_action_selected.emit(last_selected_action_id, last_selected_action_key)
-	return _route_to_prototype_world()
+	return _route_to_current_level()
+
+
+## interfac.wdl Play (ChoixMenu 1): resume the saved current level.
+func _route_to_current_level() -> Error:
+	if bool(ProjectSettings.get_setting("sammy/test/skip_menu_routes", false)):
+		return OK
+	var game := get_node_or_null("/root/Game")
+	if game == null or not game.has_method("play_current_level"):
+		return _route_to_prototype_world()
+	_stop_menu_music()
+	var err := int(game.call("play_current_level"))
+	if err == ERR_DOES_NOT_EXIST:
+		return _route_to_prototype_world()
+	return err
 
 
 func request_debug_prototype() -> Error:

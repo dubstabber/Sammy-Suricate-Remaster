@@ -77,6 +77,7 @@ const KEY_GATE_MATCH_ANY := 5
 const KEY_GATE_CLOSE_STAY_OPEN := 0
 const KEY_GATE_CLOSE_AUTO := 1
 const KEY_GATE_CLOSE_PERMANENT := 2
+const KEY_DIAMOND_NONE := 0
 const KEY_DIAMOND_RED := 1
 const KEY_DIAMOND_YELLOW := 2
 const KEY_DIAMOND_ORANGE := 3
@@ -167,6 +168,7 @@ func _run() -> void:
     await _test_small_heart_pickup(assets)
     await _test_life_heart_pickup(assets)
     await _test_diamond_pickup(game, assets)
+    await _test_player_death_resets(game)
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
     await _test_prototype_world()
@@ -648,6 +650,74 @@ func _test_audio_service_tuned_sfx(assets: Node) -> void:
     wasp.free()
     lion.queue_free()
     audio.call("stop_sfx")
+    await process_frame
+
+
+## player.wdl ResetSammy / RestartSammy: dying below the score goal throws the
+## carried key away as a decorative gem; the restart scan brings collected
+## level keys back, removes gems made during play and clears the lions' call.
+func _test_player_death_resets(game: Node) -> void:
+    game.call("configure_score_goal", 100, 0)
+    var player := (load(PLAYER_SCENE_PATH) as PackedScene).instantiate() as CharacterBody3D
+    player.position = Vector3(60.0, 0.0, 60.0)
+    root.add_child(player)
+    await process_frame
+    var key_scene := load(KEY_DIAMOND_PICKUP_SCENE_PATH) as PackedScene
+    var level_key := key_scene.instantiate() as Area3D
+    root.add_child(level_key)
+    level_key.position = Vector3(70.0, 0.0, 70.0)
+    level_key.set("collect_sound_asset_id", "")
+    level_key.call("configure_for_key_id", KEY_DIAMOND_RED)
+    var gem_scene := load(LAUNCHED_KEY_GEM_SCENE_PATH) as PackedScene
+    var temporary_gem := gem_scene.instantiate() as Area3D
+    var persistent_gem := gem_scene.instantiate() as Area3D
+    for gem: Area3D in [temporary_gem, persistent_gem]:
+        gem.set("spawn_effect_enabled", false)
+        root.add_child(gem)
+        gem.position = Vector3(80.0, 0.0, 80.0)
+    temporary_gem.call("configure_launch", KEY_DIAMOND_BLUE, 1000.0, Vector3.ZERO)
+    persistent_gem.call("configure_launch", KEY_DIAMOND_GREEN, 1001.0, Vector3.ZERO)
+    await process_frame
+    _expect(bool(level_key.call("collect", player)) and int(player.call("get_current_key_id")) == KEY_DIAMOND_RED, "Sammy should pick up the red level key.")
+    level_key.call("_process", 2.0)
+    _expect(not level_key.visible, "A collected level key should disappear.")
+    var enemy_script := load("res://src/enemies/enemy_controller.gd") as GDScript
+    var caller := (load("res://scenes/enemies/rasta_enemy.tscn") as PackedScene).instantiate() as CharacterBody3D
+    caller.set_physics_process(false)
+    root.add_child(caller)
+    caller.call("_start_attack_call")
+    _expect(bool(caller.call("is_attack_call_active")), "A roaring lion should start the shared attack call.")
+
+    player.call("_begin_death", null)
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_NONE, "Dying below the score goal should lose the carried key.")
+    var death_key := player.call("get_last_death_key") as Node
+    _expect(death_key != null and int(death_key.call("get_key_id")) == KEY_DIAMOND_RED, "ResetSammy should eject the lost key as a gem.")
+    if death_key != null:
+        _expect(is_zero_approx(float(death_key.get("lifetime_ticks"))), "The ejected death key should be decorative (PlayerOldKey 0).")
+        _expect((death_key.call("get_velocity") as Vector3).y > 6.0, "The death key should be launched upward at PlayerSpeedZ 40.")
+    player.call("_finish_death_sequence")
+    await process_frame
+    _expect(level_key.visible and not bool(level_key.call("was_collected")), "RestartSammy should bring the collected level key back.")
+    _expect(not is_instance_valid(temporary_gem) or temporary_gem.is_queued_for_deletion(), "RestartSammy should remove settled gems created during play.")
+    _expect(is_instance_valid(persistent_gem) and persistent_gem.visible, "Persistent (1001) gems should survive the restart scan.")
+    _expect(not bool(caller.call("is_attack_call_active")), "RestartSammy should clear the lions' attack call.")
+
+    # Above the score goal Sammy holds key 255: nothing is ejected, and the
+    # restart scan removes every key gem.
+    game.call("add_points", 100)
+    player.call("set_current_key_id", KEY_DIAMOND_ALL)
+    player.call("_begin_death", null)
+    _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_ALL, "Above the score goal Sammy should keep his key on death.")
+    player.call("_finish_death_sequence")
+    await process_frame
+    _expect(not level_key.visible, "With key 255 the restart scan should remove level keys.")
+    _expect(not is_instance_valid(persistent_gem) or persistent_gem.is_queued_for_deletion(), "With key 255 the restart scan should remove persistent gems too.")
+
+    enemy_script.call("clear_attack_call")
+    game.call("clear_score_goal")
+    for node: Node in [player, level_key, caller, death_key]:
+        if node != null and is_instance_valid(node):
+            node.queue_free()
     await process_frame
 
 

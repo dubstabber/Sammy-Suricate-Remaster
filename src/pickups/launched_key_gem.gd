@@ -155,6 +155,21 @@ func is_persistent_restart_lifetime() -> bool:
 	return is_equal_approx(lifetime_ticks, LIFETIME_PERSISTENT)
 
 
+## The restart scan removes settled gems created during play; persistent
+## (1001, Flag3) gems stay unless the player holds key 255. Gems still in
+## flight ignore scans (gems.wdl Gem_Hit).
+func reset_for_player_restart(player_key_id: int) -> void:
+	if _collected or _expired or _motion_active:
+		return
+	if is_persistent_restart_lifetime() and player_key_id != KEY_RULES.KEY_ALL:
+		return
+	_collected = true
+	visible = false
+	set_deferred("monitoring", false)
+	set_deferred("monitorable", false)
+	queue_free()
+
+
 func get_key_type() -> Resource:
 	return key_type
 

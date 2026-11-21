@@ -246,6 +246,15 @@ func _matches_attack_call() -> bool:
 	)
 
 
+## player.wdl RestartSammy: AttackCall = 0.
+static func clear_attack_call() -> void:
+	_shared_attack_call_remaining = 0.0
+
+
+func reset_attack_call() -> void:
+	clear_attack_call()
+
+
 func is_attack_call_active() -> bool:
 	return _shared_attack_call_remaining > 0.0
 

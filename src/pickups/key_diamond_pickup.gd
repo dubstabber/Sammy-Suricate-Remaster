@@ -18,6 +18,7 @@ var _collected := false
 var _visual_sprite: Sprite3D = null
 var _visual_frame_accumulator := 0.0
 var _is_shrinking := false
+var _visual_base_scale := Vector3.ONE
 
 
 func _ready() -> void:
@@ -53,6 +54,29 @@ func collect(player: Node) -> bool:
 
 func was_collected() -> bool:
 	return _collected
+
+
+## gems.wdl GemWaitForNewStart / Key_Hit on the ScanIdentite 1000 restart: a
+## collected level key comes back, but every level key is removed while the
+## player holds key 255.
+func reset_for_player_restart(player_key_id: int) -> void:
+	if player_key_id == KEY_RULES.KEY_ALL:
+		_collected = true
+		_is_shrinking = false
+		visible = false
+		set_deferred("monitoring", false)
+		set_deferred("monitorable", false)
+		return
+	if not _collected:
+		return
+	_collected = false
+	_is_shrinking = false
+	visible = true
+	if _visual_sprite != null:
+		_visual_sprite.scale = _visual_base_scale
+		_visual_sprite.visible = true
+	set_deferred("monitoring", true)
+	set_deferred("monitorable", true)
 
 
 func get_key_type() -> Resource:
@@ -112,6 +136,7 @@ func _spawn_visual() -> void:
 	_visual_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	_visual_sprite.position.y = visual_ground_clearance
 	add_child(_visual_sprite)
+	_visual_base_scale = _visual_sprite.scale
 	_apply_visual_texture()
 
 

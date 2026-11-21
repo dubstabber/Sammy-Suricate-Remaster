@@ -7,6 +7,9 @@ const WASP_INVENTORY_SCRIPT := preload("res://src/weapons/wasp_inventory.gd")
 const WASP_PROJECTILE_SCENE := preload("res://scenes/weapons/wasp_projectile.tscn")
 const KEY_DIAMOND_RULES_SCRIPT := preload("res://src/resources/key_diamond_rules.gd")
 const LAUNCHED_KEY_GEM_SCENE := preload("res://scenes/pickups/launched_key_gem.tscn")
+const DEATH_KEY_LAUNCH_HEIGHT := 30.0 * 0.01
+const DEATH_KEY_HORIZONTAL_SPEED_UNITS := 25.0
+const DEATH_KEY_VERTICAL_SPEED_UNITS := 40.0
 const KEY_MIX_EFFECT_SCRIPT := preload("res://src/effects/key_mix_effect.gd")
 const TELEPORT_PARTICLES_SCRIPT := preload("res://src/effects/teleport_star_particles.gd")
 const ACKNEX_TIME_UNITS_PER_SECOND := 16.0
@@ -122,6 +125,7 @@ var _has_respawn_transform: bool = false
 var _current_key_id: int = KEY_DIAMOND_RULES_SCRIPT.KEY_NONE
 var _current_key_is_infinite := false
 var _last_ejected_key: Node = null
+var _last_death_key: Node = null
 var _teleporting := false
 var _teleport_phase := TELEPORT_PHASE_PRE_FADE
 var _teleport_phase_remaining := 0.0
@@ -270,6 +274,7 @@ func begin_death_pad_respawn(_source: Node = null) -> bool:
     if _dead or _game_over or _teleporting or _death_pad_respawning or _exit_pad_victory_active:
         return false
 
+    _reset_sammy_key()
     _lives = maxi(0, _lives - 1)
     life_lost.emit(_lives)
     _clear_action_state_for_death()
@@ -919,6 +924,7 @@ func _move_to_death_pad_respawn() -> void:
     _enemy_push_velocity = Vector3.ZERO
     _reset_follow_cameras_after_teleport()
     _play_animation_action(&"stand", 1.0, false, true, 0.0)
+    _restart_sammy_world()
     _death_pad_phase = DEATH_PAD_PHASE_FADE_IN
     _death_pad_phase_remaining = maxf(death_pad_fade_in_seconds, 0.001)
 
@@ -1639,6 +1645,7 @@ func _begin_death(source: Node = null) -> void:
     _dead = true
     _death_timer = _get_death_duration_seconds()
     _clear_action_state_for_death()
+    _reset_sammy_key()
     _play_animation_action(&"kaputt", 1.0, false, true, 0.0)
     death_started.emit(source)
 
@@ -1697,7 +1704,54 @@ func _respawn_after_death() -> void:
     _game_over = false
     _clear_animation_sequence()
     _play_animation_action(&"stand", 1.0, false, true, 0.0)
+    _restart_sammy_world()
     respawned.emit()
+
+
+## player.wdl ResetSammy (death and death pad): while the score goal is not
+## reached, the carried key flies off as a decorative gem and is lost.
+func _reset_sammy_key() -> void:
+    if _current_key_id == KEY_DIAMOND_RULES_SCRIPT.KEY_NONE:
+        return
+    var game := get_node_or_null("/root/Game")
+    if game != null and game.has_method("is_score_goal_reached") and bool(game.call("is_score_goal_reached")):
+        return
+    if KEY_DIAMOND_RULES_SCRIPT.is_valid_key_id(_current_key_id) and _current_key_id != KEY_DIAMOND_RULES_SCRIPT.KEY_ALL:
+        _spawn_death_key(_current_key_id)
+    clear_current_key()
+
+
+## gems.wdl EjectNewKey with PlayerOldKey 0: a decorative gem launched 30
+## quants above Sammy at PlayerSpeedZ 40 and at least 25 quants per tick.
+func _spawn_death_key(key_id: int) -> Node:
+    var parent := get_parent()
+    if parent == null:
+        return null
+    var pickup := LAUNCHED_KEY_GEM_SCENE.instantiate() as Node3D
+    if pickup == null:
+        return null
+    parent.add_child(pickup)
+    pickup.global_position = global_position + Vector3.UP * DEATH_KEY_LAUNCH_HEIGHT
+    var facing := get_facing_direction()
+    var yaw_degrees := rad_to_deg(atan2(facing.x, -facing.z))
+    if pickup.has_method("configure_wdl"):
+        pickup.call("configure_wdl", key_id, 0.0, yaw_degrees, DEATH_KEY_HORIZONTAL_SPEED_UNITS, DEATH_KEY_VERTICAL_SPEED_UNITS, self)
+    _last_death_key = pickup
+    return pickup
+
+
+func get_last_death_key() -> Node:
+    return _last_death_key
+
+
+## player.wdl RestartSammy: the ScanIdentite 1000 scan brings collected level
+## key gems back (gems.wdl GemWaitForNewStart), removes gems spawned during
+## play, and AttackCall = 0 stops the lions' call for help.
+func _restart_sammy_world() -> void:
+    if not is_inside_tree():
+        return
+    get_tree().call_group("key_diamond", "reset_for_player_restart", _current_key_id)
+    get_tree().call_group("enemy", "reset_attack_call")
 
 
 func _enter_game_over() -> void:

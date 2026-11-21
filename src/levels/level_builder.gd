@@ -8,6 +8,7 @@ class_name LevelBuilder
 
 const MapperScript := preload("res://src/levels/level_entity_mapper.gd")
 const PlatformMotorScript := preload("res://src/props/platform_motor.gd")
+const AcknexCoordsScript := preload("res://src/levels/acknex_coords.gd")
 const TEMPLATE_SCENE_PATH := "res://scenes/levels/level_world_template.tscn"
 const LEVEL_ASSET_ROOT := "res://assets/levels"
 const LEVEL_MANIFEST_PATH := "res://assets/levels/level_manifest.json"
@@ -20,6 +21,11 @@ const SKY_GROUP := "Sky"
 const PLAYER_START_NODE := "PlayerStart"
 const LEVEL_10_NUMBER := 10
 const LEVEL_10_STARTING_LIVES := 4
+## Converted platform WMBs span +-64 quants around their origin; the column
+## platforms (platfor2/3) top out at +16, the others at +32.
+const PLATFORM_HALF_FOOTPRINT := 64.0
+const PLATFORM_TOPS := {"platfor2.wmb": 16.0, "platfor3.wmb": 16.0}
+const PLATFORM_DEFAULT_TOP := 32.0
 
 
 static func entities_path(stem: String) -> String:
@@ -76,6 +82,7 @@ static func build(stem: String, level_number: int = 0) -> Dictionary:
 		root.free()
 		return {}
 	_configure_sun(root.get_node_or_null("Sun") as DirectionalLight3D, data.get("sun"))
+	_ground_entities_on_platforms(data.get("entities", []))
 	for entity: Variant in data.get("entities", []):
 		if entity is Dictionary:
 			_place_entity(root, entity as Dictionary, report)
@@ -159,6 +166,38 @@ static func _place_entity(root: Node3D, entity: Dictionary, report: Dictionary) 
 		_add_owned(root, group, destination)
 		node.set("destination_path", node.get_path_to(destination))
 	_count_mapped(report, kind)
+
+
+## WDL `Sonar` (InitLion, gem placement...) also lands on entities, so an
+## entity placed above an InitPlatForm rests on the platform top instead of the
+## level floor the converter traced underneath it.
+static func _ground_entities_on_platforms(entities: Array) -> void:
+	var platform_tops: Array[Vector3] = []
+	for entity: Variant in entities:
+		if entity is Dictionary and String((entity as Dictionary).get("action", "")) == "initplatform":
+			var position: Vector3 = AcknexCoordsScript.array_to_vector3((entity as Dictionary).get("position", []))
+			var file := String((entity as Dictionary).get("file", "")).to_lower()
+			platform_tops.append(Vector3(position.x, position.y, position.z + float(PLATFORM_TOPS.get(file, PLATFORM_DEFAULT_TOP))))
+	if platform_tops.is_empty():
+		return
+	for entity: Variant in entities:
+		if not (entity is Dictionary) or (entity as Dictionary).get("ground_z") == null:
+			continue
+		var record := entity as Dictionary
+		var action := String(record.get("action", ""))
+		if action == "initplatform" or action == "initengineplatform":
+			continue
+		var position: Vector3 = AcknexCoordsScript.array_to_vector3(record.get("position", []))
+		var ground := float(record.get("ground_z"))
+		for top in platform_tops:
+			if absf(position.x - top.x) > PLATFORM_HALF_FOOTPRINT or absf(position.y - top.y) > PLATFORM_HALF_FOOTPRINT:
+				continue
+			if top.z > ground and top.z <= position.z + 1.0:
+				ground = top.z
+		if ground != float(record.get("ground_z")):
+			record["ground_z"] = ground
+			record["godot_ground_y"] = ground * AcknexCoordsScript.SCALE
+			record["ground_on_platform"] = true
 
 
 ## mm1.wdl SetLinkMoteur: every InitPlatForm follows the InitEnginePlatForm

@@ -26,6 +26,7 @@ const WORLD_LAYER := 1
 const START_DELAY_TICKS := 2.0
 ## `While (My.flag5 == 0) {waitt 4;}` lock poll.
 const LOCK_POLL_TICKS := 4.0
+const BOOST_SPEED_MULTIPLIER := 3.0
 ## Keeps the swept point just outside the surface it stopped on.
 const CONTACT_SKIN := 0.001
 
@@ -188,8 +189,27 @@ func _sweep(from: Vector3, to: Vector3) -> Dictionary:
 	return get_world_3d().direct_space_state.intersect_ray(query)
 
 
-func _speed_multiplier(_delta: float) -> float:
+## mm1.wdl InitEnginePlatForm: Shift triples the speed while the player stands
+## on one of this motor's platforms (IdPlatform) and boost remains. The boost
+## is drained by the player's own boost handling, or here when it is idle.
+func _speed_multiplier(delta: float) -> float:
+	var rider := _standing_rider()
+	if rider == null:
+		return 1.0
+	if rider.has_method("is_boosting") and bool(rider.call("is_boosting")):
+		return BOOST_SPEED_MULTIPLIER
+	if rider.has_method("consume_platform_boost") and bool(rider.call("consume_platform_boost", delta)):
+		return BOOST_SPEED_MULTIPLIER
 	return 1.0
+
+
+func _standing_rider() -> Node:
+	for platform in _platforms:
+		if is_instance_valid(platform) and platform.has_method("get_standing_rider"):
+			var rider: Node = platform.call("get_standing_rider")
+			if rider != null:
+				return rider
+	return null
 
 
 func _drive_platforms() -> void:

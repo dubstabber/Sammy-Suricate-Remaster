@@ -170,6 +170,15 @@ func is_unlocked_here() -> bool:
     return _unlocked_here
 
 
+## The player standing on this platform (PlatForm_Hit sonar: on the ground, not jumping).
+func get_standing_rider() -> Node:
+    if _active_rider == null or not is_instance_valid(_active_rider):
+        return null
+    if _active_rider is CharacterBody3D and not (_active_rider as CharacterBody3D).is_on_floor():
+        return null
+    return _active_rider
+
+
 func get_base_speed() -> float:
     return absf(wdl_speed_units) * ACKNEX_TO_GODOT_SCALE * ACKNEX_TICKS_PER_SECOND
 
@@ -324,13 +333,12 @@ func _link_motor() -> void:
 ## mm1.wdl PlatForm_Hit: the player standing on a linked platform with the
 ## right key unlocks the motor; only this platform morphs to platfor1.wmb.
 func _check_motor_lock() -> void:
-    if _motor == null or not _motor.is_locked() or _active_rider == null:
+    if _motor == null or not _motor.is_locked():
         return
-    if _active_rider is CharacterBody3D and not (_active_rider as CharacterBody3D).is_on_floor():
+    var rider := get_standing_rider()
+    if rider == null or not rider.has_method("get_current_key_id"):
         return
-    if not _active_rider.has_method("get_current_key_id"):
-        return
-    var result := _motor.try_unlock(int(_active_rider.call("get_current_key_id")))
+    var result := _motor.try_unlock(int(rider.call("get_current_key_id")))
     if result != PlatformMotorScript.UnlockResult.UNLOCKED and result != PlatformMotorScript.UnlockResult.UNLOCKED_SILENT:
         return
     _unlocked_here = true

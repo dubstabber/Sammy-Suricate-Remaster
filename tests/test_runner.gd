@@ -4270,6 +4270,57 @@ func _test_platform_motor_system() -> void:
     _expect(not bool(keyed_motor.call("is_locked")), "Standing on the platform with a matching key should unlock its motor.")
     _expect(bool(keyed_platform.call("is_unlocked_here")) and String(keyed_platform.call("get_visual_source_path")).ends_with("platfor1.gltf"), "The unlocked platform should morph to platfor1.wmb.")
     _expect(keyed_platform.get_node_or_null("GemLight") != null, "Unlocking a platform should flash a GemLight.")
+
+    # Shift triples the motor speed while the player stands on one of its platforms.
+    var boost_motor := motor_script.new() as Node3D
+    boost_motor.name = "BoostMotor"
+    boost_motor.set("speed_units", 10.0)
+    boost_motor.set_physics_process(false)
+    shaft.add_child(boost_motor)
+    boost_motor.position = Vector3(0.0, 0.5, 20.0)
+    var boost_platform := platform_scene.instantiate() as AnimatableBody3D
+    boost_platform.set("source_wmb_name", "platfor1.wmb")
+    boost_platform.set("motor_path", NodePath("../BoostMotor"))
+    shaft.add_child(boost_platform)
+    boost_platform.position = Vector3(3.0, 0.5, 20.0)
+    var boost_rider_script := GDScript.new()
+    boost_rider_script.source_code = "extends Node3D\nvar boost_calls: int = 0\nvar boosting: bool = false\nfunc get_current_key_id() -> int:\n    return 0\nfunc is_boosting() -> bool:\n    return boosting\nfunc consume_platform_boost(_delta: float) -> bool:\n    boost_calls += 1\n    return true\n"
+    boost_rider_script.reload()
+    var boost_rider := Node3D.new()
+    boost_rider.set_script(boost_rider_script)
+    boost_rider.add_to_group("player")
+    shaft.add_child(boost_rider)
+    boost_motor.call("advance", start_delay)
+    boost_motor.call("advance", 0.25)
+    _expect(absf((boost_motor.call("get_last_displacement") as Vector3).length() - 0.4) < 0.001, "Without a rider the motor should keep its base speed.")
+    boost_platform.call("_on_activation_body_entered", boost_rider)
+    boost_motor.call("advance", 0.25)
+    _expect(absf((boost_motor.call("get_last_displacement") as Vector3).length() - 1.2) < 0.001, "A boosting rider should triple the motor speed (InitEnginePlatForm TempSpeed.X *= 3).")
+    _expect(int(boost_rider.get("boost_calls")) == 1, "An idle rider's platform boost should drain the boost bar.")
+    boost_rider.set("boosting", true)
+    boost_motor.call("advance", 0.25)
+    _expect(absf((boost_motor.call("get_last_displacement") as Vector3).length() - 1.2) < 0.001 and int(boost_rider.get("boost_calls")) == 1, "A rider already boosting should not be drained twice.")
+
+    var player_scene := load(PLAYER_SCENE_PATH) as PackedScene
+    var player_state := player_scene.get_state()
+    var leave_mode := CharacterBody3D.PLATFORM_ON_LEAVE_ADD_VELOCITY
+    for property_index in player_state.get_node_property_count(0):
+        if player_state.get_node_property_name(0, property_index) == &"platform_on_leave":
+            leave_mode = int(player_state.get_node_property_value(0, property_index))
+    _expect(leave_mode == CharacterBody3D.PLATFORM_ON_LEAVE_DO_NOTHING, "player.wdl decays PlayerForce 0.8 per frame, so leaving a platform should not keep its velocity.")
+
+    # WDL Sonar lands on platform entities: entities above a platform rest on its top.
+    var builder: GDScript = load(LEVEL_BUILDER_SCRIPT_PATH)
+    var resting_entities := [
+        {"action": "initplatform", "file": "platfor1.wmb", "position": [0.0, 0.0, 100.0]},
+        {"action": "initlion", "file": "rasta.mdl", "position": [10.0, -10.0, 200.0], "ground_z": 0.0, "godot_ground_y": 0.0},
+        {"action": "initlion", "file": "rasta.mdl", "position": [200.0, 0.0, 200.0], "ground_z": 0.0, "godot_ground_y": 0.0},
+        {"action": "initbonus3", "file": "gem.pcx", "position": [0.0, 0.0, 50.0], "ground_z": 0.0, "godot_ground_y": 0.0},
+    ]
+    builder.call("_ground_entities_on_platforms", resting_entities)
+    _expect(is_equal_approx(float(resting_entities[1]["ground_z"]), 132.0), "An entity above a platform should rest on its top (z + 32).")
+    _expect(is_zero_approx(float(resting_entities[2]["ground_z"])), "Entities outside the platform footprint keep the traced floor.")
+    _expect(is_zero_approx(float(resting_entities[3]["ground_z"])), "Entities below a platform top keep the traced floor.")
     shaft.queue_free()
     await process_frame
 

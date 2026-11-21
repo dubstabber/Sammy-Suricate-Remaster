@@ -7070,6 +7070,24 @@ func _test_level_entities_json() -> void:
     _expect(score_goal == 540, "10001 InitGame Skill7 (ScoreGoal) should decode as 540.")
     _expect(gem_points == score_goal, "10001 score gems (Skill2 points) should add up exactly to the decoded ScoreGoal.")
 
+    # mm1.wdl AddPoints only awards a life when Score crosses ExtraBalleN; every
+    # shipped InitExtraBalles/InitNExtraBalles leaves all thresholds at 0, so
+    # extra lives never fire in the original and are intentionally not ported.
+    var extra_ball_entities := 0
+    var nonzero_extra_ball_thresholds := 0
+    for stem in builder.call("converted_level_stems") as PackedStringArray:
+        var level_data: Dictionary = builder.call("load_level_data", stem)
+        for entity: Dictionary in level_data.get("entities", []):
+            var action := String(entity.get("action", ""))
+            if action != "initextraballes" and action != "initnextraballes":
+                continue
+            extra_ball_entities += 1
+            for skill: Variant in entity.get("skills", []):
+                if not is_zero_approx(float(skill)):
+                    nonzero_extra_ball_thresholds += 1
+    _expect(extra_ball_entities == 80, "Every converted level should carry one InitExtraBalles and one InitNExtraBalles.")
+    _expect(nonzero_extra_ball_thresholds == 0, "Shipped extra-ball thresholds should all be 0 (extra lives never trigger in the original).")
+
     # 178d_t grates are InitMDL Flag1 (WDL overlay): black texels must be keyed out.
     var grate_level := load("res://scenes/levels/generated/178d_t.tscn") as PackedScene
     _expect(grate_level != null, "Baked 178d_t level scene should load.")

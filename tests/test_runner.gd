@@ -154,6 +154,10 @@ func _run() -> void:
     await _test_player_real_push_integration()
     await _test_player_enemy_hit_push_integration()
     await _test_player_jump_forward_momentum()
+    await _test_player_wdl_level_jump()
+    await _test_player_wdl_slope_slide()
+    _test_level_wdl_physics_and_teleports()
+    _test_wdl_gem_and_heart_particles()
     await _test_player_death_lives_core()
     await _test_player_scene()
     await _test_small_heart_pickup(assets)
@@ -5299,6 +5303,157 @@ func _test_player_jump_forward_momentum() -> void:
     player.queue_free()
     floor.queue_free()
     await process_frame
+
+
+func _make_test_box(box_name: String, size: Vector3, position: Vector3, rotation_degrees := Vector3.ZERO) -> StaticBody3D:
+    var body := StaticBody3D.new()
+    body.name = box_name
+    body.collision_layer = WORLD_LAYER
+    body.collision_mask = CHARACTER_LAYER
+    var shape := CollisionShape3D.new()
+    var box := BoxShape3D.new()
+    box.size = size
+    shape.shape = box
+    body.add_child(shape)
+    body.position = position
+    body.rotation_degrees = rotation_degrees
+    root.add_child(body)
+    return body
+
+
+## Original InitGame3 30/4.5 jump: ~100-quant apex, so Sammy can no longer
+## clear the 128-quant Jump 1 fences or Jump 2 crates.
+func _test_player_wdl_level_jump() -> void:
+    var floor := _make_test_box("WdlJumpFloor", Vector3(10.0, 1.0, 10.0), Vector3(0.0, -0.5, 0.0))
+    var fence := _make_test_box("WdlJumpFence", Vector3(4.0, 1.28, 0.1), Vector3(0.0, 0.64, -1.4))
+    var player := (load(PLAYER_SCENE_PATH) as PackedScene).instantiate() as CharacterBody3D
+    player.call("apply_wdl_level_physics", {"jump_speed": 30.0, "jump_friction": 4.5, "fall_speed": -12.0, "fall_acceleration": 3.0})
+    root.add_child(player)
+    player.global_position = Vector3.ZERO
+    var config: Resource = player.get("movement_config")
+    _expect(is_equal_approx(float(config.get("jump_velocity")), 4.8), "WDL jump speed 30 quants/tick should become 4.8 m/s.")
+    _expect(is_equal_approx(float(config.get("gravity")), 11.52), "WDL jump friction 4.5 quants/tick^2 should become 11.52 m/s^2.")
+    _expect(is_equal_approx(float(config.get("fall_start_velocity")), -1.92) and is_equal_approx(float(config.get("fall_gravity")), 7.68), "InitGame3 Gravite/AccGravite should drive ledge falls.")
+    _expect(bool(config.get("jump_requires_center_floor")) and bool(config.get("slope_sliding_enabled")), "Level physics should enable the PlayerJump floor rule and handlePente.")
+    var default_player := (load(PLAYER_SCENE_PATH) as PackedScene).instantiate()
+    var shared_config: Resource = default_player.get("movement_config")
+    _expect(not is_equal_approx(float(shared_config.get("jump_velocity")), 4.8), "Level physics should not modify the shared player movement config.")
+    default_player.free()
+
+    for _settle_frame in 8:
+        await physics_frame
+    var max_height := 0.0
+    var min_z := 0.0
+    Input.action_press("move_forward")
+    for frame in 150:
+        if frame == 4 or frame == 60:
+            Input.action_press("jump")
+        elif frame == 5 or frame == 61:
+            Input.action_release("jump")
+        await physics_frame
+        max_height = maxf(max_height, player.global_position.y)
+        min_z = minf(min_z, player.global_position.z)
+    Input.action_release("move_forward")
+    _expect(max_height > 0.9 and max_height < 1.02, "The WDL jump apex should be about 100 quants (got %.3f m)." % max_height)
+    _expect(min_z > -1.4, "A 128-quant fence should stop Sammy's jump (reached z %.3f)." % min_z)
+
+    player.queue_free()
+    fence.queue_free()
+    floor.queue_free()
+    await process_frame
+
+
+## player.wdl handlePente: a 26-degree slope (normal.z 0.9 < SlopeAngleMin
+## 0.92) pushes an idle Sammy downhill and becomes a BigSlope.
+func _test_player_wdl_slope_slide() -> void:
+    var ramp := _make_test_box("WdlSlopeRamp", Vector3(6.0, 0.4, 16.0), Vector3(0.0, -0.2, 0.0), Vector3(rad_to_deg(acos(0.9)), 0.0, 0.0))
+    var player := (load(PLAYER_SCENE_PATH) as PackedScene).instantiate() as CharacterBody3D
+    player.call("apply_wdl_level_physics", {})
+    root.add_child(player)
+    player.global_position = Vector3(0.0, 0.3, 0.0)
+    for _frame in 6:
+        await physics_frame
+    var start := player.global_position
+    for _frame in 60:
+        await physics_frame
+    var slide := player.call("get_slope_slide_velocity") as Vector3
+    _expect(slide.z > 0.5 and absf(slide.x) < 0.01, "The slope slide should build up downhill (got %s)." % slide)
+    _expect(player.global_position.z > start.z + 0.5 and player.global_position.y < start.y, "Sammy should slide down the slope without input.")
+    _expect(bool(player.call("is_on_big_slope")), "A 26-degree slope should reach the original BigSlope speed within a second.")
+    player.queue_free()
+    ramp.queue_free()
+    await process_frame
+
+
+func _test_level_wdl_physics_and_teleports() -> void:
+    var jump1 := (load("res://scenes/levels/101o_j.tscn") as PackedScene).instantiate()
+    var jump1_physics: Dictionary = jump1.call("get_wdl_physics_settings")
+    _expect(is_equal_approx(float(jump1_physics["jump_speed"]), 30.0) and is_equal_approx(float(jump1_physics["jump_friction"]), 4.5), "Jump 1 should use its InitGame3 30/4.5 jump.")
+    _expect(is_equal_approx(float(jump1_physics["fall_speed"]), -12.0) and is_equal_approx(float(jump1_physics["slope_angle_min"]), 0.9), "Jump 1 should read InitGame3 fall and InitGame5 slope skills.")
+    var teleporters := jump1.get_node_or_null("Entities/Teleporters")
+    var pads := 0
+    if teleporters != null:
+        for child in teleporters.get_children():
+            if child.has_method("get_solid_height"):
+                pads += 1
+                _expect((child.get("visual_scale") as Vector3).is_equal_approx(Vector3.ONE), "Level teleports should keep the full 32-quant WMB pad (no z-fighting with the floor).")
+                _expect(is_equal_approx(float(child.call("get_solid_height")), 0.32), "Level teleport collision should match the 32-quant pad.")
+    _expect(pads == 3, "Jump 1 should place three teleport pads.")
+    jump1.free()
+
+    var jump12 := (load("res://scenes/levels/179f_t.tscn") as PackedScene).instantiate()
+    var jump12_physics: Dictionary = jump12.call("get_wdl_physics_settings")
+    _expect(is_equal_approx(float(jump12_physics["slope_angle_min"]), 0.98) and is_equal_approx(float(jump12_physics["slope_acceleration"]), 2.5), "Jump 12 should use its steep-slide InitGame5 slope skills.")
+    _expect(is_equal_approx(float(jump12_physics["slope_force"]), 150.0) and is_equal_approx(float(jump12_physics["big_slope"]), 3.0), "Jump 12 should use ForcePente 150 and BigSlope 3.")
+    _expect(is_equal_approx(float(jump12_physics["jump_speed"]), 30.0), "A later InitGame3 with zero skills should keep the earlier jump speed.")
+    var lion_pads := 0
+    for child in jump12.find_children("*_initteleport", "", true, false):
+        if String(child.get("model_asset_id")) == "model.teleport.lion":
+            lion_pads += 1
+    _expect(lion_pads > 0, "telelion.wmb teleports should use the converted lion teleport model.")
+    jump12.free()
+
+    var lowered_jump := (load("res://scenes/levels/109o_t.tscn") as PackedScene).instantiate()
+    _expect(is_equal_approx(float((lowered_jump.call("get_wdl_physics_settings") as Dictionary)["jump_speed"]), 20.0), "109o_t's second InitGame3 should lower the jump speed to 20 (entity order).")
+    lowered_jump.free()
+
+
+func _test_wdl_gem_and_heart_particles() -> void:
+    var effect := GemParticleEffect.new()
+    root.add_child(effect)
+    effect.emit_collect_burst(1, Vector3.ZERO)
+    _expect(effect.get_live_particle_count() == 5, "GemCatch should emit its first wave of 5 stars.")
+    effect.call("_process", 2.5 / 16.0)
+    _expect(effect.get_live_particle_count() == 15, "GemCatch should emit 10 more stars after 2 ticks.")
+    effect.call("_process", 4.0 / 16.0)
+    _expect(effect.get_live_particle_count() == 25, "GemCatch should emit its last 10 stars after 4 more ticks.")
+    var highest := -INF
+    for child in effect.get_children():
+        highest = maxf(highest, (child as Node3D).position.y)
+    _expect(highest > 0.3, "GemCatch stars should fountain upward at the original speed (highest %.3f m)." % highest)
+    effect.free()
+
+    var explosion := GemParticleEffect.new()
+    root.add_child(explosion)
+    explosion.emit_explosion(1, Vector3.ZERO)
+    _expect(explosion.get_live_particle_count() == 21, "GemExplose should emit averageFps * 0.3 = 21 fragments.")
+    var fragment := explosion.get_child(0) as Sprite3D
+    if fragment != null and fragment.texture != null:
+        var fragment_size := fragment.pixel_size * float(maxi(fragment.texture.get_width(), fragment.texture.get_height()))
+        _expect(fragment_size > 0.19 and fragment_size < 0.23, "GemExplose fragments should be 2000-2200 WDL size (0.2 m), got %.3f." % fragment_size)
+        _expect(fragment.material_override is StandardMaterial3D and (fragment.material_override as StandardMaterial3D).blend_mode == BaseMaterial3D.BLEND_MODE_ADD, "Gem fragments should be additive My_Flare sprites.")
+    explosion.free()
+
+    var heart := (load(SMALL_HEART_PICKUP_SCENE_PATH) as PackedScene).instantiate()
+    root.add_child(heart)
+    heart.call("_emit_heart_burst")
+    heart.call("_update_particles", 4.0 / 16.0)
+    var farthest := 0.0
+    for child in heart.get_children():
+        if child.name.begins_with("SmallHeartParticle"):
+            farthest = maxf(farthest, (child as Node3D).position.length())
+    _expect(farthest > 0.35 and farthest < 0.45, "particle_SmallHeart should spread at 10 quants/tick (got %.3f m after 4 ticks)." % farthest)
+    heart.free()
 
 
 func _make_ai_test_player() -> Node3D:

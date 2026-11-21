@@ -25,6 +25,18 @@ const PLAYER_DEATH_STEP_SPEED := 3.0
 const ACKNEX_TO_GODOT_SCALE := 0.01
 const PLAYER_BOUNCE_TICKS_PER_SECOND := ACKNEX_TIME_UNITS_PER_SECOND * 1.5
 const CHARACTER_COLLISION_MASK := 1 << 1
+const WORLD_COLLISION_MASK := 1
+const CENTER_FLOOR_RAY_START_HEIGHT := 0.2
+# handlePente: the slope sonar counts when the floor is within 32 quants of the feet.
+const SLOPE_FLOOR_MAX_DISTANCE := 0.32
+const SLOPE_STOP_SPEED := 0.05
+const SLOPE_DOWNHILL_TURN_RATE := 0.05
+# Acknex A5 fps_max defaults to 70 (sammypolish.exe variable table), so
+# per-frame WDL increments run 70/16 times per tick.
+const ORIGINAL_FRAMES_PER_TICK := 70.0 / 16.0
+const SLOPE_STATE_NONE := 0
+const SLOPE_STATE_MEDIUM := 1
+const SLOPE_STATE_BIG := 2
 const TELEPORT_PHASE_PRE_FADE := 0
 const TELEPORT_PHASE_FADE_OUT := 1
 const TELEPORT_PHASE_FADE_IN := 2
@@ -105,6 +117,8 @@ var _dead: bool = false
 var _game_over: bool = false
 var _death_timer: float = 0.0
 var _respawn_transform: Transform3D
+var _slope_velocity := Vector2.ZERO
+var _slope_state := SLOPE_STATE_NONE
 var _has_respawn_transform: bool = false
 var _current_key_id: int = KEY_DIAMOND_RULES_SCRIPT.KEY_NONE
 var _current_key_is_infinite := false
@@ -306,6 +320,7 @@ func apply_enemy_push(source_velocity: Vector3, source_bounce_force: float = 1.0
     if _dead or _game_over or _death_pad_respawning or _exit_pad_victory_active:
         return
 
+    _slope_velocity = Vector2.ZERO
     var horizontal_source := source_velocity
     horizontal_source.y = 0.0
     var push_direction := _resolve_enemy_push_direction(horizontal_source, _source)
@@ -449,11 +464,15 @@ func _physics_process(delta: float) -> void:
         turn_input = 0.0
 
     _update_boost_state(delta, forward_input)
+    _update_slope_slide(delta)
     if not movement_locked:
-        _apply_turn(delta, forward_input, turn_input)
+        _apply_turn(delta, forward_input, turn_input * _slope_turn_multiplier())
+        _apply_slope_downhill_turn(delta)
 
     var jump_air_control_active := _is_jump_air_control_active()
     var target_velocity: Vector3 = _make_horizontal_target_velocity(forward_input, _boosting, jump_air_control_active)
+    if not jump_air_control_active:
+        target_velocity = _apply_slope_walk_modifiers(target_velocity, turn_input)
     var rate: float = movement_config.acceleration if absf(forward_input) > 0.0 or jump_air_control_active else movement_config.deceleration
     _input_horizontal_velocity = _input_horizontal_velocity.move_toward(target_velocity, rate * delta)
 
@@ -467,8 +486,14 @@ func _physics_process(delta: float) -> void:
             jumped = _begin_jump(forward_input, _boosting, delta)
             if jumped:
                 horizontal_velocity = _input_horizontal_velocity
+                # player.wdl decelerates BlobVspeed before the first move.
+                velocity.y -= movement_config.gravity * delta
     else:
-        velocity.y -= movement_config.gravity * delta
+        _apply_airborne_gravity(delta, was_on_floor)
+    if not _slope_velocity.is_zero_approx():
+        var slide_velocity := get_slope_slide_velocity()
+        velocity.x += slide_velocity.x
+        velocity.z += slide_velocity.z
 
     var pre_move_transform := global_transform
     var horizontal_motion := Vector3(horizontal_velocity.x, 0.0, horizontal_velocity.z) * delta
@@ -833,12 +858,14 @@ func _clear_action_state_for_victory() -> void:
     _landing_movement_lock_remaining = 0.0
     _enemy_push_velocity = Vector3.ZERO
     _input_horizontal_velocity = Vector3.ZERO
+    _slope_velocity = Vector2.ZERO
     velocity = Vector3.ZERO
 
 
 func _clear_motion_for_teleport() -> void:
     velocity = Vector3.ZERO
     _input_horizontal_velocity = Vector3.ZERO
+    _slope_velocity = Vector2.ZERO
     _enemy_push_velocity = Vector3.ZERO
     _boosting = false
     _quick_turn_active = false
@@ -889,6 +916,7 @@ func _move_to_death_pad_respawn() -> void:
     _health = maxf(max_health, 0.0)
     velocity = Vector3.ZERO
     _input_horizontal_velocity = Vector3.ZERO
+    _slope_velocity = Vector2.ZERO
     _enemy_push_velocity = Vector3.ZERO
     _reset_follow_cameras_after_teleport()
     _play_animation_action(&"stand", 1.0, false, true, 0.0)
@@ -1083,6 +1111,138 @@ func _process_quick_turn(delta: float, was_on_floor: bool) -> void:
     _update_model_animation(0.0, 0.0, false, was_on_floor, is_on_floor(), _input_horizontal_velocity.length())
 
 
+## Level worlds pass the original per-level physics (WDL units: jump speed and
+## deceleration from InitGame3 S1/S2, ledge fall start/acceleration S5/S6,
+## InitGame5/6 slope parameters). One tick = 1/16 s, one quant = 0.01 m.
+func apply_wdl_level_physics(settings: Dictionary) -> void:
+    var config: Resource = movement_config.duplicate()
+    var speed_scale := ACKNEX_TO_GODOT_SCALE * ACKNEX_TIME_UNITS_PER_SECOND
+    var acceleration_scale := speed_scale * ACKNEX_TIME_UNITS_PER_SECOND
+    config.set("jump_velocity", float(settings.get("jump_speed", 30.0)) * speed_scale)
+    config.set("gravity", float(settings.get("jump_friction", 3.0)) * acceleration_scale)
+    config.set("fall_start_velocity", float(settings.get("fall_speed", -2.0)) * speed_scale)
+    config.set("fall_gravity", float(settings.get("fall_acceleration", 1.5)) * acceleration_scale)
+    config.set("slope_sliding_enabled", true)
+    config.set("slope_normal_max_y", float(settings.get("slope_angle_min", 0.92)))
+    config.set("slope_acceleration", float(settings.get("slope_acceleration", 1.5)))
+    config.set("slope_force", float(settings.get("slope_force", 100.0)))
+    config.set("slope_end_damping", float(settings.get("slope_end_damping", 0.3)))
+    config.set("slope_big", float(settings.get("big_slope", 10.0)))
+    config.set("slope_medium", float(settings.get("medium_slope", 2.0)))
+    config.set("jump_requires_center_floor", true)
+    movement_config = config
+    _slope_velocity = Vector2.ZERO
+
+
+## Current handlePente slide (m/s, horizontal).
+func get_slope_slide_velocity() -> Vector3:
+    var scale := ACKNEX_TO_GODOT_SCALE * ACKNEX_TIME_UNITS_PER_SECOND
+    return Vector3(_slope_velocity.x * scale, 0.0, _slope_velocity.y * scale)
+
+
+func is_on_big_slope() -> bool:
+    return _slope_state == SLOPE_STATE_BIG
+
+
+## player.wdl: walking off a ledge starts the fall at Gravite and accelerates
+## by AccGravite; a jump keeps decelerating by its own friction until landing.
+func _apply_airborne_gravity(delta: float, was_on_floor: bool) -> void:
+    if _jump_fire_blocked:
+        velocity.y -= movement_config.gravity * delta
+        return
+    var fall_start := float(movement_config.fall_start_velocity)
+    if was_on_floor and fall_start < 0.0 and velocity.y > fall_start:
+        velocity.y = fall_start
+    var fall_gravity := float(movement_config.fall_gravity)
+    velocity.y -= (fall_gravity if fall_gravity > 0.0 else movement_config.gravity) * delta
+
+
+func _center_floor_hit(max_distance_below_feet: float) -> Dictionary:
+    var world := get_world_3d()
+    if world == null:
+        return {}
+    var query := PhysicsRayQueryParameters3D.create(
+            global_position + Vector3.UP * CENTER_FLOOR_RAY_START_HEIGHT,
+            global_position + Vector3.DOWN * maxf(max_distance_below_feet, 0.0),
+            WORLD_COLLISION_MASK
+    )
+    query.exclude = [get_rid()]
+    return world.direct_space_state.intersect_ray(query)
+
+
+## player.wdl handlePente: on a floor whose normal is steeper than
+## SlopeAngleMin (within 32 quants under the feet) the slide builds up by
+## Accpente * (1 - normal.z) per frame (not scaled by time; the engine runs at
+## its fps_max default of 70) towards normal.xy * ForcePente; off the slope it
+## decays with `accel` AmortiPenteEnd friction.
+func _update_slope_slide(delta: float) -> void:
+    _slope_state = SLOPE_STATE_NONE
+    if not bool(movement_config.slope_sliding_enabled):
+        _slope_velocity = Vector2.ZERO
+        return
+    var ticks := maxf(delta, 0.0) * ACKNEX_TIME_UNITS_PER_SECOND
+    var hit := _center_floor_hit(SLOPE_FLOOR_MAX_DISTANCE)
+    var normal: Vector3 = hit.get("normal", Vector3.UP)
+    if not hit.is_empty() and normal.y > 0.0 and normal.y <= float(movement_config.slope_normal_max_y):
+        var force := Vector2(normal.x, normal.z) * float(movement_config.slope_force)
+        var gain := float(movement_config.slope_acceleration) * (1.0 - normal.y) * ticks * ORIGINAL_FRAMES_PER_TICK
+        _slope_velocity.x = _step_slope_axis(_slope_velocity.x, force.x, gain)
+        _slope_velocity.y = _step_slope_axis(_slope_velocity.y, force.y, gain)
+    else:
+        _slope_velocity *= exp(-maxf(float(movement_config.slope_end_damping), 0.0) * ticks)
+        if _slope_velocity.length() < SLOPE_STOP_SPEED:
+            _slope_velocity = Vector2.ZERO
+    var big := float(movement_config.slope_big)
+    var medium := float(movement_config.slope_medium)
+    if absf(_slope_velocity.x) > big or absf(_slope_velocity.y) > big:
+        _slope_state = SLOPE_STATE_BIG
+    elif absf(_slope_velocity.x) > medium or absf(_slope_velocity.y) > medium:
+        _slope_state = SLOPE_STATE_MEDIUM
+
+
+func _step_slope_axis(current: float, force: float, gain: float) -> float:
+    var next := current + gain * signf(force)
+    return force if absf(next) > absf(force) else next
+
+
+## PlayerJump: no jump from a big slope unless facing within 45 degrees of downhill.
+func _can_jump_on_slope() -> bool:
+    if _slope_state != SLOPE_STATE_BIG or _slope_velocity.is_zero_approx():
+        return true
+    var downhill := Vector3(_slope_velocity.x, 0.0, _slope_velocity.y).normalized()
+    return get_facing_direction().dot(downhill) >= cos(deg_to_rad(45.0))
+
+
+func _slope_turn_multiplier() -> float:
+    match _slope_state:
+        SLOPE_STATE_BIG:
+            return 0.0
+        SLOPE_STATE_MEDIUM:
+            return 0.25
+    return 1.0
+
+
+## BigSlope: forward speed x0.75 and turning becomes strafing; MediumSlope:
+## speed x0.9 with half-speed strafing.
+func _apply_slope_walk_modifiers(target_velocity: Vector3, turn_input: float) -> Vector3:
+    if _slope_state == SLOPE_STATE_NONE:
+        return target_velocity
+    var forward_scale := 0.75 if _slope_state == SLOPE_STATE_BIG else 0.9
+    var strafe_scale := 0.75 if _slope_state == SLOPE_STATE_BIG else 0.5
+    var right := get_facing_direction().cross(Vector3.UP)
+    return target_velocity * forward_scale + right * turn_input * movement_config.walk_speed * strafe_scale
+
+
+## BigSlope: Sammy turns to face downhill (SpeedRotationPente 0.05 per tick).
+func _apply_slope_downhill_turn(delta: float) -> void:
+    if _slope_state != SLOPE_STATE_BIG or _slope_velocity.is_zero_approx():
+        return
+    var downhill := Vector3(_slope_velocity.x, 0.0, _slope_velocity.y).normalized()
+    var target_yaw := atan2(-downhill.x, -downhill.z)
+    var blend := 1.0 - pow(1.0 - SLOPE_DOWNHILL_TURN_RATE, maxf(delta, 0.0) * ACKNEX_TIME_UNITS_PER_SECOND)
+    rotation.y += wrapf(target_yaw - rotation.y, -PI, PI) * blend
+
+
 func _set_horizontal_velocity(horizontal_velocity: Vector3) -> void:
     velocity.x = horizontal_velocity.x
     velocity.z = horizontal_velocity.z
@@ -1090,6 +1250,10 @@ func _set_horizontal_velocity(horizontal_velocity: Vector3) -> void:
 
 func _begin_jump(forward_input: float, boosting: bool, delta: float) -> bool:
     if not is_on_floor():
+        return false
+    if bool(movement_config.jump_requires_center_floor) and _center_floor_hit(float(movement_config.jump_center_floor_max_distance)).is_empty():
+        return false
+    if not _can_jump_on_slope():
         return false
     velocity.y = movement_config.jump_velocity
     _jump_fire_blocked = true
@@ -1527,6 +1691,7 @@ func _respawn_after_death() -> void:
     velocity = Vector3.ZERO
     _enemy_push_velocity = Vector3.ZERO
     _input_horizontal_velocity = Vector3.ZERO
+    _slope_velocity = Vector2.ZERO
     _death_timer = 0.0
     _dead = false
     _game_over = false

@@ -9,6 +9,27 @@ const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
 const WDL_FLAG1_MASK := 1
 const ACKNEX_TICKS_PER_SECOND := 16.0
 const LOSE_TITLE_ASSET_ID := "model.lose.title"
+const CONFIG_NODE_NAME := "Config"
+## InitLvl.wdl defaults (WDL units: quants, ticks) before the level's
+## InitGame3/5/6 entities override them.
+const WDL_PHYSICS_DEFAULTS := {
+	"jump_speed": 30.0,
+	"jump_friction": 3.0,
+	"fall_speed": -2.0,
+	"fall_acceleration": 1.5,
+	"slope_angle_min": 0.92,
+	"slope_acceleration": 1.5,
+	"slope_force": 100.0,
+	"slope_end_damping": 0.3,
+	"big_slope": 10.0,
+	"medium_slope": 2.0,
+}
+## mm1.wdl: each Init action copies only its non-zero skills, in entity order.
+const WDL_PHYSICS_SKILLS := {
+	"initgame3": {1: "jump_speed", 2: "jump_friction", 5: "fall_speed", 6: "fall_acceleration"},
+	"initgame5": {4: "slope_angle_min", 5: "slope_acceleration", 6: "slope_force", 7: "slope_end_damping", 8: "big_slope"},
+	"initgame6": {1: "medium_slope"},
+}
 
 @export var level_stem: String = ""
 @export var level_number: int = 0
@@ -84,6 +105,21 @@ func get_player_start() -> Node3D:
 	return get_node_or_null(player_start_path) as Node3D
 
 
+## Player physics after the level's InitGame3/5/6 overrides (WDL units).
+func get_wdl_physics_settings() -> Dictionary:
+	var settings := WDL_PHYSICS_DEFAULTS.duplicate()
+	var config := get_node_or_null(CONFIG_NODE_NAME)
+	if config == null:
+		return settings
+	for marker in config.get_children():
+		var mapping: Dictionary = WDL_PHYSICS_SKILLS.get(String(marker.get("action")), {})
+		for skill_number: int in mapping:
+			var value := float(marker.call("get_skill", skill_number))
+			if value != 0.0:
+				settings[mapping[skill_number]] = value
+	return settings
+
+
 func is_level_lost() -> bool:
 	return _level_lost
 
@@ -119,6 +155,8 @@ func _spawn_player() -> void:
 	spawned.name = String(player_path)
 	if level_starting_lives > 0:
 		spawned.set("starting_lives", level_starting_lives)
+	if spawned.has_method("apply_wdl_level_physics"):
+		spawned.call("apply_wdl_level_physics", get_wdl_physics_settings())
 	var start := get_player_start()
 	if start != null:
 		spawned.transform = start.transform

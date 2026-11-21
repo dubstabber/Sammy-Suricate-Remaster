@@ -133,6 +133,7 @@ func _run() -> void:
     await _test_enemy_attack_hit_sfx()
     await _test_enemy_visibility_range(game)
     await _test_enemy_ignores_dead_player()
+    await _test_enemy_chase_contact_attack()
     await _test_enemy_blocked_roar()
     await _test_enemy_random_run_trigger()
     await _test_enemy_friend_call_key_distinguishes_families()
@@ -4377,15 +4378,24 @@ func _test_enemy_ai_behavior() -> void:
     _expect(int(enemy.call("get_state")) == STATE_CHASE, "AI enemy should enter CHASE when player crosses react_range with line of sight.")
     _expect(enemy.has_method("get_animation_speed_units_for_horizontal_speed"), "Enemy should expose WDL animation speed conversion for validation.")
     _expect(enemy.has_method("get_chase_animation_action"), "Enemy should expose chase animation action selection for validation.")
+    _expect(enemy.has_method("get_chase_movement_speed"), "Enemy should expose inspector-driven chase movement speed for validation.")
     _expect(enemy.has_method("get_chase_animation_speed_scale"), "Enemy should expose chase animation speed scale for validation.")
+    _expect(enemy.has_method("get_attack_movement_speed"), "Enemy should expose inspector-driven attack movement speed for validation.")
+    _expect(enemy.has_method("get_attack_range"), "Enemy should expose runtime attack range for post-hit range validation.")
+    _expect(enemy.has_method("get_attack_trigger_range"), "Enemy should expose the contact-capped melee trigger range for validation.")
     _expect(enemy.has_method("get_attack_push_source_velocity"), "Enemy should expose original-style attack push source velocity for validation.")
     _expect(enemy.has_method("get_contact_damage_amount"), "Enemy should expose original LionEtat 2 contact damage for validation.")
     _expect(enemy.has_method("get_attack_damage_amount"), "Enemy should expose original LionEtat 10 attack damage for validation.")
     _expect(enemy.has_method("get_attack_hit_push_source_velocity"), "Enemy should expose the hit-only push source velocity for parity validation.")
-    if enemy.has_method("get_animation_speed_units_for_horizontal_speed") and enemy.has_method("get_chase_animation_action") and enemy.has_method("get_chase_animation_speed_scale") and enemy.has_method("get_attack_push_source_velocity") and enemy.has_method("get_attack_hit_push_source_velocity"):
+    _expect(enemy.has_method("get_hit_animation_speed_scale"), "Enemy should expose original LionEtat 11 hit animation speed for validation.")
+    _expect(enemy.has_method("get_hit_animation_blend_seconds"), "Enemy should expose LionEtat 11 hit blend timing for validation.")
+    if enemy.has_method("get_animation_speed_units_for_horizontal_speed") and enemy.has_method("get_chase_animation_action") and enemy.has_method("get_chase_movement_speed") and enemy.has_method("get_chase_animation_speed_scale") and enemy.has_method("get_attack_movement_speed") and enemy.has_method("get_attack_range") and enemy.has_method("get_attack_trigger_range") and enemy.has_method("get_hit_animation_speed_scale") and enemy.has_method("get_hit_animation_blend_seconds") and enemy.has_method("get_attack_push_source_velocity") and enemy.has_method("get_attack_hit_push_source_velocity"):
         _expect(is_equal_approx(float(enemy.call("get_animation_speed_units_for_horizontal_speed", float(enemy.get("move_speed")))), 7.5), "Default enemy walk speed should convert back to original SpeedEnnemy units.")
         _expect(String(enemy.call("get_chase_animation_action")) == "run", "Chase should keep the original running cycle even for slow prototype enemies.")
+        _expect(is_equal_approx(float(enemy.call("get_chase_movement_speed")), float(enemy.get("run_speed"))), "Default chase movement should use the same uncapped SpeedEnnemy term as the run cycle.")
         _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 11.25), "Default chase run cycle should scale by converted SpeedEnnemy units.")
+        _expect(is_equal_approx(float(enemy.call("get_attack_trigger_range", player_stub)), 0.74), "Melee should trigger from character-body contact, not the wider configured LionAttackRange.")
+        _expect(is_equal_approx(float(enemy.call("get_hit_animation_blend_seconds")), 0.0), "LionEtat 11 hit should not blend through the previous run/walk frame.")
         _expect(is_equal_approx((enemy.call("get_attack_push_source_velocity") as Vector3).length(), float(enemy.get("run_speed")) * float(enemy.get("attack_push_speed_multiplier"))), "Attack push source speed should mirror LionEtat 10 SpeedEnnemy * 1.5.")
         _expect(is_equal_approx((enemy.call("get_contact_push_source_velocity") as Vector3).length(), float(enemy.get("run_speed"))), "LionEtat 2 contact push should use the enemy run speed.")
         _expect(is_equal_approx((enemy.call("get_attack_hit_push_source_velocity") as Vector3).length(), float(enemy.get("run_speed")) * float(enemy.get("attack_push_speed_multiplier"))), "LionEtat 10 hit push should use SpeedEnnemy * 1.5.")
@@ -4393,10 +4403,17 @@ func _test_enemy_ai_behavior() -> void:
         _expect(is_equal_approx(float(enemy.call("get_attack_damage_amount")), 10.0), "LionEtat 10 attack damage should be EnnemyResistance * HargneEnnemy.")
         enemy.set("run_speed", 0.64)
         _expect(String(enemy.call("get_chase_animation_action")) == "run", "Slow chase tuning should still play the running cycle.")
+        _expect(is_equal_approx(float(enemy.call("get_chase_movement_speed")), 0.64), "Slow chase movement should keep matching the uncapped run cycle speed.")
         _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 4.0), "Slow chase tuning should slow the run cycle with movement speed.")
         enemy.set("run_speed", 3.2)
         _expect(String(enemy.call("get_chase_animation_action")) == "run", "Fast chase should keep the original run cycle.")
-        _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 20.0), "Fast chase run cycle should scale by SpeedEnnemy * LionAccelattack units.")
+        _expect(is_equal_approx(float(enemy.call("get_chase_movement_speed")), 3.2), "Fast chase movement should respect the inspector run_speed value.")
+        _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 20.0), "Fast chase run cycle should scale by the inspector run_speed value.")
+        enemy.set("run_speed", 6.0)
+        _expect(is_equal_approx(float(enemy.call("get_chase_movement_speed")), 6.0), "Prototype-speed chase movement should respect the inspector run_speed value.")
+        _expect(is_equal_approx(float(enemy.call("get_attack_movement_speed")), 9.0), "Prototype-speed attack lunge should scale from the inspector run_speed value.")
+        _expect(is_equal_approx((enemy.call("get_attack_push_source_velocity") as Vector3).length(), 9.0), "Attack shove source should preserve the original uncapped SpeedEnnemy * 1.5 force term.")
+        _expect(is_equal_approx(float(enemy.call("get_chase_animation_speed_scale")), 37.5), "Prototype-speed chase animation should remain relative to the inspector run_speed value.")
         enemy.set("run_speed", 1.8)
     var enemy_animation_controller := enemy.get_node_or_null("ModelAnimationController")
     var enemy_animation_player: AnimationPlayer = null
@@ -4412,6 +4429,13 @@ func _test_enemy_ai_behavior() -> void:
     _expect(enemy.global_position.distance_to(pre_position) > 0.05, "AI enemy should advance toward the player while in CHASE.")
     _expect(enemy.global_position.z < pre_position.z, "AI enemy should move toward the player along -Z.")
 
+    player_stub.global_position = enemy.global_position + Vector3(0.0, 0.0, -1.0)
+    var visible_gap_damage_calls := int(player_stub.get("damage_calls"))
+    await physics_frame
+    await physics_frame
+    _expect(int(enemy.call("get_state")) == STATE_CHASE, "AI enemy should keep chasing at a visible gap instead of swinging from the wider configured attack_range.")
+    _expect(int(player_stub.get("damage_calls")) == visible_gap_damage_calls, "AI enemy should not apply melee damage before character bodies reach contact distance.")
+
     player_stub.global_position = enemy.global_position + Vector3(0.0, 0.0, -0.6)
     await physics_frame
     await physics_frame
@@ -4420,6 +4444,11 @@ func _test_enemy_ai_behavior() -> void:
     if post_close_state == STATE_ATTACK_SWING:
         var attack_lunge_start := enemy.global_position
         var player_push_start := player_stub.global_position
+        if enemy_animation_player != null:
+            enemy.call("_enter_state", STATE_ATTACK_SWING)
+            enemy_animation_player.seek(0.05, true)
+            enemy.call("_on_animation_finished", StringName("actions/attack"))
+            _expect(int(enemy.call("get_state")) == STATE_ATTACK_SWING, "Stale attack-finished signals should not end a freshly restarted attack swing.")
         var attack_lunge_frames := 0
         while attack_lunge_frames < 6 and int(enemy.call("get_state")) == STATE_ATTACK_SWING:
             await physics_frame
@@ -4464,6 +4493,17 @@ func _test_enemy_ai_behavior() -> void:
     enemy.call("take_damage", 2, null)
     _expect(int(enemy.call("get_state")) == STATE_HIT_RECOIL, "Surviving damage should put the enemy in HIT_RECOIL.")
     _expect(is_equal_approx(float(enemy.call("get_health")), 3.0), "Surviving damage should reduce resistance by amount taken.")
+    if enemy_animation_controller != null:
+        _expect(String(enemy_animation_controller.call("get_current_action")) == "hit", "Surviving wasp-style damage should play the original hit animation.")
+    if enemy_animation_player != null:
+        _expect(is_equal_approx(enemy_animation_player.speed_scale, 0.9), "LionEtat 11 hit speed should scale relative to the generated LionAnimSpeedHit clip.")
+        enemy_animation_player.seek(0.2, true)
+        var hit_position_before_repeat := enemy_animation_player.current_animation_position
+        enemy.call("take_damage", 0.1, null)
+        _expect(int(enemy.call("get_state")) == STATE_HIT_RECOIL, "Repeated damage during LionEtat 11 should keep the enemy in HIT_RECOIL.")
+        _expect(enemy_animation_player.current_animation_position >= hit_position_before_repeat - 0.001, "Repeated damage during LionEtat 11 should not restart the hit animation.")
+    enemy.call("_on_animation_finished", StringName("actions/attack"))
+    _expect(int(enemy.call("get_state")) == STATE_HIT_RECOIL, "Interrupted attack finish signals should not prematurely end LionEtat 11.")
     enemy.call("_on_animation_finished", StringName("actions/hit"))
     _expect(int(enemy.call("get_state")) == STATE_ROAR, "Enemies below 75% resistance with flag7 behavior should roar after hit recoil.")
 
@@ -4480,6 +4520,97 @@ func _test_enemy_ai_behavior() -> void:
 
     if is_instance_valid(enemy):
         enemy.queue_free()
+
+    var shot_aggro_enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    shot_aggro_enemy.set("affected_by_gravity", false)
+    shot_aggro_enemy.set("max_health", 10.0)
+    shot_aggro_enemy.set("enemy_resistance", 10.0)
+    shot_aggro_enemy.set("react_range", 3.0)
+    shot_aggro_enemy.set("run_speed", 1.8)
+    shot_aggro_enemy.set("roar_calls_friends", false)
+    shot_aggro_enemy.set("attack_call_range", 0.0)
+    shot_aggro_enemy.set("wait_min", 999.0)
+    shot_aggro_enemy.set("wait_max", 999.0)
+    root.add_child(shot_aggro_enemy)
+    shot_aggro_enemy.global_position = Vector3.ZERO
+    player_stub.global_position = Vector3(0.0, 0.0, -5.0)
+    await physics_frame
+    _expect(int(shot_aggro_enemy.call("get_state")) == STATE_WAIT, "Shot aggro setup should keep the player outside passive react_range.")
+    _expect(is_equal_approx(float(shot_aggro_enemy.call("get_chase_disengage_range")), 4.2), "Shot aggro setup should start outside the normal disengage range.")
+    shot_aggro_enemy.call("take_damage", 1.0, null)
+    _expect(int(shot_aggro_enemy.call("get_state")) == STATE_HIT_RECOIL, "Wasp-style damage below the 95% threshold should start LionEtat 11.")
+    shot_aggro_enemy.call("_on_animation_finished", StringName("actions/hit"))
+    _expect(int(shot_aggro_enemy.call("get_state")) == STATE_CHASE, "After LionEtat 11, a healthy shot enemy should enter the original run-on-player state.")
+    _expect(is_equal_approx(float(shot_aggro_enemy.call("get_chase_disengage_range")), 6.3), "LionEtat 11 completion should expand react/disengage range like the original scripts.")
+    var shot_aggro_controller := shot_aggro_enemy.get_node_or_null("ModelAnimationController")
+    var shot_aggro_animation_player := shot_aggro_controller.get("animation_player") as AnimationPlayer if shot_aggro_controller != null else null
+    if shot_aggro_animation_player != null:
+        _expect(is_equal_approx(shot_aggro_animation_player.speed_scale, 11.25), "Shot-induced chase should keep run animation speed relative to inspector run_speed.")
+    if shot_aggro_enemy.has_method("get_chase_movement_speed"):
+        _expect(is_equal_approx(float(shot_aggro_enemy.call("get_chase_movement_speed")), 1.8), "Shot-induced chase movement should respect inspector run_speed.")
+    await physics_frame
+    _expect(int(shot_aggro_enemy.call("get_state")) == STATE_CHASE, "Shot aggro should survive the next AI tick when the player is inside the post-hit disengage range.")
+    var shot_aggro_horizontal_speed := Vector2(shot_aggro_enemy.velocity.x, shot_aggro_enemy.velocity.z).length()
+    _expect(shot_aggro_horizontal_speed > 0.1 and shot_aggro_horizontal_speed <= 1.81, "Shot-induced chase should move with inspector run_speed instead of stalling on run animation.")
+    shot_aggro_enemy.queue_free()
+
+    var near_range_enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    near_range_enemy.set("affected_by_gravity", false)
+    near_range_enemy.set("max_health", 10.0)
+    near_range_enemy.set("enemy_resistance", 10.0)
+    near_range_enemy.set("react_range", 5.0)
+    near_range_enemy.set("attack_range", 1.2)
+    near_range_enemy.set("turn_rate_deg_per_sec", 0.0)
+    near_range_enemy.set("roar_calls_friends", false)
+    near_range_enemy.set("attack_call_range", 0.0)
+    near_range_enemy.set("wait_min", 999.0)
+    near_range_enemy.set("wait_max", 999.0)
+    root.add_child(near_range_enemy)
+    near_range_enemy.global_position = Vector3.ZERO
+    player_stub.global_position = Vector3(2.0, 0.0, -0.2)
+    await physics_frame
+    near_range_enemy.call("take_damage", 1.0, null)
+    near_range_enemy.call("_on_animation_finished", StringName("actions/hit"))
+    _expect(int(near_range_enemy.call("get_state")) == STATE_CHASE, "Post-hit enemy near attack range should return to LionEtat 2 chase.")
+    await physics_frame
+    var near_range_speed := Vector2(near_range_enemy.velocity.x, near_range_enemy.velocity.z).length()
+    _expect(near_range_speed > 0.1, "Post-hit chase should keep moving even while turning toward a target near attack range.")
+    var near_range_controller := near_range_enemy.get_node_or_null("ModelAnimationController")
+    if near_range_controller != null:
+        _expect(String(near_range_controller.call("get_current_action")) == "run", "Post-hit near-range chase should settle on run instead of swapping attack/run while stalled.")
+    near_range_enemy.queue_free()
+
+    var punk_scene: PackedScene = load("res://scenes/enemies/punk_enemy.tscn")
+    var punk_enemy: CharacterBody3D = punk_scene.instantiate() as CharacterBody3D
+    punk_enemy.set("affected_by_gravity", false)
+    punk_enemy.set("run_speed", 1.8)
+    punk_enemy.set("turn_rate_deg_per_sec", 0.0)
+    punk_enemy.set("roar_calls_friends", false)
+    punk_enemy.set("wait_min", 999.0)
+    punk_enemy.set("wait_max", 999.0)
+    root.add_child(punk_enemy)
+    punk_enemy.global_position = Vector3.ZERO
+    player_stub.global_position = Vector3(2.0, 0.0, -0.2)
+    await physics_frame
+    punk_enemy.call("take_damage", 2.0, null)
+    _expect(int(punk_enemy.call("get_state")) == STATE_HIT_RECOIL, "Type-2 wasp damage should start punk LionEtat 11 once resistance drops below 95%.")
+    _expect(is_equal_approx(float(punk_enemy.call("get_hit_animation_speed_scale")), 1.0), "Punk LionEtat 11 should not skip through the short generated hit clip.")
+    var punk_controller := punk_enemy.get_node_or_null("ModelAnimationController")
+    var punk_animation_player := punk_controller.get("animation_player") as AnimationPlayer if punk_controller != null else null
+    if punk_controller != null:
+        _expect(String(punk_controller.call("get_current_action")) == "hit", "Punk damage should play the original hit clip, not bounce between run and hit.")
+    if punk_animation_player != null:
+        _expect(is_equal_approx(punk_animation_player.speed_scale, 1.0), "Punk hit animation should play the full generated hurt clip instead of half-looping.")
+    punk_enemy.call("_on_animation_finished", StringName("actions/hit"))
+    _expect(int(punk_enemy.call("get_state")) == STATE_CHASE, "Healthy punk should return to run-on-player after LionEtat 11 completes.")
+    if punk_enemy.has_method("get_chase_movement_speed"):
+        _expect(is_equal_approx(float(punk_enemy.call("get_chase_movement_speed")), 1.8), "Post-hit punk chase movement should respect inspector run_speed.")
+    await physics_frame
+    var punk_post_hit_speed := Vector2(punk_enemy.velocity.x, punk_enemy.velocity.z).length()
+    _expect(punk_post_hit_speed > 0.1, "Post-hit punk chase should keep moving even while still turning toward a wasp-hit target.")
+    if punk_controller != null:
+        _expect(String(punk_controller.call("get_current_action")) == "run", "Post-hit punk chase should stay on run instead of swapping attack/run while stalled.")
+    punk_enemy.queue_free()
 
     var flee_enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
     flee_enemy.set("affected_by_gravity", false)
@@ -4586,6 +4717,7 @@ func _test_enemy_attack_hit_sfx() -> void:
     _expect(not _audio_service_has_global_stream(audio, hit_stream), "Enemy attack-hit SFX should stay out of the global SFX pool.")
 
     var contact_hit_sfx_count := _audio_service_count_spatial_stream_players(audio, hit_stream)
+    enemy.set("_attack_reentry_finish_guard_frame", -1)
     enemy.call("_on_animation_finished", StringName("actions/attack"))
     _expect(
             _audio_service_count_spatial_stream_players(audio, hit_stream) == contact_hit_sfx_count + 1,
@@ -4632,8 +4764,10 @@ func _test_enemy_visibility_range(game: Node) -> void:
     _expect(int(enemy.call("get_visibility_range_original_frame")) == 99, "Far/no-target range circles should hold the original high-distance frame.")
 
     var player_stub := _make_ai_test_player()
+    # Place before entering the tree: a kinematic body added at the origin
+    # overlaps the enemy for one physics step, which is a real body contact.
+    player_stub.position = Vector3(0.0, 0.0, -3.0)
     root.add_child(player_stub)
-    player_stub.global_position = Vector3(0.0, 0.0, -3.0)
     await physics_frame
     await physics_frame
     _expect(int(enemy.call("get_state")) == STATE_CHASE, "Enemy should still enter CHASE from react_range while the visual helper is active.")
@@ -4653,6 +4787,54 @@ func _test_enemy_visibility_range(game: Node) -> void:
         player_stub.queue_free()
     if is_instance_valid(enemy):
         enemy.queue_free()
+    await process_frame
+
+
+func _test_enemy_chase_contact_attack() -> void:
+    const STATE_CHASE := 2
+    const STATE_ATTACK_SWING := 10
+
+    var enemy_scene: PackedScene = load("res://scenes/enemies/rasta_enemy.tscn")
+    var enemy: CharacterBody3D = enemy_scene.instantiate() as CharacterBody3D
+    enemy.set("affected_by_gravity", false)
+    enemy.set("max_health", 8.0)
+    enemy.set("enemy_resistance", 8.0)
+    enemy.set("react_range", 5.0)
+    enemy.set("run_speed", 6.0)
+    # Frozen turning keeps the enemy brushing the player's flank instead of
+    # squaring up for the head-on distance trigger.
+    enemy.set("turn_rate_deg_per_sec", 0.0)
+    enemy.set("roar_calls_friends", false)
+    enemy.set("attack_call_range", 0.0)
+    enemy.set("wait_min", 999.0)
+    enemy.set("wait_max", 999.0)
+    enemy.position = Vector3.ZERO
+    root.add_child(enemy)
+    var warning_count := [0]
+    enemy.connect("warning_attack", func(_target: Node) -> void: warning_count[0] += 1)
+
+    var player_stub := _make_ai_test_player()
+    # Ahead-right: the enemy's straight -Z run clips the player's flank at ~59 degrees.
+    player_stub.position = Vector3(0.6, 0.0, -1.2)
+    root.add_child(player_stub)
+
+    var contact_frames := 0
+    while contact_frames < 60 and int(enemy.call("get_state")) != STATE_ATTACK_SWING:
+        await physics_frame
+        contact_frames += 1
+    _expect(int(enemy.call("get_state")) == STATE_ATTACK_SWING, "A chasing enemy that runs into the player's flank should start LionEtat 10 like WDL EVENT_ENTITY, not orbit.")
+    _expect(is_equal_approx(float(player_stub.get("first_amount")), 2.0), "Flank-contact attack should apply the LionEtat 2 EnnemyResistance * 0.25 contact damage.")
+    _expect(warning_count[0] == 1, "Starting a chase should emit warning_attack once.")
+
+    player_stub.global_position = enemy.global_position + Vector3(0.0, 0.0, -1.0)
+    if int(enemy.call("get_state")) != STATE_ATTACK_SWING:
+        enemy.call("_enter_state", STATE_ATTACK_SWING)
+    enemy.call("_on_animation_finished", StringName("actions/attack"))
+    _expect(int(enemy.call("get_state")) == STATE_CHASE, "Finished swings should return to LionEtat 2 chase instead of re-swinging at a visible gap.")
+    _expect(warning_count[0] == 1, "Returning from a swing to chase should not re-emit warning_attack.")
+
+    enemy.queue_free()
+    player_stub.queue_free()
     await process_frame
 
 
@@ -4866,6 +5048,9 @@ func _test_scorpion_top_bounce() -> void:
     _expect(is_equal_approx(float(scorpion.get("enemy_family_id")), 3.0), "Scorpion should use IdEnnemySpec 3 for family matching.")
     _expect(is_equal_approx(float(scorpion.get("walk_animation_speed_multiplier")), 3.0), "Scorpion walk cycle should use the WDL IdEnnemySpec 3 fast stepping multiplier.")
     _expect(is_equal_approx(float(scorpion.get("chase_animation_speed_multiplier")), 7.0), "Scorpion run cycle should use the WDL IdEnnemySpec 3 fast stepping multiplier.")
+    if scorpion.has_method("get_chase_movement_speed"):
+        _expect(is_equal_approx(float(scorpion.call("get_chase_movement_speed")), float(scorpion.get("run_speed"))), "Default scorpion chase movement should keep the original uncapped SpeedEnnemy term.")
+    _expect(is_equal_approx(float(scorpion.call("get_chase_animation_speed_scale")), 12.0), "Scorpion chase visual cadence should stay capped instead of frame-flickering after aggro.")
     _expect(String(scorpion.get("attack_sound_asset_id")) == "sfx.scorpion_attack", "Scorpion attacks should use the original scoratt1 sound.")
     _expect(String(scorpion.get("walk_sound_asset_id")) == "sfx.scorpion_walk", "Scorpion walk return should use the original scorwalk sound.")
     _expect(scorpion.has_method("allows_player_top_bounce"), "Enemy controller should expose a top-bounce affordance query.")

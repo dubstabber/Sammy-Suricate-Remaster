@@ -6,6 +6,10 @@ const ACKNEX_TICKS_PER_SECOND := 16.0
 const PLAYER_BOUNCE_TICKS_PER_SECOND := ACKNEX_TICKS_PER_SECOND * 1.5
 const WDL_SPEED_UNITS_TO_METERS_PER_SECOND := ACKNEX_TO_GODOT_SCALE * ACKNEX_TICKS_PER_SECOND
 const MINIMUM_ANIMATION_SPEED_SCALE := 0.001
+const DEFAULT_HIT_ANIMATION_RESISTANCE_MULTIPLIER := 0.3
+const DEFAULT_MIN_HIT_ANIMATION_SPEED_SCALE := 5.0
+const DEFAULT_MAX_HIT_ANIMATION_SPEED_SCALE := 10.0
+const DEFAULT_ATTACK_CONTACT_MARGIN := 0.04
 const ENEMY_ENTITY_SOUND_WDL_RANGE_UNITS := 1000.0
 const ENEMY_VISIBILITY_RANGE_SCRIPT := preload("res://src/effects/enemy_visibility_range.gd")
 
@@ -52,7 +56,7 @@ enum EnemyState {
 @export var turn_rate_deg_per_sec: float = 220.0
 # WDL line 1076: forward motion only when |BallDeltaPan| < 10 in walk.
 @export var move_yaw_threshold_deg: float = 10.0
-# WDL line 1082: chase/attack uses a wider gate (~30) before stepping forward.
+# WDL HandleSpeedLion keeps LionEtat 2 moving while it turns toward the player.
 @export var chase_yaw_threshold_deg: float = 30.0
 @export var attack_yaw_threshold_deg: float = 25.0
 @export var wait_min: float = 1.5
@@ -62,6 +66,7 @@ enum EnemyState {
 @export var hargne_enemy: float = 2.0
 @export var contact_damage_multiplier: float = 0.25
 @export var attack_strike_ratio: float = 0.6
+@export var attack_contact_margin: float = DEFAULT_ATTACK_CONTACT_MARGIN
 # WDL lion.wdl:135-136: My.BounceForce = Frc(SpeedEnnemy)*100, fallback LionForce = 1.5.
 # LionEtat 10 advances at 1.5x SpeedEnnemy.
 @export var push_bounce_force: float = 1.5
@@ -74,8 +79,18 @@ enum EnemyState {
 @export var movement_animation_units_per_meter: float = 1.0 / WDL_SPEED_UNITS_TO_METERS_PER_SECOND
 @export var walk_animation_speed_multiplier: float = 1.0
 @export var chase_animation_speed_multiplier: float = 1.0
+# Optional visual safety cap for special enemies with extra animation multipliers.
+# Keep this disabled by default so inspector speed values stay authoritative.
+@export var max_movement_animation_speed_scale: float = 0.0
 @export var attack_animation_speed: float = 1.2
-@export var hit_animation_speed: float = 1.5
+# WDL lion.wdl:470-472 computes hit speed as LionAnimSpeedHit *
+# current EnnemyResistance * 0.3. The generated clip already
+# encodes base LionAnimSpeedHit, so runtime playback uses a relative scale.
+@export var hit_animation_speed: float = 10.0
+@export var hit_animation_resistance_multiplier: float = DEFAULT_HIT_ANIMATION_RESISTANCE_MULTIPLIER
+@export var min_hit_animation_speed_scale: float = DEFAULT_MIN_HIT_ANIMATION_SPEED_SCALE
+@export var max_hit_animation_speed_scale: float = DEFAULT_MAX_HIT_ANIMATION_SPEED_SCALE
+@export var hit_animation_blend_seconds: float = 0.0
 @export var roar_animation_speed: float = 1.0
 @export var death_animation_speed: float = 1.0
 @export var perception_eye_height: float = 1.0
@@ -90,6 +105,9 @@ enum EnemyState {
 @export var attack_call_seconds: float = 8.0
 @export var attack_call_range: float = 100.0
 @export var attack_call_min_distance: float = 1.28
+@export var hit_recoil_health_ratio: float = 0.95
+# WDL anims.wdl:276-277 expands LionAttackRange/LionReactRange after LionEtat 11.
+@export var post_hit_range_multiplier: float = 1.5
 # WDL lion.wdl:319-372 Lion_Hit: when GuardStuckBalle accumulates past 10 while
 # chasing/fleeing, the lion stops to roar (LionEtat=3) before resuming.
 @export var blocked_roar_seconds: float = 0.6
@@ -145,6 +163,10 @@ var _blocked_time_accumulator: float = 0.0
 var _roar_cooldown_remaining: float = 0.0
 var _chase_start_scan_remaining: float = 0.0
 var _visibility_range: Node = null
+var _hit_recoil_should_chase: bool = false
+var _attack_started_from_contact: bool = false
+var _attack_reentry_finish_guard_frame: int = -1
+var _post_hit_range_multiplier: float = 1.0
 
 
 func _ready() -> void:
@@ -171,7 +193,10 @@ func take_damage(amount: float, source: Node = null) -> void:
 		died.emit(source)
 		_enter_state(EnemyState.DYING)
 	elif _state != EnemyState.DYING and _state != EnemyState.DEAD:
-		_enter_state(EnemyState.HIT_RECOIL)
+		_refresh_target()
+		if _should_start_hit_recoil():
+			_hit_recoil_should_chase = _is_attackable_target(_target)
+			_enter_state(EnemyState.HIT_RECOIL)
 
 
 func get_health() -> float:
@@ -269,15 +294,31 @@ func get_player_top_bounce_velocity() -> float:
 
 
 func get_chase_start_range() -> float:
+	var range_multiplier := maxf(_post_hit_range_multiplier, 1.0)
 	if chase_start_range > 0.0:
-		return chase_start_range
-	return maxf(react_range, 0.0)
+		return chase_start_range * range_multiplier
+	return maxf(react_range, 0.0) * range_multiplier
 
 
 func get_chase_disengage_range() -> float:
+	var range_multiplier := maxf(_post_hit_range_multiplier, 1.0)
 	if chase_disengage_range > 0.0:
-		return chase_disengage_range
+		return chase_disengage_range * range_multiplier
 	return get_chase_start_range() * maxf(disengage_range_factor, 0.0)
+
+
+func get_attack_range() -> float:
+	return maxf(attack_range, 0.0) * maxf(_post_hit_range_multiplier, 1.0)
+
+
+func get_attack_trigger_range(target: Node3D = null) -> float:
+	var configured_range := maxf(attack_range, 0.0)
+	if configured_range <= 0.0:
+		return 0.0
+	var body_contact_range := _combined_horizontal_collision_radius(target) + maxf(attack_contact_margin, 0.0)
+	if body_contact_range <= 0.0:
+		return configured_range
+	return minf(configured_range, body_contact_range)
 
 
 func _physics_process(delta: float) -> void:
@@ -290,6 +331,7 @@ func _physics_process(delta: float) -> void:
 	_refresh_movement_animation_speed()
 	_apply_gravity(delta)
 	move_and_slide()
+	_try_begin_attack_from_chase_contact()
 	_try_resolve_attack_hit_from_current_contact()
 	if affected_by_gravity and is_on_floor() and velocity.y <= 0.0:
 		_fall_velocity_y = 0.0
@@ -303,20 +345,59 @@ func get_animation_speed_units_for_horizontal_speed(horizontal_speed: float) -> 
 	return maxf(maxf(horizontal_speed, 0.0) * units_per_meter, MINIMUM_ANIMATION_SPEED_SCALE)
 
 
+func get_capped_animation_speed_scale(speed_scale: float) -> float:
+	var scale := maxf(speed_scale, MINIMUM_ANIMATION_SPEED_SCALE)
+	if max_movement_animation_speed_scale <= 0.0:
+		return scale
+	return minf(scale, maxf(max_movement_animation_speed_scale, MINIMUM_ANIMATION_SPEED_SCALE))
+
+
+func get_walk_movement_speed() -> float:
+	return maxf(move_speed, 0.0)
+
+
 func get_walk_animation_speed_scale() -> float:
-	return get_animation_speed_units_for_horizontal_speed(move_speed) * maxf(walk_animation_speed_multiplier, 0.0)
+	return get_capped_animation_speed_scale(
+			get_animation_speed_units_for_horizontal_speed(move_speed) * maxf(walk_animation_speed_multiplier, 0.0)
+	)
 
 
 func get_chase_animation_action() -> StringName:
 	return &"run"
 
 
+func get_chase_movement_speed() -> float:
+	return maxf(run_speed, 0.0)
+
+
 func get_chase_animation_speed_scale() -> float:
-	return get_animation_speed_units_for_horizontal_speed(run_speed) * maxf(chase_animation_speed_multiplier, 0.0)
+	return get_capped_animation_speed_scale(
+			get_animation_speed_units_for_horizontal_speed(run_speed) * maxf(chase_animation_speed_multiplier, 0.0)
+	)
+
+
+func get_attack_movement_speed() -> float:
+	return maxf(run_speed, 0.0) * maxf(attack_push_speed_multiplier, 0.0)
+
+
+func get_flee_movement_speed() -> float:
+	return maxf(run_speed, 0.0) * maxf(flee_speed_multiplier, 0.0)
+
+
+func get_hit_animation_speed_scale() -> float:
+	var min_speed := maxf(min_hit_animation_speed_scale, MINIMUM_ANIMATION_SPEED_SCALE)
+	var max_speed := maxf(max_hit_animation_speed_scale, min_speed)
+	var base_step_speed := maxf(hit_animation_speed, MINIMUM_ANIMATION_SPEED_SCALE)
+	var scaled_step_speed := base_step_speed * maxf(_health, 0.0) * maxf(hit_animation_resistance_multiplier, 0.0)
+	return clampf(scaled_step_speed, min_speed, max_speed) / base_step_speed
+
+
+func get_hit_animation_blend_seconds() -> float:
+	return maxf(hit_animation_blend_seconds, 0.0)
 
 
 func get_attack_push_source_velocity() -> Vector3:
-	return _attack_lunge_velocity()
+	return _forward_velocity(maxf(run_speed, 0.0) * maxf(attack_push_speed_multiplier, 0.0))
 
 
 func get_contact_push_source_velocity() -> Vector3:
@@ -324,7 +405,7 @@ func get_contact_push_source_velocity() -> Vector3:
 
 
 func get_attack_hit_push_source_velocity() -> Vector3:
-	var lunge := _attack_lunge_velocity()
+	var lunge := get_attack_push_source_velocity()
 	if lunge.length_squared() > 0.0:
 		return lunge
 	var direction := _attack_push_direction
@@ -461,7 +542,7 @@ func _tick_walk(delta: float) -> Vector3:
 	_turn_toward(to_target, delta)
 	if absf(_yaw_delta_to(to_target)) > deg_to_rad(move_yaw_threshold_deg):
 		return Vector3.ZERO
-	return _forward_velocity(move_speed)
+	return _forward_velocity(get_walk_movement_speed())
 
 
 func _tick_chase(delta: float) -> Vector3:
@@ -472,15 +553,13 @@ func _tick_chase(delta: float) -> Vector3:
 	var dist := to_target.length()
 	_turn_toward(to_target, delta)
 	var yaw_delta := _yaw_delta_to(to_target)
-	if dist <= attack_range and absf(yaw_delta) <= deg_to_rad(attack_yaw_threshold_deg):
+	if dist <= get_attack_trigger_range(_target) and absf(yaw_delta) <= deg_to_rad(attack_yaw_threshold_deg):
 		_enter_state(EnemyState.ATTACK_SWING)
 		return _attack_lunge_velocity()
 	if dist > get_chase_disengage_range():
 		_enter_state(EnemyState.WAIT)
 		return Vector3.ZERO
-	if absf(yaw_delta) > deg_to_rad(chase_yaw_threshold_deg):
-		return Vector3.ZERO
-	return _forward_velocity(run_speed)
+	return _forward_velocity(get_chase_movement_speed())
 
 
 func _tick_roar(delta: float) -> Vector3:
@@ -513,7 +592,7 @@ func _tick_flee(delta: float) -> Vector3:
 	if away.length_squared() <= 0.0:
 		away = -_forward_velocity(1.0)
 	_turn_toward(away, delta)
-	return _forward_velocity(run_speed * maxf(flee_speed_multiplier, 0.0))
+	return _forward_velocity(get_flee_movement_speed())
 
 
 func _tick_random_run(delta: float) -> Vector3:
@@ -523,7 +602,7 @@ func _tick_random_run(delta: float) -> Vector3:
 		return Vector3.ZERO
 	if _has_wander_target:
 		_turn_toward(_wander_target - global_position, delta)
-	return _forward_velocity(run_speed)
+	return _forward_velocity(get_chase_movement_speed())
 
 
 func _tick_dying(delta: float) -> Vector3:
@@ -535,19 +614,22 @@ func _tick_dying(delta: float) -> Vector3:
 
 
 func _enter_state(new_state: int) -> void:
-	# WAIT/ATTACK_SWING/HIT_RECOIL are re-entrant: WAIT picks a fresh idle timer,
-	# the action states need to restart their non-looping clip so animation_finished
-	# fires again and drives the next transition.
+	# WAIT/ROAR/ATTACK_SWING are re-entrant: WAIT picks a fresh idle timer, and
+	# the action states need to restart their non-looping clip so
+	# animation_finished fires again and drives the next transition. WDL only
+	# enters LionEtat 11 when the enemy is not already in that hit state, so
+	# repeated wasp damage must not restart the hit clip.
 	var allow_reenter := (
 			new_state == EnemyState.WAIT
 			or new_state == EnemyState.ROAR
 			or new_state == EnemyState.ATTACK_SWING
-			or new_state == EnemyState.HIT_RECOIL
 	)
 	if _state == new_state and not allow_reenter:
 		return
 	var old_state := _state
 	_state = new_state
+	var blend_after_hit := 0.0 if old_state == EnemyState.HIT_RECOIL else -1.0
+	_attack_reentry_finish_guard_frame = Engine.get_physics_frames() if old_state == EnemyState.ATTACK_SWING and new_state == EnemyState.ATTACK_SWING else -1
 	_hit_resolved_this_swing = false
 	_contact_resolved_this_swing = false
 	_blocked_time_accumulator = 0.0
@@ -572,18 +654,20 @@ func _enter_state(new_state: int) -> void:
 				_play_sfx(walk_sound_asset_id)
 			_play_action(&"walk", get_walk_animation_speed_scale())
 		EnemyState.CHASE:
-			if old_state != EnemyState.CHASE:
+			# WDL calls Warning_Attack on LionEtat 1->2 only; the 10->2 return
+			# after every swing (anims.wdl:253) is not a fresh warning.
+			if old_state != EnemyState.CHASE and old_state != EnemyState.ATTACK_SWING:
 				_begin_warning_attack()
-			_play_action(get_chase_animation_action(), get_chase_animation_speed_scale())
+			_play_action(get_chase_animation_action(), get_chase_animation_speed_scale(), false, blend_after_hit)
 		EnemyState.ROAR:
-			_begin_roar()
+			_begin_roar(blend_after_hit)
 		EnemyState.ATTACK_SWING:
 			_begin_attack_swing()
 			_play_action(&"attack", attack_animation_speed, true)
 		EnemyState.HIT_RECOIL:
-			_play_action(&"hit", hit_animation_speed, true)
+			_play_action(&"hit", get_hit_animation_speed_scale(), true, get_hit_animation_blend_seconds())
 		EnemyState.FLEE:
-			_begin_flee()
+			_begin_flee(blend_after_hit)
 		EnemyState.RANDOM_RUN:
 			_begin_random_run()
 		EnemyState.DYING:
@@ -605,7 +689,10 @@ func _refresh_movement_animation_speed() -> void:
 func _begin_attack_swing() -> void:
 	_play_sfx(attack_sound_asset_id)
 	_attack_target = _target
-	_attack_started_in_range = _target != null and _target_horizontal_offset().length() <= attack_range * 1.2
+	_attack_started_in_range = _attack_started_from_contact or (
+			_target != null and _target_horizontal_offset().length() <= get_attack_trigger_range(_target)
+	)
+	_attack_started_from_contact = false
 	_attack_push_direction = Vector3.ZERO
 	if _target != null:
 		_attack_push_direction = _target_horizontal_offset()
@@ -622,11 +709,11 @@ func _begin_warning_attack() -> void:
 		warning_attack.emit(_target)
 
 
-func _begin_roar() -> void:
+func _begin_roar(blend: float = -1.0) -> void:
 	var duration := _resolve_action_duration(&"rugit", roar_animation_speed)
 	_roar_remaining = duration if duration > 0.0 else 0.75
 	_roar_cooldown_remaining = maxf(roar_cooldown_seconds, 0.0)
-	_play_action(&"rugit", roar_animation_speed, true)
+	_play_action(&"rugit", roar_animation_speed, true, blend)
 	roar_started.emit()
 	if roar_calls_friends:
 		_start_attack_call()
@@ -682,9 +769,9 @@ func _finish_roar() -> void:
 		_enter_state(EnemyState.WAIT)
 
 
-func _begin_flee() -> void:
+func _begin_flee(blend: float = -1.0) -> void:
 	_flee_remaining = maxf(enemy_frightened_seconds, 0.0)
-	_play_action(get_chase_animation_action(), get_chase_animation_speed_scale(), true)
+	_play_action(get_chase_animation_action(), get_chase_animation_speed_scale(), true, blend)
 
 
 func _begin_random_run() -> void:
@@ -695,31 +782,42 @@ func _begin_random_run() -> void:
 	_play_action(get_chase_animation_action(), get_chase_animation_speed_scale(), true)
 
 
-func _on_animation_finished(_anim_name: StringName) -> void:
+func _on_animation_finished(anim_name: StringName) -> void:
 	match _state:
 		EnemyState.ROAR:
+			if not _is_finished_action(anim_name, &"rugit"):
+				return
 			_finish_roar()
 		EnemyState.ATTACK_SWING:
+			if not _is_finished_action(anim_name, &"attack"):
+				return
+			if _is_stale_animation_finish(anim_name):
+				return
 			_play_attack_cycle_hit_sfx()
-			if _should_engage_target():
-				var dist := _target_horizontal_offset().length()
-				if dist <= attack_range:
-					_enter_state(EnemyState.ATTACK_SWING)
-				else:
-					_enter_state(EnemyState.CHASE)
+			# WDL anims.wdl:253 always returns LionEtat 10 to 2; the next swing
+			# starts from chase contact again instead of re-swinging at a gap.
+			if _is_attackable_target(_target) and _target_horizontal_offset().length() <= get_chase_disengage_range():
+				_enter_state(EnemyState.CHASE)
 			else:
 				_enter_state(EnemyState.WAIT)
 		EnemyState.HIT_RECOIL:
+			if not _is_finished_action(anim_name, &"hit"):
+				return
 			_finish_hit_recoil()
 		EnemyState.DYING:
 			pass
 
 
 func _finish_hit_recoil() -> void:
+	var should_chase_after_hit := _hit_recoil_should_chase
+	_hit_recoil_should_chase = false
+	_apply_post_hit_range_boost()
 	if _should_roar_after_hit():
 		_enter_state(EnemyState.ROAR)
 	elif _should_flee_after_hit():
 		_enter_state(EnemyState.FLEE)
+	elif should_chase_after_hit and _is_attackable_target(_target):
+		_enter_state(EnemyState.CHASE)
 	elif _should_engage_target():
 		_enter_state(EnemyState.CHASE)
 	else:
@@ -788,6 +886,14 @@ func _should_flee_after_hit() -> bool:
 	return _health <= _enemy_resistance_org * clampf(hurt_flee_health_ratio, 0.0, 1.0)
 
 
+func _should_start_hit_recoil() -> bool:
+	if _state == EnemyState.HIT_RECOIL:
+		return false
+	if _enemy_resistance_org <= 0.0:
+		return true
+	return _health < _enemy_resistance_org * clampf(hit_recoil_health_ratio, 0.0, 1.0)
+
+
 func _target_horizontal_offset() -> Vector3:
 	if _target == null:
 		return Vector3.ZERO
@@ -830,7 +936,7 @@ func _forward_velocity(speed: float) -> Vector3:
 
 
 func _attack_lunge_velocity() -> Vector3:
-	return _forward_velocity(maxf(run_speed, 0.0) * maxf(attack_push_speed_multiplier, 0.0))
+	return _forward_velocity(get_attack_movement_speed())
 
 
 func _has_line_of_sight_to(target: Node3D) -> bool:
@@ -845,6 +951,31 @@ func _has_line_of_sight_to(target: Node3D) -> bool:
 	query.exclude = [self, target]
 	var hit := space.intersect_ray(query)
 	return hit.is_empty()
+
+
+# WDL lion.wdl:507-521 Lion_Hit EVENT_ENTITY: a LionEtat 2 enemy whose own move
+# runs into the player switches to LionEtat 10 at once, whatever its heading.
+# Without this a fast chaser that brushes the player's flank keeps orbiting.
+func _try_begin_attack_from_chase_contact() -> void:
+	if _state != EnemyState.CHASE:
+		return
+	if not _is_attackable_target(_target):
+		return
+	if not _has_current_side_contact_with(_target):
+		return
+	_attack_started_from_contact = true
+	_enter_state(EnemyState.ATTACK_SWING)
+
+
+func _has_current_side_contact_with(target: Node3D) -> bool:
+	for index in get_slide_collision_count():
+		var collision := get_slide_collision(index)
+		if collision == null or collision.get_collider() != target:
+			continue
+		# Ignore a player standing on or bouncing off the enemy's head.
+		if absf(collision.get_normal().y) < 0.7:
+			return true
+	return false
 
 
 func _try_resolve_attack_hit_from_current_contact() -> void:
@@ -888,7 +1019,7 @@ func _resolve_attack_hit() -> bool:
 	var hit_target := _current_attack_hit_target()
 	if not _is_attackable_target(hit_target):
 		return false
-	if not _attack_started_in_range and _horizontal_offset_to(hit_target).length() > attack_range * 1.2:
+	if not _attack_started_in_range and _horizontal_offset_to(hit_target).length() > get_attack_trigger_range(hit_target):
 		return false
 	if not hit_target.has_method("take_damage"):
 		return false
@@ -932,6 +1063,49 @@ func _apply_push_to_target(target: Node3D, source_velocity: Vector3) -> void:
 	target.call("apply_enemy_push", source_velocity, push_bounce_force, self)
 
 
+func _apply_post_hit_range_boost() -> void:
+	_post_hit_range_multiplier *= maxf(post_hit_range_multiplier, 1.0)
+
+
+func _combined_horizontal_collision_radius(target: Node3D) -> float:
+	if target == null:
+		return 0.0
+	var own_radius := _horizontal_collision_radius(self)
+	var target_radius := _horizontal_collision_radius(target)
+	if own_radius <= 0.0 or target_radius <= 0.0:
+		return 0.0
+	return own_radius + target_radius
+
+
+func _horizontal_collision_radius(node: Node3D) -> float:
+	if node == null:
+		return 0.0
+	var radius := 0.0
+	for child in node.get_children():
+		var collision_shape := child as CollisionShape3D
+		if collision_shape == null or collision_shape.disabled or collision_shape.shape == null:
+			continue
+		radius = maxf(radius, _shape_horizontal_radius(collision_shape))
+	return radius
+
+
+func _shape_horizontal_radius(collision_shape: CollisionShape3D) -> float:
+	var shape := collision_shape.shape
+	var scale_x := collision_shape.global_transform.basis.x.length()
+	var scale_z := collision_shape.global_transform.basis.z.length()
+	var horizontal_scale := maxf(scale_x, scale_z)
+	if shape is CapsuleShape3D:
+		return (shape as CapsuleShape3D).radius * horizontal_scale
+	if shape is CylinderShape3D:
+		return (shape as CylinderShape3D).radius * horizontal_scale
+	if shape is SphereShape3D:
+		return (shape as SphereShape3D).radius * horizontal_scale
+	if shape is BoxShape3D:
+		var box := shape as BoxShape3D
+		return maxf(box.size.x * scale_x, box.size.z * scale_z) * 0.5
+	return 0.0
+
+
 func _is_attackable_target(candidate: Node) -> bool:
 	if candidate == null or not is_instance_valid(candidate):
 		return false
@@ -944,18 +1118,43 @@ func _is_attackable_target(candidate: Node) -> bool:
 	return true
 
 
-func _play_action(action: StringName, custom_speed: float = 1.0, restart: bool = false) -> bool:
+func _play_action(action: StringName, custom_speed: float = 1.0, restart: bool = false, blend: float = -1.0) -> bool:
 	if _animation_controller == null:
 		return false
 	if not _animation_controller_has_action(action):
 		return false
-	return bool(_animation_controller.call("play_action", action, -1.0, custom_speed, false, restart))
+	return bool(_animation_controller.call("play_action", action, blend, custom_speed, false, restart))
 
 
 func _animation_controller_has_action(action: StringName) -> bool:
 	if _animation_controller == null:
 		return false
 	return bool(_animation_controller.call("has_action", action))
+
+
+func _is_finished_action(anim_name: StringName, action: StringName) -> bool:
+	return anim_name == StringName("actions/%s" % String(action))
+
+
+func _is_stale_animation_finish(anim_name: StringName) -> bool:
+	if _state != EnemyState.ATTACK_SWING:
+		return false
+	if not _is_finished_action(anim_name, &"attack"):
+		return false
+	if _attack_reentry_finish_guard_frame < 0:
+		return false
+	if Engine.get_physics_frames() > _attack_reentry_finish_guard_frame + 1:
+		return false
+	if _animation_player == null:
+		return false
+	if _animation_player.current_animation != anim_name:
+		return false
+	if not _animation_player.is_playing():
+		return false
+	var length := _animation_player.current_animation_length
+	if length <= 0.0:
+		return false
+	return _animation_player.current_animation_position < length * 0.95
 
 
 func _resolve_action_duration(action: StringName, speed: float) -> float:

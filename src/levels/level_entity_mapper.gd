@@ -31,6 +31,9 @@ const LEVEL_SPRITE_SCENE := preload("res://scenes/props/level_sprite.tscn")
 const RASTA_SCENE := preload("res://scenes/enemies/rasta_enemy.tscn")
 const PUNK_SCENE := preload("res://scenes/enemies/punk_enemy.tscn")
 const SCORPION_SCENE := preload("res://scenes/enemies/scorpion_enemy.tscn")
+const NANOLION_SCENE := preload("res://scenes/enemies/nanolion_enemy.tscn")
+const ROCKER_SCENE := preload("res://scenes/enemies/rocker_enemy.tscn")
+const HIPPIE_SCENE := preload("res://scenes/enemies/hippie_enemy.tscn")
 
 const SPRITE_TEXTURE_ROOT := "res://assets/textures/sprites"
 const WASP_TYPE_PATH_FORMAT := "res://assets/wasps/type_%d.tres"
@@ -51,12 +54,15 @@ const CONFIG_ACTIONS := [
 	"initpublic", "initprotection", "initstartennemy",
 ]
 
-## Enemy model file -> prefab. Models without a dedicated enemy yet use the
-## rasta controller and keep a `placeholder_for` meta.
+## Enemy model file -> prefab. An unknown model falls back to the rasta
+## controller and keeps a `placeholder_for` meta.
 const ENEMY_SCENES_BY_FILE := {
 	"rasta.mdl": RASTA_SCENE,
 	"punk.mdl": PUNK_SCENE,
 	"scorpion.mdl": SCORPION_SCENE,
+	"nanolion.mdl": NANOLION_SCENE,
+	"rockera.mdl": ROCKER_SCENE,
+	"hippie.mdl": HIPPIE_SCENE,
 }
 
 const TELEPORT_MODEL_IDS_BY_FILE := {

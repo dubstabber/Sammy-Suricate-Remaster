@@ -1,25 +1,26 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://src/levels/level_world.gd" id="1_wnwtv"]
-[ext_resource type="PackedScene" path="res://assets/levels/10004/10004.gltf" id="2_7fdbr"]
-[ext_resource type="PackedScene" path="res://scenes/pickups/key_diamond_pickup.tscn" id="3_3v5lb"]
-[ext_resource type="Resource" path="res://assets/key_diamonds/blue.tres" id="4_sppfm"]
-[ext_resource type="Resource" path="res://assets/key_diamonds/yellow.tres" id="5_nwlwt"]
-[ext_resource type="PackedScene" path="res://scenes/pickups/diamond_pickup.tscn" id="6_f7wlm"]
-[ext_resource type="Script" path="res://src/props/model_prop.gd" id="7_np57x"]
-[ext_resource type="PackedScene" path="res://assets/models/sky3/sky3.gltf" id="8_k08pp"]
-[ext_resource type="PackedScene" path="res://assets/models/menu/solmenu5/solmenu5.gltf" id="9_t3lif"]
-[ext_resource type="PackedScene" path="res://scenes/props/cactus_prop.tscn" id="10_rh5vv"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/rasta_enemy.tscn" id="11_n7vbk"]
-[ext_resource type="PackedScene" path="res://scenes/props/level_sprite.tscn" id="12_hdu52"]
-[ext_resource type="Texture2D" path="res://assets/textures/sprites/herbes1.png" id="13_yoddb"]
-[ext_resource type="PackedScene" path="res://scenes/gates/key_gate.tscn" id="14_l81a1"]
-[ext_resource type="PackedScene" path="res://scenes/props/exit_pad.tscn" id="15_30s1e"]
-[ext_resource type="Script" path="res://src/levels/level_entity_marker.gd" id="16_b8luc"]
-[ext_resource type="Script" path="res://src/camera/third_person_camera.gd" id="17_afygr"]
-[ext_resource type="PackedScene" path="res://scenes/ui/debug_overlay.tscn" id="18_h2obr"]
-[ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="19_qg1ak"]
-[ext_resource type="PackedScene" path="res://scenes/ui/level_hud.tscn" id="20_02d31"]
+[ext_resource type="Script" path="res://src/levels/level_world.gd" id="1_7fdbr"]
+[ext_resource type="PackedScene" path="res://assets/levels/10004/10004.gltf" id="2_3v5lb"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/key_diamond_pickup.tscn" id="3_sppfm"]
+[ext_resource type="Resource" path="res://assets/key_diamonds/blue.tres" id="4_nwlwt"]
+[ext_resource type="Resource" path="res://assets/key_diamonds/yellow.tres" id="5_f7wlm"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/diamond_pickup.tscn" id="6_np57x"]
+[ext_resource type="Script" path="res://src/props/model_prop.gd" id="7_k08pp"]
+[ext_resource type="PackedScene" path="res://assets/models/sky3/sky3.gltf" id="8_t3lif"]
+[ext_resource type="PackedScene" path="res://assets/models/menu/solmenu5/solmenu5.gltf" id="9_rh5vv"]
+[ext_resource type="PackedScene" path="res://scenes/props/cactus_prop.tscn" id="10_n7vbk"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/nanolion_enemy.tscn" id="11_hdu52"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/rasta_enemy.tscn" id="12_yoddb"]
+[ext_resource type="PackedScene" path="res://scenes/props/level_sprite.tscn" id="13_l81a1"]
+[ext_resource type="Texture2D" path="res://assets/textures/sprites/herbes1.png" id="14_30s1e"]
+[ext_resource type="PackedScene" path="res://scenes/gates/key_gate.tscn" id="15_b8luc"]
+[ext_resource type="PackedScene" path="res://scenes/props/exit_pad.tscn" id="16_afygr"]
+[ext_resource type="Script" path="res://src/levels/level_entity_marker.gd" id="17_h2obr"]
+[ext_resource type="Script" path="res://src/camera/third_person_camera.gd" id="18_qg1ak"]
+[ext_resource type="PackedScene" path="res://scenes/ui/debug_overlay.tscn" id="19_02d31"]
+[ext_resource type="PackedScene" path="res://scenes/ui/key_diamond_panel.tscn" id="20_hpb3k"]
+[ext_resource type="PackedScene" path="res://scenes/ui/level_hud.tscn" id="21_j2b11"]
 
 [sub_resource type="Environment" id="Environment_level"]
 background_mode = 1
@@ -28,8 +29,8 @@ ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 ambient_light_energy = 0.55
 
-[node name="Level_10004" type="Node3D" unique_id=1440547664]
-script = ExtResource("1_wnwtv")
+[node name="Level_10004" type="Node3D" unique_id=971550324]
+script = ExtResource("1_7fdbr")
 level_stem = "10004"
 level_number = 4
 source_wmb = "extract-sammy-assets/sammy-suricate/10004.wmb"
@@ -42,41 +43,41 @@ metadata/wmb_unmapped_actions = {
 "inittitle": 1
 }
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1477791486]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1489956117]
 environment = SubResource("Environment_level")
 
-[node name="Sun" type="DirectionalLight3D" parent="." unique_id=520581211]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=206005085]
 transform = Transform3D(-0.70710677, -0.35355338, 0.61237246, 0, 0.86602545, 0.5, -0.70710677, 0.35355338, -0.61237246, 0, 0, 0)
 light_energy = 1.1
 shadow_enabled = true
 
-[node name="Geometry" type="Node3D" parent="." unique_id=633291088]
+[node name="Geometry" type="Node3D" parent="." unique_id=1040680670]
 
-[node name="LevelGeometry" parent="Geometry" unique_id=760789417 instance=ExtResource("2_7fdbr")]
+[node name="LevelGeometry" parent="Geometry" unique_id=760789417 instance=ExtResource("2_3v5lb")]
 
-[node name="Entities" type="Node3D" parent="." unique_id=421695525]
+[node name="Entities" type="Node3D" parent="." unique_id=852038453]
 
-[node name="Pickups" type="Node3D" parent="Entities" unique_id=430158451]
+[node name="Pickups" type="Node3D" parent="Entities" unique_id=1795280999]
 
-[node name="E002_initkey" parent="Entities/Pickups" unique_id=365060906 instance=ExtResource("3_3v5lb")]
+[node name="E002_initkey" parent="Entities/Pickups" unique_id=141896362 instance=ExtResource("3_sppfm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.68, 0, 0.32)
-key_type = ExtResource("4_sppfm")
+key_type = ExtResource("4_nwlwt")
 metadata/wmb_index = 2
 metadata/wmb_action = "initKey"
 metadata/wmb_file = "gembl+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 4, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E003_initkey" parent="Entities/Pickups" unique_id=1484827008 instance=ExtResource("3_3v5lb")]
+[node name="E003_initkey" parent="Entities/Pickups" unique_id=977524550 instance=ExtResource("3_sppfm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.68, 0, 10.639999)
-key_type = ExtResource("5_nwlwt")
+key_type = ExtResource("5_f7wlm")
 metadata/wmb_index = 3
 metadata/wmb_action = "initKey"
 metadata/wmb_file = "gemye+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 2, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E004_initbonus3" parent="Entities/Pickups" unique_id=344894128 instance=ExtResource("6_f7wlm")]
+[node name="E004_initbonus3" parent="Entities/Pickups" unique_id=59705109 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0899997, 0, 0.009999)
 points = 30
 metadata/wmb_index = 4
@@ -85,7 +86,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E005_initbonus3" parent="Entities/Pickups" unique_id=2105998209 instance=ExtResource("6_f7wlm")]
+[node name="E005_initbonus3" parent="Entities/Pickups" unique_id=1174341915 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.929999, 0, -3.1900008)
 points = 30
 metadata/wmb_index = 5
@@ -94,7 +95,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E006_initbonus3" parent="Entities/Pickups" unique_id=778369766 instance=ExtResource("6_f7wlm")]
+[node name="E006_initbonus3" parent="Entities/Pickups" unique_id=367387660 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.05, 0, 2.329999)
 points = 30
 metadata/wmb_index = 6
@@ -103,7 +104,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E007_initbonus3" parent="Entities/Pickups" unique_id=350249190 instance=ExtResource("6_f7wlm")]
+[node name="E007_initbonus3" parent="Entities/Pickups" unique_id=773958296 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.09, 0, 8.089998)
 points = 30
 metadata/wmb_index = 7
@@ -112,7 +113,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E008_initbonus3" parent="Entities/Pickups" unique_id=1205729288 instance=ExtResource("6_f7wlm")]
+[node name="E008_initbonus3" parent="Entities/Pickups" unique_id=660293418 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.33, 0, 8.25)
 points = 30
 metadata/wmb_index = 8
@@ -121,7 +122,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E009_initbonus3" parent="Entities/Pickups" unique_id=664719905 instance=ExtResource("6_f7wlm")]
+[node name="E009_initbonus3" parent="Entities/Pickups" unique_id=958973638 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.49, 0, 15.29)
 points = 30
 metadata/wmb_index = 9
@@ -130,7 +131,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E010_initbonus3" parent="Entities/Pickups" unique_id=24154020 instance=ExtResource("6_f7wlm")]
+[node name="E010_initbonus3" parent="Entities/Pickups" unique_id=559309966 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1499999, 0, 11.13)
 points = 30
 metadata/wmb_index = 10
@@ -139,7 +140,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E011_initbonus3" parent="Entities/Pickups" unique_id=1251423074 instance=ExtResource("6_f7wlm")]
+[node name="E011_initbonus3" parent="Entities/Pickups" unique_id=756303039 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.27, 0, 15.21)
 points = 30
 metadata/wmb_index = 11
@@ -148,7 +149,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E012_initbonus3" parent="Entities/Pickups" unique_id=802578686 instance=ExtResource("6_f7wlm")]
+[node name="E012_initbonus3" parent="Entities/Pickups" unique_id=185774598 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.349999, 0, 8.17)
 points = 30
 metadata/wmb_index = 12
@@ -157,7 +158,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E013_initbonus3" parent="Entities/Pickups" unique_id=1480266600 instance=ExtResource("6_f7wlm")]
+[node name="E013_initbonus3" parent="Entities/Pickups" unique_id=402245155 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.67, 0, 4.49)
 points = 30
 metadata/wmb_index = 13
@@ -166,7 +167,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E014_initbonus3" parent="Entities/Pickups" unique_id=458347319 instance=ExtResource("6_f7wlm")]
+[node name="E014_initbonus3" parent="Entities/Pickups" unique_id=1257571376 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5099998, 0, 6.41)
 points = 30
 metadata/wmb_index = 14
@@ -175,7 +176,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E015_initbonus3" parent="Entities/Pickups" unique_id=921473985 instance=ExtResource("6_f7wlm")]
+[node name="E015_initbonus3" parent="Entities/Pickups" unique_id=83300804 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.19, 0, -2.55)
 points = 30
 metadata/wmb_index = 15
@@ -184,7 +185,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E016_initbonus3" parent="Entities/Pickups" unique_id=1107591444 instance=ExtResource("6_f7wlm")]
+[node name="E016_initbonus3" parent="Entities/Pickups" unique_id=577048210 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.83, 0, -6.39)
 points = 30
 metadata/wmb_index = 16
@@ -193,7 +194,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E017_initbonus3" parent="Entities/Pickups" unique_id=1697526012 instance=ExtResource("6_f7wlm")]
+[node name="E017_initbonus3" parent="Entities/Pickups" unique_id=715429610 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.41, 0, 15.53)
 points = 30
 metadata/wmb_index = 17
@@ -202,7 +203,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E018_initbonus3" parent="Entities/Pickups" unique_id=1547176431 instance=ExtResource("6_f7wlm")]
+[node name="E018_initbonus3" parent="Entities/Pickups" unique_id=2141435093 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.93, 0, 5.29)
 points = 30
 metadata/wmb_index = 18
@@ -211,7 +212,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E019_initbonus3" parent="Entities/Pickups" unique_id=395160394 instance=ExtResource("6_f7wlm")]
+[node name="E019_initbonus3" parent="Entities/Pickups" unique_id=1677498938 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.27, 0, 2.6499999)
 points = 30
 metadata/wmb_index = 19
@@ -220,7 +221,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E020_initbonus3" parent="Entities/Pickups" unique_id=696657993 instance=ExtResource("6_f7wlm")]
+[node name="E020_initbonus3" parent="Entities/Pickups" unique_id=2015929665 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.469999, 0, 14.57)
 points = 30
 metadata/wmb_index = 20
@@ -229,7 +230,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E021_initbonus3" parent="Entities/Pickups" unique_id=1085743893 instance=ExtResource("6_f7wlm")]
+[node name="E021_initbonus3" parent="Entities/Pickups" unique_id=800801758 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.51, 0, 18.25)
 points = 30
 metadata/wmb_index = 21
@@ -238,7 +239,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E022_initbonus3" parent="Entities/Pickups" unique_id=1428886473 instance=ExtResource("6_f7wlm")]
+[node name="E022_initbonus3" parent="Entities/Pickups" unique_id=504262675 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.03, 0, -5.19)
 points = 30
 metadata/wmb_index = 22
@@ -247,7 +248,7 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="E023_initbonus3" parent="Entities/Pickups" unique_id=455671267 instance=ExtResource("6_f7wlm")]
+[node name="E023_initbonus3" parent="Entities/Pickups" unique_id=495939851 instance=ExtResource("6_np57x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.2699995, 0, 10.17)
 points = 30
 metadata/wmb_index = 23
@@ -256,11 +257,11 @@ metadata/wmb_file = "gemgr+17.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 30, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="Sky" type="Node3D" parent="Entities" unique_id=2076644859]
+[node name="Sky" type="Node3D" parent="Entities" unique_id=504134764]
 
-[node name="E024_initskymenu" type="Node3D" parent="Entities/Sky" unique_id=1028703486]
+[node name="E024_initskymenu" type="Node3D" parent="Entities/Sky" unique_id=156236243]
 transform = Transform3D(5, 0, 0, 0, 3, 0, 0, 0, 5, -8.8, -93, -2.84)
-script = ExtResource("7_np57x")
+script = ExtResource("7_k08pp")
 asset_id = "model.sky3"
 metadata/wmb_index = 24
 metadata/wmb_action = "initSkyMenu"
@@ -268,14 +269,14 @@ metadata/wmb_file = "sky3.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, -600, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="Visual" parent="Entities/Sky/E024_initskymenu" unique_id=1353589587 instance=ExtResource("8_k08pp")]
+[node name="Visual" parent="Entities/Sky/E024_initskymenu" unique_id=1353589587 instance=ExtResource("8_t3lif")]
 transform = Transform3D(0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01, 0, 0, 0)
 
-[node name="Props" type="Node3D" parent="Entities" unique_id=1036949146]
+[node name="Props" type="Node3D" parent="Entities" unique_id=2033228970]
 
-[node name="E027_initdecor" type="Node3D" parent="Entities/Props" unique_id=1295761354]
+[node name="E027_initdecor" type="Node3D" parent="Entities/Props" unique_id=1319721386]
 transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, -3.76, -0.099999994, 7.3599997)
-script = ExtResource("7_np57x")
+script = ExtResource("7_k08pp")
 asset_id = "model.menu.floor"
 metadata/wmb_index = 27
 metadata/wmb_action = "initDecor"
@@ -283,10 +284,10 @@ metadata/wmb_file = "solmenu5.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, -10, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="Visual" parent="Entities/Props/E027_initdecor" unique_id=1886437917 instance=ExtResource("9_t3lif")]
+[node name="Visual" parent="Entities/Props/E027_initdecor" unique_id=1886437917 instance=ExtResource("9_rh5vv")]
 transform = Transform3D(0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01, 0, 0, 0)
 
-[node name="E040_initmdl" parent="Entities/Props" unique_id=1416437672 instance=ExtResource("10_rh5vv")]
+[node name="E040_initmdl" parent="Entities/Props" unique_id=981268130 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.56003, -0.00041900002, 2.479899)
 metadata/wmb_index = 40
 metadata/wmb_action = "initMDL"
@@ -294,7 +295,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E041_initmdl" parent="Entities/Props" unique_id=1988971375 instance=ExtResource("10_rh5vv")]
+[node name="E041_initmdl" parent="Entities/Props" unique_id=1770875397 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.28003, -0.00041900002, -9.6801)
 metadata/wmb_index = 41
 metadata/wmb_action = "initMDL"
@@ -302,7 +303,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E042_initmdl" parent="Entities/Props" unique_id=1019628554 instance=ExtResource("10_rh5vv")]
+[node name="E042_initmdl" parent="Entities/Props" unique_id=1646471102 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.520027, -0.00041900002, 27.2799)
 metadata/wmb_index = 42
 metadata/wmb_action = "initMDL"
@@ -310,7 +311,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E043_initmdl" parent="Entities/Props" unique_id=473766108 instance=ExtResource("10_rh5vv")]
+[node name="E043_initmdl" parent="Entities/Props" unique_id=1273976946 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.68003196, -0.00041900002, 31.4399)
 metadata/wmb_index = 43
 metadata/wmb_action = "initMDL"
@@ -318,7 +319,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E044_initmdl" parent="Entities/Props" unique_id=2070768867 instance=ExtResource("10_rh5vv")]
+[node name="E044_initmdl" parent="Entities/Props" unique_id=1079205660 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.239967, -0.00041900002, 30.159899)
 metadata/wmb_index = 44
 metadata/wmb_action = "initMDL"
@@ -326,7 +327,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E045_initmdl" parent="Entities/Props" unique_id=874564669 instance=ExtResource("10_rh5vv")]
+[node name="E045_initmdl" parent="Entities/Props" unique_id=1581114959 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.399967, -0.00041900002, -12.880101)
 metadata/wmb_index = 45
 metadata/wmb_action = "initMDL"
@@ -334,7 +335,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E046_initmdl" parent="Entities/Props" unique_id=1102960794 instance=ExtResource("10_rh5vv")]
+[node name="E046_initmdl" parent="Entities/Props" unique_id=743671319 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.919968, -0.00041900002, -22.160099)
 metadata/wmb_index = 46
 metadata/wmb_action = "initMDL"
@@ -342,7 +343,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E047_initmdl" parent="Entities/Props" unique_id=2056091996 instance=ExtResource("10_rh5vv")]
+[node name="E047_initmdl" parent="Entities/Props" unique_id=1828210313 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.19997, -0.00041900002, -12.240101)
 metadata/wmb_index = 47
 metadata/wmb_action = "initMDL"
@@ -350,7 +351,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E048_initmdl" parent="Entities/Props" unique_id=490917979 instance=ExtResource("10_rh5vv")]
+[node name="E048_initmdl" parent="Entities/Props" unique_id=1346442214 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.880032, -0.00041900002, -26.320099)
 metadata/wmb_index = 48
 metadata/wmb_action = "initMDL"
@@ -358,7 +359,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E049_initmdl" parent="Entities/Props" unique_id=1886570478 instance=ExtResource("10_rh5vv")]
+[node name="E049_initmdl" parent="Entities/Props" unique_id=919378934 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.84003, -0.00041900002, 26.9599)
 metadata/wmb_index = 49
 metadata/wmb_action = "initMDL"
@@ -366,7 +367,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E050_initmdl" parent="Entities/Props" unique_id=1640604582 instance=ExtResource("10_rh5vv")]
+[node name="E050_initmdl" parent="Entities/Props" unique_id=150044319 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.840027, -0.00041900002, -18.000101)
 metadata/wmb_index = 50
 metadata/wmb_action = "initMDL"
@@ -374,7 +375,7 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="E051_initmdl" parent="Entities/Props" unique_id=59987688 instance=ExtResource("10_rh5vv")]
+[node name="E051_initmdl" parent="Entities/Props" unique_id=1790404200 instance=ExtResource("10_n7vbk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43.880028, -0.00041900002, 36.2399)
 metadata/wmb_index = 51
 metadata/wmb_action = "initMDL"
@@ -382,9 +383,9 @@ metadata/wmb_file = "cactus1.MDL"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 1, 22, 0)
 metadata/wmb_flags = 0
 
-[node name="Enemies" type="Node3D" parent="Entities" unique_id=470997795]
+[node name="Enemies" type="Node3D" parent="Entities" unique_id=1817184286]
 
-[node name="E038_initlion" parent="Entities/Enemies" unique_id=2000300515 instance=ExtResource("11_n7vbk")]
+[node name="E038_initlion" parent="Entities/Enemies" unique_id=1698726130 instance=ExtResource("11_hdu52")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 10.719999, 0, -0.48)
 react_range = 19.0090002
 run_speed = 1.9199999999999995
@@ -395,9 +396,8 @@ metadata/wmb_action = "InitLion"
 metadata/wmb_file = "nanolion.MDL"
 metadata/wmb_skills = PackedFloat32Array(10, 6, 1900.9, 33.03, 1.2, 1900.9, 0, 4)
 metadata/wmb_flags = 4
-metadata/placeholder_for = "nanolion.mdl"
 
-[node name="E039_initlion" parent="Entities/Enemies" unique_id=1745159208 instance=ExtResource("11_n7vbk")]
+[node name="E039_initlion" parent="Entities/Enemies" unique_id=118627865 instance=ExtResource("12_yoddb")]
 transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, -5.92, 0, 16.32)
 react_range = 19.0090002
 run_speed = 3.3280000000000003
@@ -409,759 +409,759 @@ metadata/wmb_file = "rasta.MDL"
 metadata/wmb_skills = PackedFloat32Array(11, 8, 1900.9, 32.03, 1.26, 1900.9, 0, 4)
 metadata/wmb_flags = 4
 
-[node name="Sprites" type="Node3D" parent="Entities" unique_id=1828990888]
+[node name="Sprites" type="Node3D" parent="Entities" unique_id=157304764]
 
-[node name="E052_initarbre" parent="Entities/Sprites" unique_id=800835920 instance=ExtResource("12_hdu52")]
+[node name="E052_initarbre" parent="Entities/Sprites" unique_id=1163715933 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 18.68, -3.7649999, -18.76)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 52
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E053_initarbre" parent="Entities/Sprites" unique_id=1128229005 instance=ExtResource("12_hdu52")]
+[node name="E053_initarbre" parent="Entities/Sprites" unique_id=292666425 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 18.68, -3.7649999, -18.76)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 53
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E054_initarbre" parent="Entities/Sprites" unique_id=935237383 instance=ExtResource("12_hdu52")]
+[node name="E054_initarbre" parent="Entities/Sprites" unique_id=2054231880 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 10.04, -3.7649999, -18.279999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 54
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E055_initarbre" parent="Entities/Sprites" unique_id=1580442206 instance=ExtResource("12_hdu52")]
+[node name="E055_initarbre" parent="Entities/Sprites" unique_id=433930950 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 10.04, -3.7649999, -18.279999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 55
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E056_initarbre" parent="Entities/Sprites" unique_id=1234056369 instance=ExtResource("12_hdu52")]
+[node name="E056_initarbre" parent="Entities/Sprites" unique_id=501319079 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 36.12, -3.7649999, -15.4)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 56
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E057_initarbre" parent="Entities/Sprites" unique_id=147069639 instance=ExtResource("12_hdu52")]
+[node name="E057_initarbre" parent="Entities/Sprites" unique_id=17456860 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 36.12, -3.7649999, -15.4)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 57
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E058_initarbre" parent="Entities/Sprites" unique_id=1242251524 instance=ExtResource("12_hdu52")]
+[node name="E058_initarbre" parent="Entities/Sprites" unique_id=1524132601 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 37.399998, -3.7649999, -13.639999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 58
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E059_initarbre" parent="Entities/Sprites" unique_id=727300545 instance=ExtResource("12_hdu52")]
+[node name="E059_initarbre" parent="Entities/Sprites" unique_id=1105584654 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 37.399998, -3.7649999, -13.639999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 59
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E060_initarbre" parent="Entities/Sprites" unique_id=614634385 instance=ExtResource("12_hdu52")]
+[node name="E060_initarbre" parent="Entities/Sprites" unique_id=1548433468 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 49.879997, -3.7649999, -5.7999997)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 60
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E061_initarbre" parent="Entities/Sprites" unique_id=1321807053 instance=ExtResource("12_hdu52")]
+[node name="E061_initarbre" parent="Entities/Sprites" unique_id=408552005 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 49.879997, -3.7649999, -5.7999997)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 61
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E062_initarbre" parent="Entities/Sprites" unique_id=1488572527 instance=ExtResource("12_hdu52")]
+[node name="E062_initarbre" parent="Entities/Sprites" unique_id=706257382 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 31.96, -3.7649999, 1.88)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 62
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E063_initarbre" parent="Entities/Sprites" unique_id=729786966 instance=ExtResource("12_hdu52")]
+[node name="E063_initarbre" parent="Entities/Sprites" unique_id=1533055737 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 31.96, -3.7649999, 1.88)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 63
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E064_initarbre" parent="Entities/Sprites" unique_id=987784837 instance=ExtResource("12_hdu52")]
+[node name="E064_initarbre" parent="Entities/Sprites" unique_id=1002413297 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 31.32, -3.7649999, 2.84)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 64
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E065_initarbre" parent="Entities/Sprites" unique_id=221256803 instance=ExtResource("12_hdu52")]
+[node name="E065_initarbre" parent="Entities/Sprites" unique_id=1744822350 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 31.32, -3.7649999, 2.84)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 65
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E066_initarbre" parent="Entities/Sprites" unique_id=1127777734 instance=ExtResource("12_hdu52")]
+[node name="E066_initarbre" parent="Entities/Sprites" unique_id=1947601195 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 43.64, -3.7649999, 6.52)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 66
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E067_initarbre" parent="Entities/Sprites" unique_id=466952950 instance=ExtResource("12_hdu52")]
+[node name="E067_initarbre" parent="Entities/Sprites" unique_id=288439695 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 43.64, -3.7649999, 6.52)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 67
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E068_initarbre" parent="Entities/Sprites" unique_id=580428454 instance=ExtResource("12_hdu52")]
+[node name="E068_initarbre" parent="Entities/Sprites" unique_id=1251878081 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 39.64, -3.7649999, 19.8)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 68
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E069_initarbre" parent="Entities/Sprites" unique_id=1355439122 instance=ExtResource("12_hdu52")]
+[node name="E069_initarbre" parent="Entities/Sprites" unique_id=948345498 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 39.64, -3.7649999, 19.8)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 69
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E070_initarbre" parent="Entities/Sprites" unique_id=1749516257 instance=ExtResource("12_hdu52")]
+[node name="E070_initarbre" parent="Entities/Sprites" unique_id=654933869 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 48.12, -3.7649999, 24.279999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 70
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E071_initarbre" parent="Entities/Sprites" unique_id=1632608885 instance=ExtResource("12_hdu52")]
+[node name="E071_initarbre" parent="Entities/Sprites" unique_id=917353974 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 48.12, -3.7649999, 24.279999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 71
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E072_initarbre" parent="Entities/Sprites" unique_id=454499082 instance=ExtResource("12_hdu52")]
+[node name="E072_initarbre" parent="Entities/Sprites" unique_id=1281079805 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 30.359999, -3.7649999, 22.199999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 72
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E073_initarbre" parent="Entities/Sprites" unique_id=544797884 instance=ExtResource("12_hdu52")]
+[node name="E073_initarbre" parent="Entities/Sprites" unique_id=1460405129 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 30.359999, -3.7649999, 22.199999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 73
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E074_initarbre" parent="Entities/Sprites" unique_id=2061338995 instance=ExtResource("12_hdu52")]
+[node name="E074_initarbre" parent="Entities/Sprites" unique_id=112387683 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 29.72, -3.7649999, 23)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 74
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E075_initarbre" parent="Entities/Sprites" unique_id=1391687458 instance=ExtResource("12_hdu52")]
+[node name="E075_initarbre" parent="Entities/Sprites" unique_id=349362494 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 29.72, -3.7649999, 23)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 75
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E076_initarbre" parent="Entities/Sprites" unique_id=2142418953 instance=ExtResource("12_hdu52")]
+[node name="E076_initarbre" parent="Entities/Sprites" unique_id=838339191 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 32.12, -3.7649999, 31.48)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 76
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E077_initarbre" parent="Entities/Sprites" unique_id=1299730315 instance=ExtResource("12_hdu52")]
+[node name="E077_initarbre" parent="Entities/Sprites" unique_id=303201325 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 32.12, -3.7649999, 31.48)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 77
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E078_initarbre" parent="Entities/Sprites" unique_id=825140039 instance=ExtResource("12_hdu52")]
+[node name="E078_initarbre" parent="Entities/Sprites" unique_id=428327787 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 15.96, -3.7649999, 32.6)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 78
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E079_initarbre" parent="Entities/Sprites" unique_id=1810988429 instance=ExtResource("12_hdu52")]
+[node name="E079_initarbre" parent="Entities/Sprites" unique_id=503030116 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 15.96, -3.7649999, 32.6)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 79
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E080_initarbre" parent="Entities/Sprites" unique_id=1942633066 instance=ExtResource("12_hdu52")]
+[node name="E080_initarbre" parent="Entities/Sprites" unique_id=70674257 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 14.5199995, -3.7649999, 31.8)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 80
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E081_initarbre" parent="Entities/Sprites" unique_id=793008834 instance=ExtResource("12_hdu52")]
+[node name="E081_initarbre" parent="Entities/Sprites" unique_id=1177080226 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 14.5199995, -3.7649999, 31.8)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 81
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E082_initarbre" parent="Entities/Sprites" unique_id=848562566 instance=ExtResource("12_hdu52")]
+[node name="E082_initarbre" parent="Entities/Sprites" unique_id=110442200 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, 3.1599998, -3.7649999, 35.64)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 82
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E083_initarbre" parent="Entities/Sprites" unique_id=1994390408 instance=ExtResource("12_hdu52")]
+[node name="E083_initarbre" parent="Entities/Sprites" unique_id=1211060256 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 3.1599998, -3.7649999, 35.64)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 83
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E084_initarbre" parent="Entities/Sprites" unique_id=2039364649 instance=ExtResource("12_hdu52")]
+[node name="E084_initarbre" parent="Entities/Sprites" unique_id=2146639345 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -9.96, -3.7649999, 26.039999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 84
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E085_initarbre" parent="Entities/Sprites" unique_id=1801086609 instance=ExtResource("12_hdu52")]
+[node name="E085_initarbre" parent="Entities/Sprites" unique_id=1757849968 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -9.96, -3.7649999, 26.039999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 85
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E086_initarbre" parent="Entities/Sprites" unique_id=1910836225 instance=ExtResource("12_hdu52")]
+[node name="E086_initarbre" parent="Entities/Sprites" unique_id=559366000 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -20.68, -3.7649999, 30.199999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 86
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E087_initarbre" parent="Entities/Sprites" unique_id=619794646 instance=ExtResource("12_hdu52")]
+[node name="E087_initarbre" parent="Entities/Sprites" unique_id=1929730995 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -20.68, -3.7649999, 30.199999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 87
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E088_initarbre" parent="Entities/Sprites" unique_id=549785984 instance=ExtResource("12_hdu52")]
+[node name="E088_initarbre" parent="Entities/Sprites" unique_id=806064199 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -31.72, -3.7649999, 24.279999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 88
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E089_initarbre" parent="Entities/Sprites" unique_id=694364888 instance=ExtResource("12_hdu52")]
+[node name="E089_initarbre" parent="Entities/Sprites" unique_id=1330677105 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -31.72, -3.7649999, 24.279999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 89
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E090_initarbre" parent="Entities/Sprites" unique_id=318156022 instance=ExtResource("12_hdu52")]
+[node name="E090_initarbre" parent="Entities/Sprites" unique_id=1667667704 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -41, -3.7649999, 30.519999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 90
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E091_initarbre" parent="Entities/Sprites" unique_id=1221762026 instance=ExtResource("12_hdu52")]
+[node name="E091_initarbre" parent="Entities/Sprites" unique_id=1512142641 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -41, -3.7649999, 30.519999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 91
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E092_initarbre" parent="Entities/Sprites" unique_id=14023074 instance=ExtResource("12_hdu52")]
+[node name="E092_initarbre" parent="Entities/Sprites" unique_id=363152614 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -43.879997, -3.7649999, 20.439999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 92
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E093_initarbre" parent="Entities/Sprites" unique_id=2090250212 instance=ExtResource("12_hdu52")]
+[node name="E093_initarbre" parent="Entities/Sprites" unique_id=612006091 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -43.879997, -3.7649999, 20.439999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 93
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E094_initarbre" parent="Entities/Sprites" unique_id=719452472 instance=ExtResource("12_hdu52")]
+[node name="E094_initarbre" parent="Entities/Sprites" unique_id=318636030 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -25, -3.7649999, 16.279999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 94
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E095_initarbre" parent="Entities/Sprites" unique_id=1668838263 instance=ExtResource("12_hdu52")]
+[node name="E095_initarbre" parent="Entities/Sprites" unique_id=1643200305 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -25, -3.7649999, 16.279999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 95
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E096_initarbre" parent="Entities/Sprites" unique_id=1284236412 instance=ExtResource("12_hdu52")]
+[node name="E096_initarbre" parent="Entities/Sprites" unique_id=1539850860 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -25.16, -3.7649999, 14.5199995)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 96
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E097_initarbre" parent="Entities/Sprites" unique_id=972959983 instance=ExtResource("12_hdu52")]
+[node name="E097_initarbre" parent="Entities/Sprites" unique_id=1973000427 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -25.16, -3.7649999, 14.5199995)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 97
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E098_initarbre" parent="Entities/Sprites" unique_id=2010464375 instance=ExtResource("12_hdu52")]
+[node name="E098_initarbre" parent="Entities/Sprites" unique_id=1658754983 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -39.559998, -3.7649999, 14.5199995)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 98
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E099_initarbre" parent="Entities/Sprites" unique_id=1557165355 instance=ExtResource("12_hdu52")]
+[node name="E099_initarbre" parent="Entities/Sprites" unique_id=1008823520 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -39.559998, -3.7649999, 14.5199995)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 99
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E100_initarbre" parent="Entities/Sprites" unique_id=872328301 instance=ExtResource("12_hdu52")]
+[node name="E100_initarbre" parent="Entities/Sprites" unique_id=1281396710 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -47.399998, -3.7649999, 6.3599997)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 100
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E101_initarbre" parent="Entities/Sprites" unique_id=1369400389 instance=ExtResource("12_hdu52")]
+[node name="E101_initarbre" parent="Entities/Sprites" unique_id=1875845567 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -47.399998, -3.7649999, 6.3599997)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 101
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E102_initarbre" parent="Entities/Sprites" unique_id=734706323 instance=ExtResource("12_hdu52")]
+[node name="E102_initarbre" parent="Entities/Sprites" unique_id=1555848946 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -40.84, -3.7649999, -2.12)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 102
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E103_initarbre" parent="Entities/Sprites" unique_id=806754473 instance=ExtResource("12_hdu52")]
+[node name="E103_initarbre" parent="Entities/Sprites" unique_id=1469054018 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -40.84, -3.7649999, -2.12)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 103
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E104_initarbre" parent="Entities/Sprites" unique_id=1537503584 instance=ExtResource("12_hdu52")]
+[node name="E104_initarbre" parent="Entities/Sprites" unique_id=638621568 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -41.64, -3.7649999, -3.24)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 104
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E105_initarbre" parent="Entities/Sprites" unique_id=376229455 instance=ExtResource("12_hdu52")]
+[node name="E105_initarbre" parent="Entities/Sprites" unique_id=1050446502 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -41.64, -3.7649999, -3.24)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 105
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E106_initarbre" parent="Entities/Sprites" unique_id=2126098999 instance=ExtResource("12_hdu52")]
+[node name="E106_initarbre" parent="Entities/Sprites" unique_id=966886628 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -28.199999, -3.7649999, -3.3999999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 106
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E107_initarbre" parent="Entities/Sprites" unique_id=1250695716 instance=ExtResource("12_hdu52")]
+[node name="E107_initarbre" parent="Entities/Sprites" unique_id=1056075619 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -28.199999, -3.7649999, -3.3999999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 107
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E108_initarbre" parent="Entities/Sprites" unique_id=778772188 instance=ExtResource("12_hdu52")]
+[node name="E108_initarbre" parent="Entities/Sprites" unique_id=1810909945 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -39.879997, -3.7649999, -13.799999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 108
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E109_initarbre" parent="Entities/Sprites" unique_id=591654318 instance=ExtResource("12_hdu52")]
+[node name="E109_initarbre" parent="Entities/Sprites" unique_id=440241088 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -39.879997, -3.7649999, -13.799999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 109
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E110_initarbre" parent="Entities/Sprites" unique_id=270480763 instance=ExtResource("12_hdu52")]
+[node name="E110_initarbre" parent="Entities/Sprites" unique_id=1239316892 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -44.36, -3.7649999, -20.84)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 110
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E111_initarbre" parent="Entities/Sprites" unique_id=325357175 instance=ExtResource("12_hdu52")]
+[node name="E111_initarbre" parent="Entities/Sprites" unique_id=1579130073 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -44.36, -3.7649999, -20.84)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 111
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E112_initarbre" parent="Entities/Sprites" unique_id=1485847008 instance=ExtResource("12_hdu52")]
+[node name="E112_initarbre" parent="Entities/Sprites" unique_id=1013714627 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -30.92, -3.7649999, -26.599998)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 112
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E113_initarbre" parent="Entities/Sprites" unique_id=1783146967 instance=ExtResource("12_hdu52")]
+[node name="E113_initarbre" parent="Entities/Sprites" unique_id=1909980117 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30.92, -3.7649999, -26.599998)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 113
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E114_initarbre" parent="Entities/Sprites" unique_id=311153875 instance=ExtResource("12_hdu52")]
+[node name="E114_initarbre" parent="Entities/Sprites" unique_id=782569947 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -19.24, -3.7649999, -20.52)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 114
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E115_initarbre" parent="Entities/Sprites" unique_id=252073107 instance=ExtResource("12_hdu52")]
+[node name="E115_initarbre" parent="Entities/Sprites" unique_id=1848585025 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -19.24, -3.7649999, -20.52)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 115
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E116_initarbre" parent="Entities/Sprites" unique_id=1750850225 instance=ExtResource("12_hdu52")]
+[node name="E116_initarbre" parent="Entities/Sprites" unique_id=2007178912 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -18.279999, -3.7649999, -20.84)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 116
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E117_initarbre" parent="Entities/Sprites" unique_id=582382025 instance=ExtResource("12_hdu52")]
+[node name="E117_initarbre" parent="Entities/Sprites" unique_id=685858054 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -18.279999, -3.7649999, -20.84)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 117
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E118_initarbre" parent="Entities/Sprites" unique_id=1569443360 instance=ExtResource("12_hdu52")]
+[node name="E118_initarbre" parent="Entities/Sprites" unique_id=105849275 instance=ExtResource("13_l81a1")]
 transform = Transform3D(0.9998477, 0, 0.017452406, 0, 1, 0, -0.017452406, 0, 0.9998477, -13.48, -3.7649999, -20.199999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 118
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="E119_initarbre" parent="Entities/Sprites" unique_id=849370233 instance=ExtResource("12_hdu52")]
+[node name="E119_initarbre" parent="Entities/Sprites" unique_id=1952881958 instance=ExtResource("13_l81a1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -13.48, -3.7649999, -20.199999)
 pixel_size = 0.015
 alpha_cut = 1
-texture = ExtResource("13_yoddb")
+texture = ExtResource("14_30s1e")
 metadata/wmb_index = 119
 metadata/wmb_action = "initarbre"
 metadata/wmb_file = "herbes1.pcx"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 100, 0)
 metadata/wmb_flags = 0
 
-[node name="Gates" type="Node3D" parent="Entities" unique_id=217611426]
+[node name="Gates" type="Node3D" parent="Entities" unique_id=876113015]
 
-[node name="E120_initdoor" parent="Entities/Gates" unique_id=413486166 instance=ExtResource("14_l81a1")]
+[node name="E120_initdoor" parent="Entities/Gates" unique_id=487499012 instance=ExtResource("15_b8luc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -9.599999)
 use_wdl_door_fields = true
 wdl_skill6_required_key = 7
@@ -1176,7 +1176,7 @@ metadata/wmb_file = "doorexit.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 250, 0, 40, 0, 7, 25, 0)
 metadata/wmb_flags = 64
 
-[node name="E123_initdoor" parent="Entities/Gates" unique_id=1711083684 instance=ExtResource("14_l81a1")]
+[node name="E123_initdoor" parent="Entities/Gates" unique_id=1646167083 instance=ExtResource("15_b8luc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.72)
 use_wdl_door_fields = true
 wdl_skill6_required_key = 6
@@ -1193,9 +1193,9 @@ metadata/wmb_file = "dfixgree.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 250, 0, 40, 60, 6, 25, 0)
 metadata/wmb_flags = 80
 
-[node name="Pads" type="Node3D" parent="Entities" unique_id=1929398441]
+[node name="Pads" type="Node3D" parent="Entities" unique_id=1957911493]
 
-[node name="E121_initexit" parent="Entities/Pads" unique_id=2051361343 instance=ExtResource("15_30s1e")]
+[node name="E121_initexit" parent="Entities/Pads" unique_id=1586864886 instance=ExtResource("16_afygr")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.08, -11.12)
 metadata/wmb_index = 121
 metadata/wmb_action = "initExit"
@@ -1203,11 +1203,11 @@ metadata/wmb_file = "tileexit.wmb"
 metadata/wmb_skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
 metadata/wmb_flags = 0
 
-[node name="Config" type="Node3D" parent="." unique_id=918592100]
+[node name="Config" type="Node3D" parent="." unique_id=324614496]
 
-[node name="E028_initextraballes" type="Marker3D" parent="Config" unique_id=1599208507]
+[node name="E028_initextraballes" type="Marker3D" parent="Config" unique_id=330622390]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.125, -3.6, -4)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 28
 action = "initextraballes"
 source_action = "initextraballes"
@@ -1216,9 +1216,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(-1112.5, 400, -360)
 
-[node name="E029_initnextraballes" type="Marker3D" parent="Config" unique_id=109799511]
+[node name="E029_initnextraballes" type="Marker3D" parent="Config" unique_id=347738998]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.125, -3.6, -2.7)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 29
 action = "initnextraballes"
 source_action = "initNextraballes"
@@ -1227,9 +1227,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0)
 acknex_position = Vector3(-1112.5, 270, -360)
 
-[node name="E030_initgame" type="Marker3D" parent="Config" unique_id=477765206]
+[node name="E030_initgame" type="Marker3D" parent="Config" unique_id=1521436165]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.125, -3.6, -1.4399999)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 30
 action = "initgame"
 source_action = "initgame"
@@ -1239,9 +1239,9 @@ skills = PackedFloat32Array(25, -64, -524, 0, 3000, 0, 600, 0)
 flags = 1
 acknex_position = Vector3(-1112.5, 144, -360)
 
-[node name="E031_initcamera2" type="Marker3D" parent="Config" unique_id=1475107176]
+[node name="E031_initcamera2" type="Marker3D" parent="Config" unique_id=777280309]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.014999, -3.4099998, 0.07)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 31
 action = "initcamera2"
 source_action = "initcamera2"
@@ -1250,9 +1250,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(10, 0, 1, 0.1, 1, 2, 0, 0)
 acknex_position = Vector3(-1101.5, -7, -341)
 
-[node name="E032_initpublic" type="Marker3D" parent="Config" unique_id=1075488311]
+[node name="E032_initpublic" type="Marker3D" parent="Config" unique_id=640592261]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.125, -3.6, 1.12)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 32
 action = "initpublic"
 source_action = "initpublic"
@@ -1261,9 +1261,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(54, 78, 875, 0, 0, 0, 0, 0)
 acknex_position = Vector3(-1112.5, -112, -360)
 
-[node name="E033_initcamera3" type="Marker3D" parent="Config" unique_id=1251998887]
+[node name="E033_initcamera3" type="Marker3D" parent="Config" unique_id=1376978500]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.295, -3.4099998, 0.07)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 33
 action = "initcamera3"
 source_action = "initcamera3"
@@ -1272,9 +1272,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(0, 0, 0, 1, 64, 0, 0, 0.6)
 acknex_position = Vector3(-1229.5, -7, -341)
 
-[node name="E034_initgame2" type="Marker3D" parent="Config" unique_id=1328772484]
+[node name="E034_initgame2" type="Marker3D" parent="Config" unique_id=669535572]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.425, -3.28, -1.4599999)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 34
 action = "initgame2"
 source_action = "initgame2"
@@ -1284,9 +1284,9 @@ skills = PackedFloat32Array(5, -500, -1000, 500, 45, 30, 0, 0)
 flags = 14
 acknex_position = Vector3(-1242.5, 146, -328)
 
-[node name="E035_initgame4" type="Marker3D" parent="Config" unique_id=27937208]
+[node name="E035_initgame4" type="Marker3D" parent="Config" unique_id=236605755]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.785, -3.28, -1.3)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 35
 action = "initgame4"
 source_action = "initgame4"
@@ -1296,9 +1296,9 @@ skills = PackedFloat32Array(0.5, 0.5, 20000, 0, 0, 0, 0, 0)
 flags = 14
 acknex_position = Vector3(-1378.5, 130, -328)
 
-[node name="E036_initgame3" type="Marker3D" parent="Config" unique_id=1124888141]
+[node name="E036_initgame3" type="Marker3D" parent="Config" unique_id=585738325]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.705, -2.48, -0.16)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 36
 action = "initgame3"
 source_action = "initgame3"
@@ -1307,9 +1307,9 @@ source_file = "small.pcx"
 skills = PackedFloat32Array(30, 4.5, 60, 23.5, -12, 3, 0, 0)
 acknex_position = Vector3(-1370.5, 16, -248)
 
-[node name="E037_initgame5" type="Marker3D" parent="Config" unique_id=1231606988]
+[node name="E037_initgame5" type="Marker3D" parent="Config" unique_id=1903009549]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.224999, -3.28, -1.3)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 37
 action = "initgame5"
 source_action = "initgame5"
@@ -1319,9 +1319,9 @@ skills = PackedFloat32Array(10, 9, 0, 0.9, 0, 100, 0.3, 0)
 flags = 14
 acknex_position = Vector3(-1522.5, 130, -328)
 
-[node name="E122_initcamera1" type="Marker3D" parent="Config" unique_id=561513283]
+[node name="E122_initcamera1" type="Marker3D" parent="Config" unique_id=180236660]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.16, -0.71999997, 3.413333)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 122
 action = "initcamera1"
 source_action = "initcamera1"
@@ -1331,11 +1331,11 @@ skills = PackedFloat32Array(400, 400, 400, 600, 100, 500, 180, 200)
 flags = 9
 acknex_position = Vector3(-416, -341.3333, -72)
 
-[node name="Unmapped" type="Node3D" parent="." unique_id=1014632877]
+[node name="Unmapped" type="Node3D" parent="." unique_id=126170269]
 
-[node name="E026_inittitle" type="Marker3D" parent="Unmapped" unique_id=1356889325]
+[node name="E026_inittitle" type="Marker3D" parent="Unmapped" unique_id=1209435657]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.16, 1.5999999, -5.8399997)
-script = ExtResource("16_b8luc")
+script = ExtResource("17_h2obr")
 source_index = 26
 action = "inittitle"
 source_action = "inittitle"
@@ -1346,20 +1346,20 @@ flags = 16
 acknex_position = Vector3(-1016, 584, 160)
 acknex_scale = Vector3(0.38, 0.38, 0.38)
 
-[node name="PlayerStart" type="Marker3D" parent="." unique_id=1747002989]
+[node name="PlayerStart" type="Marker3D" parent="." unique_id=522281497]
 transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, -10.16, 1.28, -6.3599997)
 
-[node name="LevelCamera" type="Camera3D" parent="." unique_id=479003373]
-script = ExtResource("17_afygr")
+[node name="LevelCamera" type="Camera3D" parent="." unique_id=1818272234]
+script = ExtResource("18_qg1ak")
 target_path = NodePath("../Player")
 
-[node name="DebugOverlay" parent="." unique_id=2076259862 instance=ExtResource("18_h2obr")]
+[node name="DebugOverlay" parent="." unique_id=1055844822 instance=ExtResource("19_02d31")]
 player_path = NodePath("../Player")
 label_position = Vector2(12, 60)
 
-[node name="KeyDiamondPanel" parent="." unique_id=55845759 instance=ExtResource("19_qg1ak")]
+[node name="KeyDiamondPanel" parent="." unique_id=1554052112 instance=ExtResource("20_hpb3k")]
 player_path = NodePath("../Player")
 screen_position = Vector2(582, 5)
 
-[node name="LevelHud" parent="." unique_id=357612775 instance=ExtResource("20_02d31")]
+[node name="LevelHud" parent="." unique_id=529415864 instance=ExtResource("21_j2b11")]
 player_path = NodePath("../Player")

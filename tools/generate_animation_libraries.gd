@@ -69,6 +69,54 @@ const MODEL_CONFIGS := [
         }
     },
     {
+        "name": "nanolion",
+        "gltf_path": "res://assets/models/nanolion/nanolion_animated.gltf",
+        "output_path": "res://assets/animations/nanolion_clips.tres",
+        "looping": ["stand", "AltStand", "walk", "run"],
+        "step_speeds": {
+            "stand": 3.0,
+            "AltStand": 3.0,
+            "rugit": 4.0,
+            "attack": 6.0,
+            "hit": 10.0,
+            "walk": 0.82,
+            "run": 0.3,
+            "death": 4.0
+        }
+    },
+    {
+        "name": "rocker",
+        "gltf_path": "res://assets/models/rockerA/rockerA_animated.gltf",
+        "output_path": "res://assets/animations/rocker_clips.tres",
+        "looping": ["stand", "AltStand", "walk", "run"],
+        "step_speeds": {
+            "stand": 3.0,
+            "AltStand": 3.0,
+            "rugit": 4.0,
+            "attack": 6.0,
+            "hit": 10.0,
+            "walk": 0.82,
+            "run": 0.3,
+            "death": 4.0
+        }
+    },
+    {
+        "name": "hippie",
+        "gltf_path": "res://assets/models/hippie/hippie_animated.gltf",
+        "output_path": "res://assets/animations/hippie_clips.tres",
+        "looping": ["stand", "AltStand", "walk", "run"],
+        "step_speeds": {
+            "stand": 3.0,
+            "AltStand": 3.0,
+            "rugit": 4.0,
+            "attack": 6.0,
+            "hit": 10.0,
+            "walk": 0.82,
+            "run": 0.3,
+            "death": 4.0
+        }
+    },
+    {
         "name": "scorpion",
         "gltf_path": "res://assets/models/scorpion/scorpion_animated.gltf",
         "output_path": "res://assets/animations/scorpion_clips.tres",

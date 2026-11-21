@@ -50,6 +50,36 @@ const CATALOG := {
         "animation_library": "res://assets/animations/punk_clips.tres",
         "default_animation": "stand"
     },
+    "model.nanolion.animated": {
+        "path": "res://assets/models/nanolion/nanolion_animated.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/nanolion/nanolion_animated.gltf",
+        "kind": "model",
+        "description": "Nanolion enemy morph-target animation model",
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
+        "ground_to_floor": true,
+        "animation_library": "res://assets/animations/nanolion_clips.tres",
+        "default_animation": "stand"
+    },
+    "model.rocker.animated": {
+        "path": "res://assets/models/rockerA/rockerA_animated.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/rockerA/rockerA_animated.gltf",
+        "kind": "model",
+        "description": "Rocker enemy morph-target animation model",
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
+        "ground_to_floor": true,
+        "animation_library": "res://assets/animations/rocker_clips.tres",
+        "default_animation": "stand"
+    },
+    "model.hippie.animated": {
+        "path": "res://assets/models/hippie/hippie_animated.gltf",
+        "source": "extract-sammy-assets/extracted/godot/models/hippie/hippie_animated.gltf",
+        "kind": "model",
+        "description": "Hippie enemy morph-target animation model",
+        "rotation_degrees": ACKNEX_CHARACTER_FORWARD_ROTATION,
+        "ground_to_floor": true,
+        "animation_library": "res://assets/animations/hippie_clips.tres",
+        "default_animation": "stand"
+    },
     "model.scorpion.animated": {
         "path": "res://assets/models/scorpion/scorpion_animated.gltf",
         "source": "extract-sammy-assets/extracted/godot/models/scorpion/scorpion_animated.gltf",

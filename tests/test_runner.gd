@@ -283,6 +283,11 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(assets.load_asset("model.rasta.animated") != null, "Unable to load copied rasta model resource.")
     _expect(assets.load_asset("model.punk.animated") != null, "Unable to load copied punk model resource.")
     _expect(assets.load_asset("model.scorpion.animated") != null, "Unable to load copied scorpion model resource.")
+    for lion_model_id in ["model.nanolion.animated", "model.rocker.animated", "model.hippie.animated"]:
+        _expect(assets.load_asset(lion_model_id) != null, "Unable to load copied enemy model resource: %s" % lion_model_id)
+        _expect(assets.get_model_rotation_degrees(lion_model_id).is_equal_approx(Vector3(0.0, 90.0, 0.0)), "%s should use the Acknex character forward correction." % lion_model_id)
+        _expect(assets.should_ground_model(lion_model_id), "%s should be grounded to the floor." % lion_model_id)
+        _expect(assets.get_model_default_animation(lion_model_id) == "stand", "%s should expose a default stand animation." % lion_model_id)
     _expect(assets.load_asset("model.boost") != null, "Unable to load copied boost model resource.")
     for platform_asset_id in [
         "model.platform.default",
@@ -1153,6 +1158,16 @@ func _test_animation_libraries() -> void:
             ["stand", "AltStand", "rugit", "attack", "hit", "walk", "run", "death"],
             ["stand", "walk", "run"]
     )
+    # nanolion/rockerA/hippie share the rasta MDL frame layout and anims.wdl timing.
+    for lion_clips in ["nanolion", "rocker", "hippie"]:
+        var lion_library := "res://assets/animations/%s_clips.tres" % lion_clips
+        _expect_animation_library(
+                lion_library,
+                ["stand", "AltStand", "rugit", "attack", "hit", "walk", "run", "death"],
+                ["stand", "walk", "run"]
+        )
+        _expect_clip_length(lion_library, "walk", 100.0 / (0.82 * 16.0 * 1.12))
+        _expect_clip_length(lion_library, "run", 100.0 / (0.3 * 16.0 * 1.12))
     _expect_animation_library(
             "res://assets/animations/scorpion_clips.tres",
             ["stand", "rugit", "attack", "hit", "walk", "run", "death"],
@@ -7101,6 +7116,39 @@ func _test_level_entities_json() -> void:
                     if overlay_texture != null and overlay_texture.resource_path.ends_with("grate1_skin0_overlay.png"):
                         overlay_props += 1
         _expect(overlay_props == 102, "All 102 178d_t InitMDL grates should use the black-keyed overlay skin.")
+
+    _test_baked_level_enemy_prefabs(builder.call("converted_level_stems") as PackedStringArray)
+
+
+## Every InitLion model file has its own prefab; none may fall back to the
+## rasta stand-in (`placeholder_for` meta).
+func _test_baked_level_enemy_prefabs(stems: PackedStringArray) -> void:
+    var expected := {
+        "res://scenes/enemies/nanolion_enemy.tscn": 70,
+        "res://scenes/enemies/rocker_enemy.tscn": 46,
+        "res://scenes/enemies/hippie_enemy.tscn": 15,
+        "res://scenes/enemies/scorpion_enemy.tscn": 36,
+        "res://scenes/enemies/rasta_enemy.tscn": 28,
+        "res://scenes/enemies/punk_enemy.tscn": 2,
+    }
+    var counts := {}
+    var placeholders := 0
+    for stem in stems:
+        var level := load("res://scenes/levels/generated/%s.tscn" % stem) as PackedScene
+        if level == null:
+            _expect(false, "Baked level %s should load." % stem)
+            continue
+        var state := level.get_state()
+        for node_index in state.get_node_count():
+            var instance := state.get_node_instance(node_index)
+            if instance != null and expected.has(instance.resource_path):
+                counts[instance.resource_path] = int(counts.get(instance.resource_path, 0)) + 1
+            for property_index in state.get_node_property_count(node_index):
+                if state.get_node_property_name(node_index, property_index) == &"metadata/placeholder_for":
+                    placeholders += 1
+    for scene_path: String in expected:
+        _expect(int(counts.get(scene_path, 0)) == int(expected[scene_path]), "Baked levels should place %d %s enemies (got %d)." % [expected[scene_path], scene_path.get_file(), int(counts.get(scene_path, 0))])
+    _expect(placeholders == 0, "No baked enemy should still be a rasta stand-in (found %d placeholder_for metas)." % placeholders)
 
 
 func _test_level_select_routes(game: Node) -> void:

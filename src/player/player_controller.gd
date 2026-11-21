@@ -31,9 +31,10 @@ const CENTER_FLOOR_RAY_START_HEIGHT := 0.2
 const SLOPE_FLOOR_MAX_DISTANCE := 0.32
 const SLOPE_STOP_SPEED := 0.05
 const SLOPE_DOWNHILL_TURN_RATE := 0.05
-# Acknex A5 fps_max defaults to 70 (sammypolish.exe variable table), so
-# per-frame WDL increments run 70/16 times per tick.
-const ORIGINAL_FRAMES_PER_TICK := 70.0 / 16.0
+# Per-frame WDL increments (no `*time`) run once per frame: the engine caps at
+# fps_max 70, and a vsynced 60 Hz display (the reference setup, see
+# WdlParticles) runs it at 60, so 60/16 times per tick.
+const ORIGINAL_FRAMES_PER_TICK := 60.0 / 16.0
 const SLOPE_STATE_NONE := 0
 const SLOPE_STATE_MEDIUM := 1
 const SLOPE_STATE_BIG := 2
@@ -1172,9 +1173,9 @@ func _center_floor_hit(max_distance_below_feet: float) -> Dictionary:
 
 ## player.wdl handlePente: on a floor whose normal is steeper than
 ## SlopeAngleMin (within 32 quants under the feet) the slide builds up by
-## Accpente * (1 - normal.z) per frame (not scaled by time; the engine runs at
-## its fps_max default of 70) towards normal.xy * ForcePente; off the slope it
-## decays with `accel` AmortiPenteEnd friction.
+## Accpente * (1 - normal.z) per frame (not scaled by time) towards
+## normal.xy * ForcePente; off the slope it decays with `accel` AmortiPenteEnd
+## friction.
 func _update_slope_slide(delta: float) -> void:
     _slope_state = SLOPE_STATE_NONE
     if not bool(movement_config.slope_sliding_enabled):

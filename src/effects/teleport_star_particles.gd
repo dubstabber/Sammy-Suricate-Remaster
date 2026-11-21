@@ -15,7 +15,8 @@ const MIN_WDL_SIZE := 100.0
 
 @export var star_texture_asset_ids: Array[String] = DEFAULT_STAR_TEXTURES.duplicate()
 @export var idle_enabled: bool = true
-@export var idle_emit_interval_seconds: float = 4.0 / ACKNEX_TICKS_PER_SECOND
+## mm1.wdl InitTeleport: `If (ticks1 % 4 == 0) emit; waitt 1;`
+@export var idle_emit_interval_seconds: float = WdlParticlesScript.ticks1_emit_interval(4, 1.0)
 @export var auto_free_when_empty: bool = false
 
 var _textures: Array[Texture2D] = []
@@ -121,7 +122,7 @@ func _update_particles(delta: float) -> void:
 			WdlParticlesScript.set_sprite_texture(sprite, _textures[randi_range(0, _textures.size() - 1)], true)
 			particle["next_map_tick"] = float(particle["next_map_tick"]) + float(particle["map_interval_ticks"])
 		var velocity := particle["velocity"] as Vector3
-		var damping := WdlParticlesScript.damping(float(particle["damping"]), delta)
+		var damping := WdlParticlesScript.frame_damping(float(particle["damping"]), delta)
 		velocity.x *= damping
 		velocity.z *= damping
 		velocity.y += float(particle["lift"]) * delta

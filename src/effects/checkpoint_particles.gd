@@ -12,7 +12,8 @@ const DEFAULT_GREEN_TEXTURES: Array[String] = [
 
 @export var green_texture_asset_ids: Array[String] = DEFAULT_GREEN_TEXTURES.duplicate()
 @export var idle_enabled: bool = true
-@export var idle_emit_interval_seconds: float = 4.0 / ACKNEX_TICKS_PER_SECOND
+## mm1.wdl InitRestart: `If (Ticks1 % 4 == 0) emit; waitt 1;`
+@export var idle_emit_interval_seconds: float = WdlParticlesScript.ticks1_emit_interval(4, 1.0)
 @export var idle_emit_offset: Vector3 = Vector3(0.0, -1.0, 0.0)
 @export var auto_free_when_empty: bool = false
 
@@ -143,7 +144,7 @@ func _update_particles(delta: float) -> void:
 			continue
 
 		var velocity := particle["velocity"] as Vector3
-		var damping := WdlParticlesScript.damping(0.9, delta)
+		var damping := WdlParticlesScript.frame_damping(0.9, delta)
 		velocity.x *= damping
 		velocity.z *= damping
 		velocity.y += WdlParticlesScript.acceleration(1.0) * delta

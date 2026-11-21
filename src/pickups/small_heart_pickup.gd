@@ -205,8 +205,8 @@ func _emit_heart_burst() -> void:
 	if _particle_texture == null:
 		return
 	for _index in maxi(particle_count, 0):
+		# MY_COLOR (250, 0, 0) does not tint bitmap particles; Parthearth1 is red.
 		var sprite := WdlParticlesScript.make_sprite("SmallHeartParticle", _particle_texture, true)
-		sprite.modulate = Color(1.0, 0.0, 0.0, 1.0)
 		var size := PARTICLE_BASE_SIZE + WdlParticlesScript.wdl_random(PARTICLE_SIZE_RANDOM)
 		WdlParticlesScript.set_sprite_size(sprite, size)
 		add_child(sprite)

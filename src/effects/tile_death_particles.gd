@@ -20,7 +20,8 @@ const MAX_WDL_SIZE := 2500.0
 
 @export var smoke_texture_asset_ids: Array[String] = DEFAULT_SMOKE_TEXTURES.duplicate()
 @export var idle_enabled: bool = true
-@export var idle_emit_interval_seconds: float = 2.0 / ACKNEX_TICKS_PER_SECOND
+## mm1.wdl InitTileDeath: `emit 1; waitt 2;`
+@export var idle_emit_interval_seconds: float = WdlParticlesScript.waitt_interval(2.0)
 @export var auto_free_when_empty: bool = false
 
 var _textures: Array[Texture2D] = []
@@ -122,7 +123,7 @@ func _update_particles(delta: float) -> void:
 			WdlParticlesScript.set_sprite_texture(sprite, texture, true)
 
 		var velocity := particle["velocity"] as Vector3
-		var damping := WdlParticlesScript.damping(0.9, delta)
+		var damping := WdlParticlesScript.frame_damping(0.9, delta)
 		velocity.x *= damping
 		velocity.z *= damping
 		velocity.y += WdlParticlesScript.acceleration(1.0) * delta

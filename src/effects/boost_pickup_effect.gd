@@ -227,7 +227,9 @@ func _sample_vertex_position(vertex_index: int, fallback_index: int) -> Vector3:
 func _create_particle_material(texture: Texture2D) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_texture = texture
-	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	# particle_Boost1 is My_Flare: alpha-blended at vertex alpha 250, not additive.
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	material.albedo_color = Color(1.0, 1.0, 1.0, 250.0 / 255.0)
 	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	material.billboard_keep_scale = true
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED

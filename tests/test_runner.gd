@@ -157,6 +157,7 @@ func _run() -> void:
     await _test_player_wdl_level_jump()
     await _test_player_wdl_slope_slide()
     _test_level_wdl_physics_and_teleports()
+    _test_wdl_particle_render_rules()
     _test_wdl_gem_and_heart_particles()
     await _test_player_death_lives_core()
     await _test_player_scene()
@@ -5374,12 +5375,12 @@ func _test_player_wdl_slope_slide() -> void:
     for _frame in 6:
         await physics_frame
     var start := player.global_position
-    for _frame in 60:
+    for _frame in 90:
         await physics_frame
     var slide := player.call("get_slope_slide_velocity") as Vector3
     _expect(slide.z > 0.5 and absf(slide.x) < 0.01, "The slope slide should build up downhill (got %s)." % slide)
     _expect(player.global_position.z > start.z + 0.5 and player.global_position.y < start.y, "Sammy should slide down the slope without input.")
-    _expect(bool(player.call("is_on_big_slope")), "A 26-degree slope should reach the original BigSlope speed within a second.")
+    _expect(bool(player.call("is_on_big_slope")), "A 26-degree slope should reach the original BigSlope speed (10 quants/tick) in about 1.1 s.")
     player.queue_free()
     ramp.queue_free()
     await process_frame
@@ -5418,6 +5419,24 @@ func _test_level_wdl_physics_and_teleports() -> void:
     lowered_jump.free()
 
 
+## sammypolish.exe particle render/update rules (see WdlParticles).
+func _test_wdl_particle_render_rules() -> void:
+    var star := load("res://assets/textures/particles/StarHit2.png") as Texture2D
+    var sprite := WdlParticles.make_sprite("RuleStar", star, true)
+    WdlParticles.set_sprite_size(sprite, 3000.0)
+    var star_size := sprite.pixel_size * float(maxi(star.get_width(), star.get_height()))
+    _expect(absf(star_size - 0.432) < 0.002, "MY_SIZE 3000 should be 0.43 m at the original 640x480 / arc 60 scale (got %.3f)." % star_size)
+    var material := sprite.material_override as StandardMaterial3D
+    _expect(material != null and material.blend_mode == BaseMaterial3D.BLEND_MODE_MIX, "My_Flare particles should alpha-blend (D3D SRCALPHA/INVSRCALPHA), not add.")
+    _expect(material != null and is_equal_approx(material.albedo_color.a, 250.0 / 255.0), "My_Flare particles should use the engine's vertex alpha 250.")
+    _expect(material != null and material.texture_filter == BaseMaterial3D.TEXTURE_FILTER_LINEAR, "Particles should be bilinear-filtered like the D3D renderer.")
+    sprite.free()
+    _expect(is_equal_approx(WdlParticles.ticks1_emit_interval(4, 1.0), 4.0 / 60.0), "`ticks1 % 4` in a `waitt 1` loop should emit every loop at the 60 fps reference.")
+    _expect(is_equal_approx(WdlParticles.ticks1_emit_interval(6, 1.0), 12.0 / 60.0), "`ticks1 % 6` in a `waitt 1` loop should emit every third loop at 60 fps.")
+    _expect(is_equal_approx(WdlParticles.waitt_interval(2.0), 8.0 / 60.0), "`waitt 2` should resume after 8 frames at 60 fps.")
+    _expect(is_equal_approx(WdlParticles.frame_damping(0.9, 1.0 / 60.0), 0.9), "Per-frame `*= 0.9` damping should apply once per reference frame.")
+
+
 func _test_wdl_gem_and_heart_particles() -> void:
     var effect := GemParticleEffect.new()
     root.add_child(effect)
@@ -5440,8 +5459,8 @@ func _test_wdl_gem_and_heart_particles() -> void:
     var fragment := explosion.get_child(0) as Sprite3D
     if fragment != null and fragment.texture != null:
         var fragment_size := fragment.pixel_size * float(maxi(fragment.texture.get_width(), fragment.texture.get_height()))
-        _expect(fragment_size > 0.19 and fragment_size < 0.23, "GemExplose fragments should be 2000-2200 WDL size (0.2 m), got %.3f." % fragment_size)
-        _expect(fragment.material_override is StandardMaterial3D and (fragment.material_override as StandardMaterial3D).blend_mode == BaseMaterial3D.BLEND_MODE_ADD, "Gem fragments should be additive My_Flare sprites.")
+        _expect(fragment_size > 0.28 and fragment_size < 0.32, "GemExplose fragments should be 2000-2200 WDL size (0.29-0.32 m at 640x480), got %.3f." % fragment_size)
+        _expect(fragment.material_override is StandardMaterial3D and (fragment.material_override as StandardMaterial3D).blend_mode == BaseMaterial3D.BLEND_MODE_MIX, "Gem fragments should be alpha-blended My_Flare sprites (D3D SRCALPHA/INVSRCALPHA).")
     explosion.free()
 
     var heart := (load(SMALL_HEART_PICKUP_SCENE_PATH) as PackedScene).instantiate()
@@ -6359,7 +6378,7 @@ func _test_prototype_world() -> void:
                         _expect(particle_material != null, "Boost pickup GPU draw pass should use a 3D particle material.")
                         if particle_material != null:
                             _expect(particle_material.albedo_texture == assets.load_asset("texture.particle.small_star_1a"), "Boost pickup GPU particles should use the original boost star texture.")
-                            _expect(particle_material.blend_mode == BaseMaterial3D.BLEND_MODE_ADD, "Boost pickup GPU particles should use additive blending.")
+                            _expect(particle_material.blend_mode == BaseMaterial3D.BLEND_MODE_MIX, "Boost pickup GPU particles should be alpha-blended like the original My_Flare particles.")
                             _expect(particle_material.billboard_mode == BaseMaterial3D.BILLBOARD_ENABLED, "Boost pickup GPU particles should billboard like the previous sparkle quads.")
                             _expect(particle_material.billboard_keep_scale, "Boost pickup GPU billboard particles should preserve particle scale-over-lifetime.")
                             _expect(particle_material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "Boost pickup GPU particles should stay unshaded.")

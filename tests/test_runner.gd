@@ -477,13 +477,14 @@ func _test_asset_catalog(assets: Node) -> void:
     _expect(menu_music != null, "Unable to load original main-menu MIDI render.")
     if menu_music != null:
         var menu_music_length := menu_music.get_length()
-        _expect(menu_music_length > 227.5 and menu_music_length < 228.5, "Main menu music should use the TiMidity GM render, not the old libmodplug MIDI approximation.")
-    # Level tracks are TiMidity + Windows gm.dls renders like sammy01 (tools/render_midi_music.py).
-    # The old libopenmpt extraction renders had different lengths and instruments.
-    var level_track_lengths := {"music.sammy02": 67.83, "music.sammy03": 195.0, "music.sammy04": 126.41, "music.sammy05": 92.35, "music.sammy06": 198.0, "music.sammy07": 145.98}
-    for track_id: String in level_track_lengths:
+        _expect(absf(menu_music_length - 225.882) < 0.01, "Main menu music should be the gm.dls render cut to the MIDI length (seamless loop), not the old libmodplug approximation.")
+    # Level tracks are TiMidity + Windows gm.dls renders like sammy01 (tools/render_midi_music.py),
+    # cut to the MIDI end-of-track with the release tail folded onto the start so they loop
+    # without a pause, like the original synth restarting the sequence.
+    var level_track_loop_lengths := {"music.sammy02": 65.829, "music.sammy03": 192.0, "music.sammy04": 123.411, "music.sammy05": 90.353, "music.sammy06": 196.0, "music.sammy07": 143.984}
+    for track_id: String in level_track_loop_lengths:
         var track := assets.load_asset(track_id) as AudioStream
-        _expect(track != null and absf(track.get_length() - float(level_track_lengths[track_id])) < 0.3, "%s should be the TiMidity gm.dls render, not the libopenmpt approximation." % track_id)
+        _expect(track != null and absf(track.get_length() - float(level_track_loop_lengths[track_id])) < 0.01, "%s should loop at its MIDI end-of-track with no trailing pause." % track_id)
     _expect(assets.load_asset("sfx.collect") != null, "Unable to load copied sound-effect resource.")
     _expect(assets.load_asset("sfx.diamond") != null, "Unable to load original Diam_son score pickup sound.")
     _expect(assets.load_asset("sfx.boost_pickup") != null, "Unable to load original boost pickup sound.")

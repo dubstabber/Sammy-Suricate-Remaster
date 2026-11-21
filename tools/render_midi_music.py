@@ -14,7 +14,11 @@ Default engine `timidity`:
   SoundFont (TiMidity always loads the system config too, and only explicit
   mappings override it),
 - renders with TiMidity defaults, adds the calibrated gain, encodes libvorbis
-  160 kbps 44.1 kHz stereo.
+  160 kbps 44.1 kHz stereo,
+- makes the file loop like the original: the game's synth restarts the
+  sequence right at the MIDI end-of-track while released notes keep ringing,
+  so the audio is cut at the exact MIDI length and the render's release/
+  reverb tail is mixed back onto the start (no pause at the loop point).
 
 Fallback engine `fluidsynth` (no gm.dls available): FluidR3 GM/GS through
 libfluidsynth via ctypes; audibly further from the original.
@@ -27,10 +31,13 @@ from __future__ import annotations
 import argparse
 import ctypes
 import ctypes.util
+import struct
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+import numpy as np
 
 TOOLS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS_DIR))
@@ -134,16 +141,94 @@ class FluidSynth:
         lib.delete_fluid_settings(settings)
 
 
-def encode_ogg(source_wav: Path, output_ogg: Path, gain_db: float) -> None:
+def _read_variable_length(data: bytes, pos: int) -> tuple[int, int]:
+    value = 0
+    while True:
+        byte = data[pos]
+        pos += 1
+        value = (value << 7) | (byte & 0x7F)
+        if byte < 0x80:
+            return value, pos
+
+
+def midi_length_seconds(path: Path) -> float:
+    """Time of the last end-of-track event, following the tempo map."""
+    data = path.read_bytes()
+    if data[:4] != b"MThd":
+        raise ValueError(f"{path} is not a standard MIDI file")
+    division = struct.unpack_from(">H", data, 12)[0]
+    if division & 0x8000:
+        raise ValueError(f"{path}: SMPTE time division is not supported")
+    pos = 8 + struct.unpack_from(">I", data, 4)[0]
+    tempos: list[tuple[int, int]] = []
+    end_tick = 0
+    while pos + 8 <= len(data):
+        chunk_id = data[pos : pos + 4]
+        length = struct.unpack_from(">I", data, pos + 4)[0]
+        pos += 8
+        track_end = pos + length
+        if chunk_id != b"MTrk":
+            pos = track_end
+            continue
+        tick = 0
+        status = 0
+        while pos < track_end:
+            delta, pos = _read_variable_length(data, pos)
+            tick += delta
+            if data[pos] >= 0x80:
+                status = data[pos]
+                pos += 1
+            if status == 0xFF:
+                meta_type = data[pos]
+                meta_length, pos = _read_variable_length(data, pos + 1)
+                if meta_type == 0x51:
+                    tempos.append((tick, int.from_bytes(data[pos : pos + 3], "big")))
+                elif meta_type == 0x2F:
+                    end_tick = max(end_tick, tick)
+                pos += meta_length
+            elif status in (0xF0, 0xF7):
+                sysex_length, pos = _read_variable_length(data, pos)
+                pos += sysex_length
+            else:
+                pos += 1 if (status & 0xF0) in (0xC0, 0xD0) else 2
+        pos = track_end
+    seconds = 0.0
+    tempo = 500000
+    last_tick = 0
+    for tempo_tick, new_tempo in sorted(tempos):
+        if tempo_tick >= end_tick:
+            break
+        seconds += (tempo_tick - last_tick) * tempo / division / 1e6
+        tempo = new_tempo
+        last_tick = tempo_tick
+    return seconds + (end_tick - last_tick) * tempo / division / 1e6
+
+
+def fold_loop_tail(audio: np.ndarray, loop_frames: int) -> np.ndarray:
+    """Cut at the loop point and overlap-add the overhanging tail onto the start."""
+    looped = audio[:loop_frames].copy()
+    tail = audio[loop_frames:]
+    overlap = min(len(tail), len(looped))
+    looped[:overlap] += tail[:overlap]
+    return looped
+
+
+def encode_looped_ogg(source_wav: Path, output_ogg: Path, gain_db: float, loop_seconds: float) -> None:
+    decoded = subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", str(source_wav), "-ar", str(SAMPLE_RATE), "-ac", "2", "-f", "f32le", "-"],
+        check=True, capture_output=True,
+    ).stdout
+    audio = np.frombuffer(decoded, dtype="<f4").reshape(-1, 2)
+    looped = fold_loop_tail(audio, int(round(loop_seconds * SAMPLE_RATE)))
     subprocess.run(
         [
-            "ffmpeg", "-v", "error", "-y", "-i", str(source_wav),
+            "ffmpeg", "-v", "error", "-y",
+            "-f", "f32le", "-ar", str(SAMPLE_RATE), "-ac", "2", "-i", "-",
             "-af", f"volume={gain_db}dB,alimiter=limit={LIMITER_CEILING}:level=false",
-            "-ar", str(SAMPLE_RATE), "-ac", "2",
             "-c:a", "libvorbis", "-b:a", VORBIS_BITRATE,
             str(output_ogg),
         ],
-        check=True,
+        input=np.ascontiguousarray(looped, dtype="<f4").tobytes(), check=True,
     )
 
 
@@ -182,11 +267,13 @@ def main() -> int:
                 synth.render(midi, FLUIDSYNTH_SOUNDFONTS, wav)
 
         for track in args.tracks:
+            midi_path = args.midi_dir / f"{track}.mid"
             wav_path = temp_dir / f"{track}.wav"
-            render(args.midi_dir / f"{track}.mid", wav_path)
+            render(midi_path, wav_path)
             output_path = args.output_dir / f"{track}.ogg"
-            encode_ogg(wav_path, output_path, gain_db)
-            print(f"rendered {output_path}")
+            loop_seconds = midi_length_seconds(midi_path)
+            encode_looped_ogg(wav_path, output_path, gain_db, loop_seconds)
+            print(f"rendered {output_path} (loops at {loop_seconds:.3f}s)")
     return 0
 
 

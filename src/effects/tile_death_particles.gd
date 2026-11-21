@@ -21,7 +21,7 @@ const MAX_WDL_SIZE := 2500.0
 @export var smoke_texture_asset_ids: Array[String] = DEFAULT_SMOKE_TEXTURES.duplicate()
 @export var idle_enabled: bool = true
 ## mm1.wdl InitTileDeath: `emit 1; waitt 2;`
-@export var idle_emit_interval_seconds: float = WdlParticlesScript.waitt_interval(2.0)
+@export var idle_emit_interval_seconds: float = AcknexEngineTiming.waitt_interval(2.0)
 @export var auto_free_when_empty: bool = false
 
 var _textures: Array[Texture2D] = []

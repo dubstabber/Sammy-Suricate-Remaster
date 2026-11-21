@@ -16,7 +16,7 @@ const MIN_WDL_SIZE := 100.0
 @export var star_texture_asset_ids: Array[String] = DEFAULT_STAR_TEXTURES.duplicate()
 @export var idle_enabled: bool = true
 ## mm1.wdl InitTeleport: `If (ticks1 % 4 == 0) emit; waitt 1;`
-@export var idle_emit_interval_seconds: float = WdlParticlesScript.ticks1_emit_interval(4, 1.0)
+@export var idle_emit_interval_seconds: float = AcknexEngineTiming.ticks1_emit_interval(4, 1.0)
 @export var auto_free_when_empty: bool = false
 
 var _textures: Array[Texture2D] = []
@@ -93,7 +93,6 @@ func _emit_particle(origin: Vector3, idle_particle: bool) -> void:
 		),
 		"age_ticks": 0.0,
 		"size": size,
-		"next_map_tick": 0.0,
 		"map_interval_ticks": 5.0 if idle_particle else 6.0,
 		"damping": 0.9 if idle_particle else 0.85,
 		"lift": WdlParticlesScript.acceleration(1.2 if idle_particle else 1.1),
@@ -117,10 +116,10 @@ func _update_particles(delta: float) -> void:
 			sprite.queue_free()
 			_particles.remove_at(index)
 			continue
-		# StarHit1-5 is re-picked every 5 (6) ticks.
-		if age_ticks >= float(particle["next_map_tick"]):
+		# `IF (Int(MY_AGE) % 5 == 0)` re-picks StarHit1-5 on every frame of
+		# every fifth (sixth) tick, so the stars flicker through their bitmaps.
+		if int(age_ticks) % int(particle["map_interval_ticks"]) == 0:
 			WdlParticlesScript.set_sprite_texture(sprite, _textures[randi_range(0, _textures.size() - 1)], true)
-			particle["next_map_tick"] = float(particle["next_map_tick"]) + float(particle["map_interval_ticks"])
 		var velocity := particle["velocity"] as Vector3
 		var damping := WdlParticlesScript.frame_damping(float(particle["damping"]), delta)
 		velocity.x *= damping

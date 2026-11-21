@@ -13,7 +13,7 @@ const DEFAULT_GREEN_TEXTURES: Array[String] = [
 @export var green_texture_asset_ids: Array[String] = DEFAULT_GREEN_TEXTURES.duplicate()
 @export var idle_enabled: bool = true
 ## mm1.wdl InitRestart: `If (Ticks1 % 4 == 0) emit; waitt 1;`
-@export var idle_emit_interval_seconds: float = WdlParticlesScript.ticks1_emit_interval(4, 1.0)
+@export var idle_emit_interval_seconds: float = AcknexEngineTiming.ticks1_emit_interval(4, 1.0)
 @export var idle_emit_offset: Vector3 = Vector3(0.0, -1.0, 0.0)
 @export var auto_free_when_empty: bool = false
 

@@ -31,10 +31,8 @@ const CENTER_FLOOR_RAY_START_HEIGHT := 0.2
 const SLOPE_FLOOR_MAX_DISTANCE := 0.32
 const SLOPE_STOP_SPEED := 0.05
 const SLOPE_DOWNHILL_TURN_RATE := 0.05
-# Per-frame WDL increments (no `*time`) run once per frame: the engine caps at
-# fps_max 70, and a vsynced 60 Hz display (the reference setup, see
-# WdlParticles) runs it at 60, so 60/16 times per tick.
-const ORIGINAL_FRAMES_PER_TICK := 60.0 / 16.0
+# Per-frame WDL statements (no `*time`) run once per engine frame.
+const ORIGINAL_FRAMES_PER_TICK := AcknexEngineTiming.FRAMES_PER_TICK
 const SLOPE_STATE_NONE := 0
 const SLOPE_STATE_MEDIUM := 1
 const SLOPE_STATE_BIG := 2
@@ -1174,8 +1172,8 @@ func _center_floor_hit(max_distance_below_feet: float) -> Dictionary:
 ## player.wdl handlePente: on a floor whose normal is steeper than
 ## SlopeAngleMin (within 32 quants under the feet) the slide builds up by
 ## Accpente * (1 - normal.z) per frame (not scaled by time) towards
-## normal.xy * ForcePente; off the slope it decays with `accel` AmortiPenteEnd
-## friction.
+## normal.xy * ForcePente; off the slope it decays with per-frame `accel`
+## AmortiPenteEnd friction.
 func _update_slope_slide(delta: float) -> void:
     _slope_state = SLOPE_STATE_NONE
     if not bool(movement_config.slope_sliding_enabled):
@@ -1190,7 +1188,8 @@ func _update_slope_slide(delta: float) -> void:
         _slope_velocity.x = _step_slope_axis(_slope_velocity.x, force.x, gain)
         _slope_velocity.y = _step_slope_axis(_slope_velocity.y, force.y, gain)
     else:
-        _slope_velocity *= exp(-maxf(float(movement_config.slope_end_damping), 0.0) * ticks)
+        # `Accel Pente,nullskill,AmortiPenteEnd`: accel friction applies per frame.
+        _slope_velocity *= AcknexEngineTiming.frame_factor(1.0 - float(movement_config.slope_end_damping), delta)
         if _slope_velocity.length() < SLOPE_STOP_SPEED:
             _slope_velocity = Vector2.ZERO
     var big := float(movement_config.slope_big)

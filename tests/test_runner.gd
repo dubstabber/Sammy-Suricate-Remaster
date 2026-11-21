@@ -5425,16 +5425,18 @@ func _test_wdl_particle_render_rules() -> void:
     var sprite := WdlParticles.make_sprite("RuleStar", star, true)
     WdlParticles.set_sprite_size(sprite, 3000.0)
     var star_size := sprite.pixel_size * float(maxi(star.get_width(), star.get_height()))
-    _expect(absf(star_size - 0.432) < 0.002, "MY_SIZE 3000 should be 0.43 m at the original 640x480 / arc 60 scale (got %.3f)." % star_size)
+    _expect(absf(star_size - 0.692) < 0.002, "MY_SIZE 3000 should be 0.69 m at the original 800x600 / arc 60 scale (got %.3f)." % star_size)
     var material := sprite.material_override as StandardMaterial3D
     _expect(material != null and material.blend_mode == BaseMaterial3D.BLEND_MODE_MIX, "My_Flare particles should alpha-blend (D3D SRCALPHA/INVSRCALPHA), not add.")
     _expect(material != null and is_equal_approx(material.albedo_color.a, 250.0 / 255.0), "My_Flare particles should use the engine's vertex alpha 250.")
     _expect(material != null and material.texture_filter == BaseMaterial3D.TEXTURE_FILTER_LINEAR, "Particles should be bilinear-filtered like the D3D renderer.")
     sprite.free()
-    _expect(is_equal_approx(WdlParticles.ticks1_emit_interval(4, 1.0), 4.0 / 60.0), "`ticks1 % 4` in a `waitt 1` loop should emit every loop at the 60 fps reference.")
-    _expect(is_equal_approx(WdlParticles.ticks1_emit_interval(6, 1.0), 12.0 / 60.0), "`ticks1 % 6` in a `waitt 1` loop should emit every third loop at 60 fps.")
-    _expect(is_equal_approx(WdlParticles.waitt_interval(2.0), 8.0 / 60.0), "`waitt 2` should resume after 8 frames at 60 fps.")
-    _expect(is_equal_approx(WdlParticles.frame_damping(0.9, 1.0 / 60.0), 0.9), "Per-frame `*= 0.9` damping should apply once per reference frame.")
+    # Measured on the running original: 32 teleport stars per pad, one every 4 frames at ~100 fps.
+    _expect(is_equal_approx(AcknexEngineTiming.ticks1_emit_interval(4, 1.0), 0.04), "`ticks1 % 4` in a `waitt 1` loop should emit every 4th engine frame (25/s).")
+    _expect(is_equal_approx(AcknexEngineTiming.ticks1_emit_interval(6, 1.0), 0.06), "`ticks1 % 6` in a `waitt 1` loop should emit every 6th engine frame.")
+    _expect(AcknexEngineTiming.waitt_frames(1.0) == 1, "`waitt 1` should resume on the next frame (scheduler counter 0).")
+    _expect(AcknexEngineTiming.waitt_frames(2.0) == 7, "`waitt 2` should resume after one more tick (7 frames at 100 fps).")
+    _expect(is_equal_approx(WdlParticles.frame_damping(0.9, 0.01), 0.9), "Per-frame `*= 0.9` damping should apply once per engine frame.")
 
 
 func _test_wdl_gem_and_heart_particles() -> void:
@@ -5459,7 +5461,7 @@ func _test_wdl_gem_and_heart_particles() -> void:
     var fragment := explosion.get_child(0) as Sprite3D
     if fragment != null and fragment.texture != null:
         var fragment_size := fragment.pixel_size * float(maxi(fragment.texture.get_width(), fragment.texture.get_height()))
-        _expect(fragment_size > 0.28 and fragment_size < 0.32, "GemExplose fragments should be 2000-2200 WDL size (0.29-0.32 m at 640x480), got %.3f." % fragment_size)
+        _expect(fragment_size > 0.45 and fragment_size < 0.52, "GemExplose fragments should be 2000-2200 WDL size (0.46-0.51 m at 800x600), got %.3f." % fragment_size)
         _expect(fragment.material_override is StandardMaterial3D and (fragment.material_override as StandardMaterial3D).blend_mode == BaseMaterial3D.BLEND_MODE_MIX, "Gem fragments should be alpha-blended My_Flare sprites (D3D SRCALPHA/INVSRCALPHA).")
     explosion.free()
 

@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
-"""Render the original sammyNN.mid level tracks to OGG with FluidSynth.
+"""Render the original sammyNN.mid tracks to OGG like the committed sammy01.ogg.
 
-The extraction-time OGGs (extract-sammy-assets/extracted/godot/audio) were
-produced by ffmpeg's libopenmpt MIDI import, whose built-in instruments sound
-nothing like the original. The committed assets/audio/sammy01.ogg is a FluidR3
-soundfont render; this tool reproduces that pipeline for the other tracks:
+On Windows the game plays its MIDI files through the Microsoft GS Wavetable
+synth, i.e. the Roland gm.dls bank (Wine has no default MIDI synth, so the game
+is silent there). The committed assets/audio/sammy01.ogg is a TiMidity++ render
+with that bank; rendering sammy01 with the default engine below reproduces it
+(same length to the sample, 0.99 waveform correlation, 1 LU quieter).
 
-- FluidSynth (offline file renderer, sample timing) with FluidR3_GM.sf2 plus the
-  FluidR3_GS.sf2 GS-variation supplement (Roland GS bank select),
-- a release/reverb tail after the last MIDI event,
-- a fixed gain calibrated so sammy01 rendered here matches the committed
-  sammy01.ogg integrated loudness (-23.6 LUFS), then a limiter,
-- libvorbis 160 kbps, 44.1 kHz stereo (same as the committed sammy01.ogg).
+Default engine `timidity`:
+- converts a gm.dls you provide (Windows system file, not committed) to SF2
+  with tools/dls_to_sf2.py into a temporary directory,
+- writes a TiMidity config that maps every bank/drum kit explicitly to that
+  SoundFont (TiMidity always loads the system config too, and only explicit
+  mappings override it),
+- renders with TiMidity defaults, adds the calibrated gain, encodes libvorbis
+  160 kbps 44.1 kHz stereo.
 
-FluidSynth is loaded through ctypes. Pass `--fluidsynth-lib` (and `--preload`
-for missing dependencies) when no system libfluidsynth is installed, e.g. the
-Lutris runtime copy:
+Fallback engine `fluidsynth` (no gm.dls available): FluidR3 GM/GS through
+libfluidsynth via ctypes; audibly further from the original.
 
-  python3 tools/render_midi_music.py \\
-    --fluidsynth-lib ~/.local/share/lutris/runtime/Ubuntu-18.04-x86_64/libfluidsynth.so.1 \\
-    --preload ~/.local/share/lutris/runtime/Ubuntu-18.04-x86_64/libtinfo.so.5 \\
-              ~/.local/share/lutris/runtime/Ubuntu-18.04-x86_64/libreadline.so.7
+  python3 tools/render_midi_music.py --dls /path/to/gm.dls
 """
 
 from __future__ import annotations
@@ -29,21 +28,47 @@ import argparse
 import ctypes
 import ctypes.util
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
+TOOLS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(TOOLS_DIR))
+
+import dls_to_sf2  # noqa: E402
+
 MIDI_DIR = Path("extract-sammy-assets/extracted/wrs/sounds")
 OUTPUT_DIR = Path("assets/audio")
-DEFAULT_SOUNDFONTS = [Path("/usr/share/soundfonts/FluidR3_GM.sf2"), Path("/usr/share/soundfonts/FluidR3_GS.sf2")]
 DEFAULT_TRACKS = ["sammy02", "sammy03", "sammy04", "sammy05", "sammy06", "sammy07"]
 SAMPLE_RATE = 44100
-TAIL_SECONDS = 2.0
-# sammy01 rendered with these settings is -30.1 LUFS; the committed sammy01.ogg is -23.6 LUFS.
-CALIBRATED_GAIN_DB = 6.5
-LIMITER_CEILING = 0.95
 VORBIS_BITRATE = "160k"
+LIMITER_CEILING = 0.95
+# sammy01 rendered with each engine vs the committed sammy01.ogg (-23.6 LUFS).
+TIMIDITY_GAIN_DB = 1.0
+FLUIDSYNTH_GAIN_DB = 6.5
+FLUIDSYNTH_SOUNDFONTS = [Path("/usr/share/soundfonts/FluidR3_GM.sf2"), Path("/usr/share/soundfonts/FluidR3_GS.sf2")]
+FLUIDSYNTH_TAIL_SECONDS = 2.0
 FLUID_PLAYER_PLAYING = 1
 FLUID_OK = 0
+
+
+def write_timidity_config(soundfont: Path, instruments: list, config_path: Path) -> None:
+    lines: list[str] = []
+    melodic_banks = sorted({instrument.bank for instrument in instruments if not instrument.drums})
+    for bank in melodic_banks:
+        lines.append(f"bank {bank}")
+        for instrument in instruments:
+            if not instrument.drums and instrument.bank == bank:
+                lines.append(f"{instrument.program} %font {soundfont} {bank} {instrument.program}")
+    for instrument in instruments:
+        if instrument.drums:
+            lines.append(f"drumset {instrument.program}")
+            lines.extend(f"{key} %font {soundfont} 128 {instrument.program} {key}" for key in range(128))
+    config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def render_timidity(midi: Path, config: Path, output_wav: Path) -> None:
+    subprocess.run(["timidity", "-c", str(config), "-Ow", "-o", str(output_wav), str(midi)], check=True, capture_output=True)
 
 
 class FluidSynth:
@@ -78,7 +103,7 @@ class FluidSynth:
             function.restype = restype
             function.argtypes = argtypes
 
-    def render(self, midi: Path, soundfonts: list[Path], output_wav: Path, tail_seconds: float) -> None:
+    def render(self, midi: Path, soundfonts: list[Path], output_wav: Path) -> None:
         lib = self.lib
         settings = lib.new_fluid_settings()
         lib.fluid_settings_setstr(settings, b"audio.file.name", str(output_wav).encode())
@@ -100,8 +125,7 @@ class FluidSynth:
         while lib.fluid_player_get_status(player) == FLUID_PLAYER_PLAYING:
             if lib.fluid_file_renderer_process_block(renderer) != FLUID_OK:
                 break
-        # Let releases and reverb ring out (64-sample blocks).
-        for _block in range(int(tail_seconds * SAMPLE_RATE / 64)):
+        for _block in range(int(FLUIDSYNTH_TAIL_SECONDS * SAMPLE_RATE / 64)):
             if lib.fluid_file_renderer_process_block(renderer) != FLUID_OK:
                 break
         lib.delete_fluid_file_renderer(renderer)
@@ -125,24 +149,43 @@ def encode_ogg(source_wav: Path, output_ogg: Path, gain_db: float) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--engine", choices=["timidity", "fluidsynth"], default="timidity")
+    parser.add_argument("--dls", type=Path, help="Windows gm.dls (required for the timidity engine)")
     parser.add_argument("--fluidsynth-lib", default=None)
     parser.add_argument("--preload", nargs="*", type=Path, default=[])
-    parser.add_argument("--soundfonts", nargs="+", type=Path, default=DEFAULT_SOUNDFONTS)
     parser.add_argument("--midi-dir", type=Path, default=MIDI_DIR)
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     parser.add_argument("--tracks", nargs="+", default=DEFAULT_TRACKS)
-    parser.add_argument("--gain-db", type=float, default=CALIBRATED_GAIN_DB)
-    parser.add_argument("--tail-seconds", type=float, default=TAIL_SECONDS)
+    parser.add_argument("--gain-db", type=float, default=None)
     args = parser.parse_args()
 
-    synth = FluidSynth(args.fluidsynth_lib, [path.expanduser() for path in args.preload])
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="sammy-midi-") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="sammy-midi-") as temp_name:
+        temp_dir = Path(temp_name)
+        if args.engine == "timidity":
+            if args.dls is None:
+                parser.error("--dls is required for the timidity engine")
+            instruments, waves = dls_to_sf2.parse_dls(args.dls)
+            soundfont = temp_dir / "gm.sf2"
+            soundfont.write_bytes(dls_to_sf2.build_sf2(instruments, waves, args.dls.stem))
+            config = temp_dir / "gm.cfg"
+            write_timidity_config(soundfont, instruments, config)
+            gain_db = TIMIDITY_GAIN_DB if args.gain_db is None else args.gain_db
+
+            def render(midi: Path, wav: Path) -> None:
+                render_timidity(midi, config, wav)
+        else:
+            synth = FluidSynth(args.fluidsynth_lib, [path.expanduser() for path in args.preload])
+            gain_db = FLUIDSYNTH_GAIN_DB if args.gain_db is None else args.gain_db
+
+            def render(midi: Path, wav: Path) -> None:
+                synth.render(midi, FLUIDSYNTH_SOUNDFONTS, wav)
+
         for track in args.tracks:
-            wav_path = Path(temp_dir) / f"{track}.wav"
-            synth.render(args.midi_dir / f"{track}.mid", args.soundfonts, wav_path, args.tail_seconds)
+            wav_path = temp_dir / f"{track}.wav"
+            render(args.midi_dir / f"{track}.mid", wav_path)
             output_path = args.output_dir / f"{track}.ogg"
-            encode_ogg(wav_path, output_path, args.gain_db)
+            encode_ogg(wav_path, output_path, gain_db)
             print(f"rendered {output_path}")
     return 0
 

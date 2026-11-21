@@ -451,6 +451,8 @@ static func _make_enemy(entity: Dictionary) -> Node3D:
 		attack_range = WDL_DEFAULT_LION_ATTACK_RANGE
 	node.set("react_range", attack_range * AcknexCoordsScript.SCALE)
 	_apply_lion_family(node, entity)
+	# lion.wdl Flag7: only these lions roar to call friends (hurt or stuck).
+	node.set("roar_calls_friends", _flag(entity, 7))
 	var speed_ennemy := floorf(_skill(entity, 2))
 	var accel_attack := (_skill(entity, 5) - floorf(_skill(entity, 5))) * 10.0
 	var run_speed := speed_ennemy * accel_attack * WDL_SPEED_UNIT_TO_METERS_PER_SECOND

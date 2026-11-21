@@ -7375,7 +7375,17 @@ func _test_level_enemy_family_stats() -> void:
         _expect(is_equal_approx(float(enemy.get("enemy_resistance")), case[5]), "%s should have resistance %s." % [label, case[5]])
         _expect(is_equal_approx(float(enemy.get("max_health")), case[5]), "%s should start with health %s." % [label, case[5]])
         _expect(is_equal_approx(float(enemy.get("push_bounce_force")), case[6]), "%s should use BounceForce %s." % [label, case[6]])
+        _expect(not bool(enemy.get("roar_calls_friends")), "%s without Flag7 should not roar to call friends." % label)
         enemy.free()
+    var caller := {
+        "name": "test_caller", "file": "rasta.MDL", "action": "initlion",
+        "position": [0.0, 0.0, 0.0], "angles": [0.0, 0.0, 0.0], "scale": [1.0, 1.0, 1.0],
+        "skills": [11.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "flags": 64,
+    }
+    var caller_enemy := (mapper.call("map_entity", caller) as Dictionary).get("node") as Node3D
+    _expect(caller_enemy != null and bool(caller_enemy.get("roar_calls_friends")), "InitLion Flag7 should make the lion roar to call friends.")
+    if caller_enemy != null:
+        caller_enemy.free()
 
 
 ## Every InitLion model file has its own prefab; none may fall back to the

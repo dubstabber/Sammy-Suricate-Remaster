@@ -124,6 +124,7 @@ func _run() -> void:
     _test_acknex_coords()
     _test_level_catalog_availability()
     _test_level_entities_json()
+    _test_level_enemy_family_stats()
     await _test_level_select_routes(game)
     await _test_progress_and_level_flow(game)
     _test_wasp_resources(assets)
@@ -7118,6 +7119,45 @@ func _test_level_entities_json() -> void:
         _expect(overlay_props == 102, "All 102 178d_t InitMDL grates should use the black-keyed overlay skin.")
 
     _test_baked_level_enemy_prefabs(builder.call("converted_level_stems") as PackedStringArray)
+
+
+## lion.wdl InitLion: Int(Skill1) picks the family stats regardless of the
+## model, Frc(Skill1)*100 overrides resistance, Frc(Skill2)*100 BounceForce.
+func _test_level_enemy_family_stats() -> void:
+    var mapper: GDScript = load("res://src/levels/level_entity_mapper.gd")
+    var cases := [
+        # [file, skill1, skill2, family, weight, resistance, bounce]
+        ["rasta.MDL", 13.0, 10.0, 1.0, 0.55, 15.0, 1.5],
+        ["rockerA.MDL", 11.0, 10.0, 1.0, 0.62, 9.0, 1.5],
+        ["nanolion.MDL", 10.0, 10.0, 1.0, 0.65, 6.0, 1.5],
+        ["hippie.MDL", 12.0, 10.0, 1.0, 0.6, 12.0, 1.5],
+        ["Punk.MDL", 14.0, 10.0, 1.0, 0.5, 30.0, 1.5],
+        ["scorpion.MDL", 2.2, 10.0, 3.0, 0.75, 20.0, 1.5],
+        ["scorpion.MDL", 2.0, 10.03, 3.0, 0.75, 12.0, 3.0],
+    ]
+    for case: Array in cases:
+        var entity := {
+            "name": "test_lion",
+            "file": case[0],
+            "action": "initlion",
+            "position": [0.0, 0.0, 0.0],
+            "angles": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0],
+            "skills": [case[1], case[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "flags": 0,
+        }
+        var mapped: Dictionary = mapper.call("map_entity", entity)
+        var enemy := mapped.get("node") as Node3D
+        _expect(enemy != null, "InitLion %s should map to an enemy prefab." % case[0])
+        if enemy == null:
+            continue
+        var label := "%s IdEnnemy %s" % [case[0], case[1]]
+        _expect(is_equal_approx(float(enemy.get("enemy_family_id")), case[3]), "%s should use IdEnnemySpec %s." % [label, case[3]])
+        _expect(is_equal_approx(float(enemy.get("enemy_weight_force")), case[4]), "%s should use WeightForce %s." % [label, case[4]])
+        _expect(is_equal_approx(float(enemy.get("enemy_resistance")), case[5]), "%s should have resistance %s." % [label, case[5]])
+        _expect(is_equal_approx(float(enemy.get("max_health")), case[5]), "%s should start with health %s." % [label, case[5]])
+        _expect(is_equal_approx(float(enemy.get("push_bounce_force")), case[6]), "%s should use BounceForce %s." % [label, case[6]])
+        enemy.free()
 
 
 ## Every InitLion model file has its own prefab; none may fall back to the

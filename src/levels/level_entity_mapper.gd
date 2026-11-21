@@ -99,6 +99,21 @@ const WDL_HEIGHT_GEM := 25.0
 # WDL lion speed: SpeedEnnemy units/tick at 16 ticks/s and 0.01 m/quant.
 const WDL_SPEED_UNIT_TO_METERS_PER_SECOND := 0.16
 const WDL_DEFAULT_LION_ATTACK_RANGE := 500.0
+## lion.wdl LionForce: BounceForce when Frc(SpeedEnnemy) is 0.
+const WDL_LION_FORCE := 1.5
+## lion.wdl InitLion: Int(IdEnnemy) -> [IdEnnemySpec, WeightForce, default
+## EnnemyResistance]. The id, not the model file, picks the family stats.
+const WDL_LION_FAMILIES := {
+	10: [1.0, 0.65, 6.0], # nanolion
+	0: [1.0, 0.62, 9.0], # rasta
+	11: [1.0, 0.62, 9.0], # rasta
+	1: [2.0, 0.3, 100.0], # elephant (unused by shipped levels)
+	2: [3.0, 0.75, 12.0], # scorpion
+	3: [3.0, 0.75, 12.0], # scorpion, second skin
+	12: [1.0, 0.6, 12.0], # hippie
+	13: [1.0, 0.55, 15.0], # rocker
+	14: [1.0, 0.5, 30.0], # punk
+}
 const WDL_DOOR_MIN_OPEN_HEIGHT := 300.0
 const WDL_DOOR_OPEN_HEIGHT_THRESHOLD := 250.0
 const WDL_SKY_DEFAULT_SCALE_XY := 5.0
@@ -392,12 +407,32 @@ static func _make_enemy(entity: Dictionary) -> Node3D:
 	if attack_range <= 0.0:
 		attack_range = WDL_DEFAULT_LION_ATTACK_RANGE
 	node.set("react_range", attack_range * AcknexCoordsScript.SCALE)
+	_apply_lion_family(node, entity)
 	var speed_ennemy := floorf(_skill(entity, 2))
 	var accel_attack := (_skill(entity, 5) - floorf(_skill(entity, 5))) * 10.0
 	var run_speed := speed_ennemy * accel_attack * WDL_SPEED_UNIT_TO_METERS_PER_SECOND
 	if run_speed > 0.0:
 		node.set("run_speed", run_speed)
 	return node
+
+
+## lion.wdl InitLion: Skill1 = IdEnnemy (family) with EnnemyResistance in its
+## fraction (x100), Skill2 = SpeedEnnemy with BounceForce in its fraction (x100).
+static func _apply_lion_family(node: Node3D, entity: Dictionary) -> void:
+	var id_ennemy_skill := _skill(entity, 1)
+	var family: Array = WDL_LION_FAMILIES.get(int(floorf(id_ennemy_skill)), [])
+	if family.is_empty():
+		return
+	var resistance := floorf((id_ennemy_skill - floorf(id_ennemy_skill)) * 100.0 + 0.5)
+	if resistance <= 0.0:
+		resistance = float(family[2])
+	node.set("enemy_family_id", float(family[0]))
+	node.set("enemy_weight_force", float(family[1]))
+	node.set("enemy_resistance", resistance)
+	node.set("max_health", resistance)
+	var speed_skill := _skill(entity, 2)
+	var bounce_force := floorf((speed_skill - floorf(speed_skill)) * 100.0 + 0.5)
+	node.set("push_bounce_force", bounce_force if bounce_force > 0.0 else WDL_LION_FORCE)
 
 
 ## mm1.wdl InitArbre / OnGround: sprite centred half its height above the traced

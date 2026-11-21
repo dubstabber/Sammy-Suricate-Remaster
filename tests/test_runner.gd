@@ -7017,8 +7017,11 @@ func _test_progress_and_level_flow(game: Node) -> void:
     _expect(bool(game.call("is_level_unlocked", 40)), "The original Shift+V+L cheat should unlock every level for the session.")
 
     _expect(String(game.call("get_music_asset_id_for_level", 1)) == "music.sammy01" and String(game.call("get_music_asset_id_for_level", 2)) == "music.sammy02", "Tutorial levels should alternate tracks 1 and 2 (MusicOrder).")
-    var jump_track := String(game.call("get_music_asset_id_for_level", 17))
-    _expect(["music.sammy01", "music.sammy02", "music.sammy03"].has(jump_track), "Levels 17-20 should pick from tracks 1-3.")
+    var original_tracks := {13: "music.sammy07", 17: "music.sammy03", 18: "music.sammy01", 21: "music.sammy05", 33: "music.sammy03", 37: "music.sammy06", 44: "music.sammy04"}
+    for level_number: int in original_tracks:
+        _expect(String(game.call("get_music_asset_id_for_level", level_number)) == String(original_tracks[level_number]), "Level %d should play the original srand(1) MusicOrder track %s." % [level_number, original_tracks[level_number]])
+    game.call("_roll_music_order")
+    _expect(String(game.call("get_music_asset_id_for_level", 17)) == "music.sammy03", "MusicOrder should be identical on every launch, like the unseeded original.")
     _expect(load("res://src/core/assets.gd").CATALOG.has(String(game.call("get_music_asset_id_for_level", 40))), "Every level music track should be in the asset catalog.")
 
     game.call("set_scene_router", null)

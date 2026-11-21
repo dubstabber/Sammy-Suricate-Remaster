@@ -16,6 +16,12 @@ const CATEGORY_LAST_LEVELS: Array[int] = [12, 28, 44]
 const MAX_LEVEL_NUMBER := 48
 const UNLOCK_ALL_LEVELS_SETTING := "sammy/debug/unlock_all_levels"
 const CHEAT_BEEP_SOUND_ASSET_ID := "sfx.beep1"
+const ORIGINAL_RANDOM_SEED := 1
+const MUSIC_TRACK_COUNT := 8
+const MUSIC_ORDER_LEVEL_COUNT := 49
+## Iterations of the Main "wait for Ver1.SAV" loop: 0 when the Ver save loads
+## within the one-tick wait (the Polish install ships Ver1.SAV).
+const MUSIC_ORDER_REROLLS := 0
 
 signal eye_of_truth_changed(active: bool, remaining_seconds: float)
 signal menu_level_selected(level_number: int, source_wmb: String, category_key: StringName)
@@ -42,6 +48,7 @@ var _current_level_scene_path := ""
 var progress: RefCounted = PROGRESS_STORE_SCRIPT.new()
 var _all_levels_cheat_active := false
 var _music_order: Dictionary = {}
+var _original_random_state := 0
 
 
 func _ready() -> void:
@@ -266,19 +273,39 @@ func _apply_saved_audio_options() -> void:
         audio.call("set_sfx_volume_percent", float(progress.sfx_volume_percent))
 
 
-## sammypolish.wdl MusicOrder: re-rolled every launch. Tutorials alternate
-## tracks 1/2, levels 17-20 and 33-36 pick 1-3, everything else 1-8.
+## sammypolish.wdl Main fills MusicOrder[] with WDL random(): levels 49..2 pick
+## from NbrMusic (8) tracks, the "wait for Ver1.SAV" loop re-rolls 49..1 until
+## LevelEnCours becomes 999, tutorials are fixed to 1/2 alternating, then levels
+## 17-20 and 33-36 pick from tracks 1-3. The A5 engine seeds the C runtime
+## generator with srand(1) at startup (sammypolish.exe sub_417A60) and the
+## scripts never call `randomize`, so the original order is the same on every
+## launch; this reproduces it exactly.
 func _roll_music_order() -> void:
-    var rng := RandomNumberGenerator.new()
-    rng.randomize()
+    _original_random_state = ORIGINAL_RANDOM_SEED
     _music_order.clear()
-    for level_number in range(1, MAX_LEVEL_NUMBER + 1):
-        if level_number <= 12:
-            _music_order[level_number] = 1 if level_number % 2 == 1 else 2
-        elif (level_number >= 17 and level_number <= 20) or (level_number >= 33 and level_number <= 36):
-            _music_order[level_number] = rng.randi_range(1, 3)
-        else:
-            _music_order[level_number] = rng.randi_range(1, 8)
+    for level_number in range(MUSIC_ORDER_LEVEL_COUNT, 1, -1):
+        _music_order[level_number] = _original_random_int(MUSIC_TRACK_COUNT) + 1
+    for _reroll in MUSIC_ORDER_REROLLS:
+        for level_number in range(MUSIC_ORDER_LEVEL_COUNT, 0, -1):
+            _music_order[level_number] = _original_random_int(MUSIC_TRACK_COUNT) + 1
+    for level_number in range(1, 13):
+        _music_order[level_number] = 1 if level_number % 2 == 1 else 2
+    for level_number in [17, 18, 19, 20, 33, 34, 35, 36]:
+        _music_order[level_number] = _original_random_int(3) + 1
+
+
+## MSVC rand(): holdrand = holdrand * 214013 + 2531011, result bits 16-30.
+func _original_rand() -> int:
+    _original_random_state = (_original_random_state * 214013 + 2531011) & 0xFFFFFFFF
+    return (_original_random_state >> 16) & 0x7FFF
+
+
+## WDL int(random(x)): rand() * x in 22.10 fixed point, scaled by 1/32768 with
+## the engine's rounding (sammypolish.exe 0x414110), then truncated.
+func _original_random_int(range_value: int) -> int:
+    var product := _original_rand() * range_value * 1024
+    var fixed_result := ((product >> 10) + ((product >> 9) & 1)) >> 5
+    return fixed_result >> 10
 
 
 ## sons.wdl musique1..9: tracks 1-7 are sammy01-07, 8 and 9 reuse 01 and 02.

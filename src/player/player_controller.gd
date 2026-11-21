@@ -8,6 +8,22 @@ const WASP_PROJECTILE_SCENE := preload("res://scenes/weapons/wasp_projectile.tsc
 const KEY_DIAMOND_RULES_SCRIPT := preload("res://src/resources/key_diamond_rules.gd")
 const LAUNCHED_KEY_GEM_SCENE := preload("res://scenes/pickups/launched_key_gem.tscn")
 const DEATH_KEY_LAUNCH_HEIGHT := 30.0 * 0.01
+const KAPUTT_STARS_SCRIPT := preload("res://src/effects/kaputt_stars.gd")
+const FLYING_HEART_SCRIPT := preload("res://src/effects/flying_heart.gd")
+const ACKNEX_ENGINE_TIMING_SCRIPT := preload("res://src/core/acknex_engine_timing.gd")
+const DEATH_PHASE_ANIMATION := 0
+const DEATH_PHASE_BLINK := 1
+const DEATH_PHASE_FADE_IN := 2
+## player.wdl Player_Kaputt: the death loop ends with the animation or after
+## tempo2 reaches 64 ticks; Kaputt_son plays once int(tempo2) == 8.
+const DEATH_ANIMATION_MAX_TICKS := 64.0
+const KAPUTT_SOUND_TICK := 8.0
+const KAPUTT_SOUND_WDL_RANGE_UNITS := 2000.0
+## Player_Kaputt blink before RestartSammy: invisible/visible toggles (starting
+## invisible) separated by these `waitt` ticks.
+const DEATH_BLINK_WAITT_TICKS: Array[float] = [4.0, 4.0, 4.0, 3.0, 3.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]
+## RestartSammy: My.Alpha += 10 * time from 0 to 100 before control returns.
+const RESTART_FADE_IN_TICKS := 10.0
 const DEATH_KEY_HORIZONTAL_SPEED_UNITS := 25.0
 const DEATH_KEY_VERTICAL_SPEED_UNITS := 40.0
 const KEY_MIX_EFFECT_SCRIPT := preload("res://src/effects/key_mix_effect.gd")
@@ -50,6 +66,7 @@ const KEY_MIX_SOUND_WDL_RANGE_UNITS := 2000.0
 @export var movement_config: Resource = PLAYER_MOVEMENT_CONFIG_SCRIPT.new()
 @export var model_asset_id: String = "model.sammy.animated"
 @export var quick_turn_sound_asset_id: String = "sfx.quick_turn"
+@export var kaputt_sound_asset_id: String = "sfx.player_kaputt"
 @export var fire_sound_asset_id: String = "sfx.wasp"
 @export var no_wasp_sound_asset_id: String = "sfx.error"
 @export var enemy_top_bounce_sound_asset_id: String = "sfx.quick_turn"
@@ -126,6 +143,13 @@ var _current_key_id: int = KEY_DIAMOND_RULES_SCRIPT.KEY_NONE
 var _current_key_is_infinite := false
 var _last_ejected_key: Node = null
 var _last_death_key: Node = null
+var _death_phase := DEATH_PHASE_ANIMATION
+var _death_blink_index := 0
+var _death_elapsed := 0.0
+var _death_animation_seconds := 0.0
+var _kaputt_sound_played := false
+var _kaputt_stars: Node3D = null
+var _last_flying_heart: Node3D = null
 var _teleporting := false
 var _teleport_phase := TELEPORT_PHASE_PRE_FADE
 var _teleport_phase_remaining := 0.0
@@ -275,6 +299,7 @@ func begin_death_pad_respawn(_source: Node = null) -> bool:
         return false
 
     _reset_sammy_key()
+    _spawn_flying_heart()
     _lives = maxi(0, _lives - 1)
     life_lost.emit(_lives)
     _clear_action_state_for_death()
@@ -1643,10 +1668,16 @@ func _begin_death(source: Node = null) -> void:
         return
 
     _dead = true
-    _death_timer = _get_death_duration_seconds()
+    _death_phase = DEATH_PHASE_ANIMATION
+    _death_elapsed = 0.0
+    _death_animation_seconds = _get_death_duration_seconds()
+    _death_timer = _death_animation_seconds
+    _kaputt_sound_played = false
     _clear_action_state_for_death()
+    _spawn_flying_heart()
     _reset_sammy_key()
     _play_animation_action(&"kaputt", 1.0, false, true, 0.0)
+    _spawn_kaputt_stars()
     death_started.emit(source)
 
 
@@ -1668,14 +1699,42 @@ func _clear_action_state_for_death() -> void:
 
 
 func _update_death_state(delta: float) -> void:
-    if not _dead or _game_over:
-        return
+    var budget := maxf(delta, 0.0)
+    while _dead and not _game_over:
+        var step := minf(budget, maxf(_death_timer, 0.0))
+        _death_timer -= step
+        budget -= step
+        _advance_death_effects(step)
+        if _death_timer > 0.0:
+            return
+        _advance_death_phase()
 
-    _death_timer = maxf(0.0, _death_timer - maxf(delta, 0.0))
-    if _death_timer > 0.0:
-        return
 
-    _finish_death_sequence()
+func _advance_death_effects(step: float) -> void:
+    match _death_phase:
+        DEATH_PHASE_ANIMATION:
+            _death_elapsed += step
+            if not _kaputt_sound_played and _death_elapsed * ACKNEX_TIME_UNITS_PER_SECOND >= KAPUTT_SOUND_TICK:
+                _kaputt_sound_played = true
+                _play_player_sound(kaputt_sound_asset_id, KAPUTT_SOUND_WDL_RANGE_UNITS)
+        DEATH_PHASE_FADE_IN:
+            _set_teleport_alpha(1.0 - maxf(_death_timer, 0.0) / _restart_fade_in_seconds())
+
+
+func _advance_death_phase() -> void:
+    match _death_phase:
+        DEATH_PHASE_ANIMATION:
+            _finish_death_sequence()
+        DEATH_PHASE_BLINK:
+            _death_blink_index += 1
+            if _death_blink_index < DEATH_BLINK_WAITT_TICKS.size():
+                _set_death_blink_visible(_death_blink_index % 2 == 1)
+                _death_timer = ACKNEX_ENGINE_TIMING_SCRIPT.waitt_interval(DEATH_BLINK_WAITT_TICKS[_death_blink_index])
+            else:
+                _set_death_blink_visible(true)
+                _begin_restart_fade_in()
+        DEATH_PHASE_FADE_IN:
+            _respawn_after_death()
 
 
 func _finish_death_sequence() -> void:
@@ -1688,10 +1747,17 @@ func _finish_death_sequence() -> void:
         _enter_game_over()
         return
 
-    _respawn_after_death()
+    _death_phase = DEATH_PHASE_BLINK
+    _death_blink_index = 0
+    _set_death_blink_visible(false)
+    _death_timer = ACKNEX_ENGINE_TIMING_SCRIPT.waitt_interval(DEATH_BLINK_WAITT_TICKS[0])
 
 
-func _respawn_after_death() -> void:
+## RestartSammy: stars gone, restart scan, hearts restored, Sammy back at the
+## restart point and faded in from alpha 0.
+func _begin_restart_fade_in() -> void:
+    _remove_kaputt_stars()
+    _restart_sammy_world()
     if _has_respawn_transform:
         global_transform = _respawn_transform
     _health = maxf(max_health, 0.0)
@@ -1699,13 +1765,103 @@ func _respawn_after_death() -> void:
     _enemy_push_velocity = Vector3.ZERO
     _input_horizontal_velocity = Vector3.ZERO
     _slope_velocity = Vector2.ZERO
-    _death_timer = 0.0
-    _dead = false
-    _game_over = false
     _clear_animation_sequence()
     _play_animation_action(&"stand", 1.0, false, true, 0.0)
-    _restart_sammy_world()
+    _set_teleport_alpha(0.0)
+    _death_phase = DEATH_PHASE_FADE_IN
+    _death_timer = _restart_fade_in_seconds()
+
+
+func _respawn_after_death() -> void:
+    _set_teleport_alpha(1.0)
+    _set_death_blink_visible(true)
+    _death_timer = 0.0
+    _death_phase = DEATH_PHASE_ANIMATION
+    _dead = false
+    _game_over = false
     respawned.emit()
+
+
+func _restart_fade_in_seconds() -> float:
+    return RESTART_FADE_IN_TICKS / ACKNEX_TIME_UNITS_PER_SECOND
+
+
+func _set_death_blink_visible(is_visible: bool) -> void:
+    if visual_pivot != null:
+        visual_pivot.visible = is_visible
+
+
+## Seconds from a lethal hit until Sammy can move again (animation, blink,
+## fade-in) when lives remain.
+func get_death_sequence_seconds() -> float:
+    var total := _get_death_duration_seconds() + _restart_fade_in_seconds()
+    for wait_ticks in DEATH_BLINK_WAITT_TICKS:
+        total += ACKNEX_ENGINE_TIMING_SCRIPT.waitt_interval(wait_ticks)
+    return total
+
+
+## Kaputt animation progress 0..1 (1 once the blink starts).
+func get_death_animation_progress() -> float:
+    if not _dead or _death_phase != DEATH_PHASE_ANIMATION or _death_animation_seconds <= 0.0:
+        return 1.0
+    return clampf(_death_elapsed / _death_animation_seconds, 0.0, 1.0)
+
+
+func get_death_phase() -> int:
+    return _death_phase
+
+
+func get_kaputt_stars() -> Node3D:
+    return _kaputt_stars if _kaputt_stars != null and is_instance_valid(_kaputt_stars) else null
+
+
+func get_last_flying_heart() -> Node3D:
+    return _last_flying_heart if _last_flying_heart != null and is_instance_valid(_last_flying_heart) else null
+
+
+func _spawn_kaputt_stars() -> void:
+    _remove_kaputt_stars()
+    var parent := get_parent()
+    if parent == null:
+        return
+    var stars := KAPUTT_STARS_SCRIPT.new() as Node3D
+    stars.name = "KaputtStars"
+    stars.call("setup", self)
+    parent.add_child(stars)
+    _kaputt_stars = stars
+
+
+func _remove_kaputt_stars() -> void:
+    if _kaputt_stars != null and is_instance_valid(_kaputt_stars):
+        _kaputt_stars.queue_free()
+    _kaputt_stars = null
+
+
+## player.wdl Animmoins1life: a lifeA heart flies back towards the camera.
+func _spawn_flying_heart() -> void:
+    var parent := get_parent()
+    if parent == null:
+        return
+    var heart := FLYING_HEART_SCRIPT.new() as Node3D
+    heart.name = "FlyingHeart"
+    parent.add_child(heart)
+    heart.global_position = global_position
+    var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
+    var to_camera := -get_facing_direction()
+    var distance_units := 400.0
+    if camera != null:
+        to_camera = camera.global_position - global_position
+        distance_units = to_camera.length() / ACKNEX_TO_GODOT_SCALE
+    heart.call("launch", to_camera, distance_units)
+    _last_flying_heart = heart
+
+
+func _play_player_sound(asset_id: String, wdl_range_units: float) -> void:
+    if asset_id.is_empty():
+        return
+    var audio := get_node_or_null("/root/Audio")
+    if audio != null and audio.has_method("play_spatial_sfx"):
+        audio.call("play_spatial_sfx", asset_id, self, wdl_range_units)
 
 
 ## player.wdl ResetSammy (death and death pad): while the score goal is not
@@ -1764,10 +1920,11 @@ func _enter_game_over() -> void:
 
 
 func _get_death_duration_seconds() -> float:
+    var max_seconds := DEATH_ANIMATION_MAX_TICKS / ACKNEX_TIME_UNITS_PER_SECOND
     var action_duration := _resolve_animation_action_duration(&"kaputt", 1.0)
     if action_duration > 0.0:
-        return action_duration
-    return _seconds_for_wdl_animation_steps(PLAYER_DEATH_STEP_RANGE, PLAYER_DEATH_STEP_SPEED)
+        return minf(action_duration, max_seconds)
+    return minf(_seconds_for_wdl_animation_steps(PLAYER_DEATH_STEP_RANGE, PLAYER_DEATH_STEP_SPEED), max_seconds)
 
 
 func _resolve_animation_action_duration(action: StringName, speed: float = 1.0) -> float:

@@ -695,7 +695,7 @@ func _test_player_death_resets(game: Node) -> void:
     if death_key != null:
         _expect(is_zero_approx(float(death_key.get("lifetime_ticks"))), "The ejected death key should be decorative (PlayerOldKey 0).")
         _expect((death_key.call("get_velocity") as Vector3).y > 6.0, "The death key should be launched upward at PlayerSpeedZ 40.")
-    player.call("_finish_death_sequence")
+    player.call("_update_death_state", float(player.call("get_death_sequence_seconds")) + 0.1)
     await process_frame
     _expect(level_key.visible and not bool(level_key.call("was_collected")), "RestartSammy should bring the collected level key back.")
     _expect(not is_instance_valid(temporary_gem) or temporary_gem.is_queued_for_deletion(), "RestartSammy should remove settled gems created during play.")
@@ -708,7 +708,7 @@ func _test_player_death_resets(game: Node) -> void:
     player.call("set_current_key_id", KEY_DIAMOND_ALL)
     player.call("_begin_death", null)
     _expect(int(player.call("get_current_key_id")) == KEY_DIAMOND_ALL, "Above the score goal Sammy should keep his key on death.")
-    player.call("_finish_death_sequence")
+    player.call("_update_death_state", float(player.call("get_death_sequence_seconds")) + 0.1)
     await process_frame
     _expect(not level_key.visible, "With key 255 the restart scan should remove level keys.")
     _expect(not is_instance_valid(persistent_gem) or persistent_gem.is_queued_for_deletion(), "With key 255 the restart scan should remove persistent gems too.")
@@ -4256,8 +4256,7 @@ func _test_checkpoint_system(assets: Node) -> void:
         _expect(_audio_service_has_spatial_stream(audio, assets.load_asset("sfx.checkpoint_restart") as AudioStream), "Checkpoint activation should play the original Restart_son as positional restart audio.")
 
     _expect(bool(player.call("take_damage", 99.0, null)), "Checkpoint test should be able to kill Sammy after activation.")
-    var death_duration := float(player.call("_get_death_duration_seconds"))
-    player.call("_update_death_state", death_duration + 0.1)
+    player.call("_update_death_state", float(player.call("get_death_sequence_seconds")) + 0.1)
     _expect(not bool(player.call("is_dead")), "Checkpoint death test should respawn Sammy while lives remain.")
     _expect(player.global_position.distance_to(respawn_transform.origin) < 0.05, "Normal death respawn should move Sammy to the latest checkpoint.")
     _expect(player.get_facing_direction().distance_to(Vector3.LEFT) < 0.05, "Normal death respawn should restore the latest checkpoint yaw.")
@@ -5966,8 +5965,20 @@ func _test_player_death_lives_core() -> void:
         _expect(String(animation_controller.call("get_current_action")) == "kaputt", "Lethal damage should switch Sammy to the original kaputt animation.")
 
     var death_duration := float(player.call("_get_death_duration_seconds"))
-    _expect(death_duration > 0.0, "Death flow should derive a positive kaputt animation duration.")
-    player.call("_update_death_state", death_duration + 0.1)
+    _expect(death_duration > 0.0 and death_duration <= 4.0, "Death flow should derive a positive kaputt animation duration capped at 64 ticks.")
+    var stars := player.call("get_kaputt_stars") as Node3D
+    _expect(stars != null and int(stars.call("get_star_count")) == 12, "CreateEtoilesKaputt should circle twelve stars around Sammy's head.")
+    _expect(player.call("get_last_flying_heart") != null, "Animmoins1life should launch a flying heart when Sammy dies.")
+    player.call("_update_death_state", death_duration + 0.01)
+    _expect(bool(player.call("is_dead")) and int(player.call("get_lives")) == 2, "After the kaputt animation Sammy should lose a life and blink before restarting.")
+    var visual_pivot := player.get_node_or_null("VisualPivot") as Node3D
+    _expect(visual_pivot != null and not visual_pivot.visible, "Player_Kaputt should start its blink invisible.")
+    _expect(not player.global_position.is_equal_approx(respawn_transform.origin), "Sammy should blink where he died before moving to the restart point.")
+    player.call("_update_death_state", float(player.call("get_death_sequence_seconds")) - death_duration - 0.3)
+    _expect(bool(player.call("is_dead")) and player.global_position.is_equal_approx(respawn_transform.origin), "RestartSammy should move Sammy to the restart point and fade him in before control returns.")
+    _expect(float(player.call("get_teleport_alpha")) < 1.0, "RestartSammy should fade Sammy in from alpha 0.")
+    _expect(player.call("get_kaputt_stars") == null, "RestartSammy should clear the kaputt stars.")
+    player.call("_update_death_state", 0.5)
     _expect(not bool(player.call("is_dead")), "Sammy should leave death state after losing a life.")
     _expect(not bool(player.call("is_game_over")), "Sammy should not enter game over while at least one life remains.")
     _expect(int(player.call("get_lives")) == 2, "Death completion should consume one BallesJoueur1 life.")

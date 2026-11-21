@@ -702,6 +702,12 @@ const CATALOG := {
         "kind": "texture",
         "description": "Original particle_RangeLion2 / particle_TakeEyeTruth sprite"
     },
+    "texture.particle.kaputt_star": {
+        "path": "res://assets/textures/particles/EtoilB+9.png",
+        "source": "extract-sammy-assets/extracted/godot/textures/EtoilB+9.png",
+        "kind": "texture",
+        "description": "Original EtoilB+9 9-frame star circling Sammy's head while he dies"
+    },
     "texture.particle.heart_1": {
         "path": "res://assets/textures/particles/heart/phearth1.png",
         "source": "extract-sammy-assets/extracted/godot/textures/phearth1.png",

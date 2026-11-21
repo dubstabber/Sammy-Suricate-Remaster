@@ -170,6 +170,7 @@ func _run() -> void:
     await _test_diamond_pickup(game, assets)
     await _test_player_death_resets(game)
     await _test_tutorial_title_flow()
+    await _test_player_slide_sound()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
     await _test_prototype_world()
@@ -765,6 +766,39 @@ func _test_tutorial_title_flow() -> void:
     _expect(int(titles[1].call("get_phase")) == 0 and not titles[1].visible, "Enter should dismiss a title and re-arm it.")
     for title in titles:
         title.queue_free()
+    await process_frame
+
+
+## player.wdl SonoRiseGlissade: Glisse_Son starts at frequency 2 on a big
+## slope, rises 0.3 per tick while the slide covers > 6 quants a frame, and is
+## tuned with volume 2 * |slope tilt|; leaving the slope stops it.
+func _test_player_slide_sound() -> void:
+    var audio := root.get_node_or_null("Audio")
+    var player := (load(PLAYER_SCENE_PATH) as PackedScene).instantiate() as CharacterBody3D
+    player.position = Vector3(-60.0, 0.0, -60.0)
+    root.add_child(player)
+    await process_frame
+    if audio != null:
+        audio.call("set_sfx_volume_percent", 100.0)
+    var slope_big := int(player.get_script().get_script_constant_map().get("SLOPE_STATE_BIG", 2))
+    var slope_none := int(player.get_script().get_script_constant_map().get("SLOPE_STATE_NONE", 0))
+    player.set("_slope_state", slope_big)
+    player.set("_slope_velocity", Vector2(40.0, 0.0))
+    player.set("_slope_on_surface", true)
+    player.call("_update_slide_sound", 1.0 / 16.0)
+    var handle := int(player.call("get_slide_sound_handle"))
+    _expect(handle > 0 and is_equal_approx(float(player.call("get_slide_sound_level")), 2.0), "A big-slope slide should start Glisse_Son at frequency 2.")
+    player.call("_update_slide_sound", 1.0)
+    _expect(absf(float(player.call("get_slide_sound_level")) - 6.8) < 0.01, "The slide frequency should rise 0.3 per tick while sliding fast.")
+    if audio != null:
+        var tuned := audio.call("get_tuned_sfx_player", handle) as AudioStreamPlayer
+        _expect(tuned != null and is_equal_approx(tuned.volume_db, -4.29), "The slide volume should follow 2 * |slope tilt| (53 -> step 41).")
+    player.set("_slope_state", slope_none)
+    player.call("_update_slide_sound", 1.0 / 16.0)
+    _expect(int(player.call("get_slide_sound_handle")) == 0 and is_equal_approx(float(player.call("get_slide_sound_level")), 100.0), "Leaving the slope should stop the slide sound.")
+    if audio != null:
+        _expect(not bool(audio.call("is_tuned_sfx_playing", handle)), "The stopped slide sound should not keep playing.")
+    player.queue_free()
     await process_frame
 
 

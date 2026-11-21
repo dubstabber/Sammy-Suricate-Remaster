@@ -24,6 +24,16 @@ const KAPUTT_SOUND_WDL_RANGE_UNITS := 2000.0
 const DEATH_BLINK_WAITT_TICKS: Array[float] = [4.0, 4.0, 4.0, 3.0, 3.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0]
 ## RestartSammy: My.Alpha += 10 * time from 0 to 100 before control returns.
 const RESTART_FADE_IN_TICKS := 10.0
+## player.wdl SonoRiseGlissade: VolumeGlisseSon is passed to Tune_Sound as the
+## frequency and FreqGlisseSon (2 * slope tilt, 10..300) as the volume.
+const SLIDE_SOUND_RESTART_LEVEL := 60.0
+const SLIDE_SOUND_START_LEVEL := 2.0
+const SLIDE_SOUND_IDLE_LEVEL := 100.0
+## handlePente: Force.Z = -20 while on a slope; ResultPente is the distance the
+## per-frame slide move covers (pente * MinTime at 100 fps).
+const SLIDE_FORCE_Z := 20.0
+const SLIDE_RESULT_MIN := 6.0
+const ORIGINAL_TICKS_PER_FRAME := 0.16
 const DEATH_KEY_HORIZONTAL_SPEED_UNITS := 25.0
 const DEATH_KEY_VERTICAL_SPEED_UNITS := 40.0
 const KEY_MIX_EFFECT_SCRIPT := preload("res://src/effects/key_mix_effect.gd")
@@ -67,6 +77,7 @@ const KEY_MIX_SOUND_WDL_RANGE_UNITS := 2000.0
 @export var model_asset_id: String = "model.sammy.animated"
 @export var quick_turn_sound_asset_id: String = "sfx.quick_turn"
 @export var kaputt_sound_asset_id: String = "sfx.player_kaputt"
+@export var slide_sound_asset_id: String = "sfx.slide"
 @export var fire_sound_asset_id: String = "sfx.wasp"
 @export var no_wasp_sound_asset_id: String = "sfx.error"
 @export var enemy_top_bounce_sound_asset_id: String = "sfx.quick_turn"
@@ -150,6 +161,10 @@ var _death_animation_seconds := 0.0
 var _kaputt_sound_played := false
 var _kaputt_stars: Node3D = null
 var _last_flying_heart: Node3D = null
+var _slide_sound_level := SLIDE_SOUND_IDLE_LEVEL
+var _slide_sound_handle := 0
+var _slide_sound_tilt := 0.0
+var _slope_on_surface := false
 var _teleporting := false
 var _teleport_phase := TELEPORT_PHASE_PRE_FADE
 var _teleport_phase_remaining := 0.0
@@ -494,6 +509,7 @@ func _physics_process(delta: float) -> void:
 
     _update_boost_state(delta, forward_input)
     _update_slope_slide(delta)
+    _update_slide_sound(delta)
     if not movement_locked:
         _apply_turn(delta, forward_input, turn_input * _slope_turn_multiplier())
         _apply_slope_downhill_turn(delta)
@@ -1207,6 +1223,7 @@ func _center_floor_hit(max_distance_below_feet: float) -> Dictionary:
 ## AmortiPenteEnd friction.
 func _update_slope_slide(delta: float) -> void:
     _slope_state = SLOPE_STATE_NONE
+    _slope_on_surface = false
     if not bool(movement_config.slope_sliding_enabled):
         _slope_velocity = Vector2.ZERO
         return
@@ -1214,6 +1231,7 @@ func _update_slope_slide(delta: float) -> void:
     var hit := _center_floor_hit(SLOPE_FLOOR_MAX_DISTANCE)
     var normal: Vector3 = hit.get("normal", Vector3.UP)
     if not hit.is_empty() and normal.y > 0.0 and normal.y <= float(movement_config.slope_normal_max_y):
+        _slope_on_surface = true
         var force := Vector2(normal.x, normal.z) * float(movement_config.slope_force)
         var gain := float(movement_config.slope_acceleration) * (1.0 - normal.y) * ticks * ORIGINAL_FRAMES_PER_TICK
         _slope_velocity.x = _step_slope_axis(_slope_velocity.x, force.x, gain)
@@ -1229,6 +1247,68 @@ func _update_slope_slide(delta: float) -> void:
         _slope_state = SLOPE_STATE_BIG
     elif absf(_slope_velocity.x) > medium or absf(_slope_velocity.y) > medium:
         _slope_state = SLOPE_STATE_MEDIUM
+
+
+## player.wdl SonoRiseGlissade (big slope) and its medium-slope twin: the slide
+## sound starts quiet and deep on a big slope, its frequency rising 0.3 per tick
+## (0.15 on a medium slope) while the slide moves more than 6 quants a frame and
+## falling 0.5 (0.3) per tick otherwise; at 60 a big slope restarts it. Off
+## the slopes it stops.
+func _update_slide_sound(delta: float) -> void:
+    if _slope_state == SLOPE_STATE_NONE:
+        _slide_sound_level = SLIDE_SOUND_IDLE_LEVEL
+        _stop_slide_sound()
+        return
+    var ticks := maxf(delta, 0.0) * ACKNEX_TIME_UNITS_PER_SECOND
+    var big := _slope_state == SLOPE_STATE_BIG
+    var pente := Vector3(_slope_velocity.x, _slope_velocity.y, -SLIDE_FORCE_Z if _slope_on_surface else 0.0)
+    if big and pente.length() > 0.0:
+        _slide_sound_tilt = rad_to_deg(asin(clampf(pente.z / pente.length(), -1.0, 1.0)))
+    var result_pente := pente.length() * ORIGINAL_TICKS_PER_FRAME
+    if _slide_sound_level < SLIDE_SOUND_RESTART_LEVEL:
+        if result_pente > SLIDE_RESULT_MIN:
+            _slide_sound_level += (0.3 if big else 0.15) * ticks
+            _tune_slide_sound()
+        elif _slide_sound_level > 0.0:
+            _slide_sound_level -= (0.5 if big else 0.3) * ticks
+            _tune_slide_sound()
+        else:
+            _slide_sound_level = SLIDE_SOUND_IDLE_LEVEL
+            _stop_slide_sound()
+    elif big:
+        _stop_slide_sound()
+        _slide_sound_level = SLIDE_SOUND_START_LEVEL
+        var audio := get_node_or_null("/root/Audio")
+        if audio != null and audio.has_method("play_sfx_tuned") and not slide_sound_asset_id.is_empty():
+            _slide_sound_handle = int(audio.call("play_sfx_tuned", slide_sound_asset_id, _slide_sound_level, 0.0))
+        _tune_slide_sound()
+
+
+func _tune_slide_sound() -> void:
+    if _slide_sound_handle == 0:
+        return
+    var audio := get_node_or_null("/root/Audio")
+    if audio == null or not audio.has_method("tune_sfx"):
+        return
+    var volume := minf(maxf(absf(_slide_sound_tilt) * 2.0, 10.0), 300.0)
+    audio.call("tune_sfx", _slide_sound_handle, volume, maxf(_slide_sound_level, 0.0))
+
+
+func _stop_slide_sound() -> void:
+    if _slide_sound_handle == 0:
+        return
+    var audio := get_node_or_null("/root/Audio")
+    if audio != null and audio.has_method("stop_tuned_sfx"):
+        audio.call("stop_tuned_sfx", _slide_sound_handle)
+    _slide_sound_handle = 0
+
+
+func get_slide_sound_level() -> float:
+    return _slide_sound_level
+
+
+func get_slide_sound_handle() -> int:
+    return _slide_sound_handle
 
 
 func _step_slope_axis(current: float, force: float, gain: float) -> float:
@@ -1674,6 +1754,7 @@ func _begin_death(source: Node = null) -> void:
     _death_timer = _death_animation_seconds
     _kaputt_sound_played = false
     _clear_action_state_for_death()
+    _stop_slide_sound()
     _spawn_flying_heart()
     _reset_sammy_key()
     _play_animation_action(&"kaputt", 1.0, false, true, 0.0)

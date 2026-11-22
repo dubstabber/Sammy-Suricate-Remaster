@@ -18,7 +18,10 @@ class_name WdlParticles
 ##
 ## `My_Flare` (without MY_BRIGHT, which no Sammy particle sets) is plain
 ## SRCALPHA/INVSRCALPHA blending at MY_ALPHA 50 -> vertex alpha 250, without
-## depth writes; MY_COLOR does not tint bitmap particles.
+## depth writes; MY_COLOR does not tint bitmap particles. The flare bitmap is
+## uploaded as A4R4G4B4 with its alpha taken from brightness (sub_42A9E0 with
+## scale 16): alpha = min(15, (r + g + b) * 16 / 765) / 15, so black is clear
+## and dark glow edges fade out.
 
 const TICKS_PER_SECOND := AcknexEngineTiming.TICKS_PER_SECOND
 const QUANT_TO_METERS := 0.01
@@ -30,6 +33,7 @@ const FLARE_ALPHA := 250.0 / 255.0
 const MIN_SIZE_METERS := 0.0005
 
 static var _flare_materials: Dictionary = {}
+static var _flare_textures: Dictionary = {}
 static var _blend_materials: Dictionary = {}
 
 
@@ -85,6 +89,35 @@ static func set_sprite_size(sprite: Sprite3D, wdl_size: float) -> void:
 	sprite.pixel_size = maxf(wdl_size * SIZE_TO_METERS, MIN_SIZE_METERS) / maxf(texture_extent, 1.0)
 
 
+## The brightness-alpha copy of a particle bitmap the A5 engine draws for
+## `My_Flare`. Texels already keyed transparent stay transparent.
+static func flare_texture(texture: Texture2D) -> Texture2D:
+	if texture == null:
+		return null
+	var key := texture.get_instance_id()
+	if _flare_textures.has(key):
+		return _flare_textures[key]
+	var image := texture.get_image()
+	if image == null:
+		return texture
+	if image.is_compressed():
+		image.decompress()
+	image.convert(Image.FORMAT_RGBA8)
+	for y in image.get_height():
+		for x in image.get_width():
+			var color := image.get_pixel(x, y)
+			color.a *= flare_alpha(color.r8 + color.g8 + color.b8)
+			image.set_pixel(x, y, color)
+	var flare := ImageTexture.create_from_image(image)
+	_flare_textures[key] = flare
+	return flare
+
+
+## A4R4G4B4 flare alpha for a texel whose red + green + blue (0..765) is `brightness`.
+static func flare_alpha(brightness: int) -> float:
+	return float(mini(15, (maxi(brightness, 0) * 16) / 765)) / 15.0
+
+
 ## Camera-facing `My_Flare` material: alpha-blended at vertex alpha 250.
 static func flare_material(texture: Texture2D) -> StandardMaterial3D:
 	if texture == null:
@@ -93,7 +126,7 @@ static func flare_material(texture: Texture2D) -> StandardMaterial3D:
 	if _flare_materials.has(key):
 		return _flare_materials[key]
 	var material := StandardMaterial3D.new()
-	material.albedo_texture = texture
+	material.albedo_texture = flare_texture(texture)
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.blend_mode = BaseMaterial3D.BLEND_MODE_MIX

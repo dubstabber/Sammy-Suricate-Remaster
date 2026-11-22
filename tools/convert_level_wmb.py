@@ -38,6 +38,7 @@ REPO_ROOT = TOOLS_DIR.parent
 sys.path.insert(0, str(TOOLS_DIR))
 
 import wmb4  # noqa: E402
+from key_sprite_textures import key_rgb565_black  # noqa: E402
 
 ACKNEX_TO_GODOT_SCALE = 0.01
 POLISH_DIR = Path("extract-sammy-assets/sammy-suricate")
@@ -503,8 +504,9 @@ def copy_sprite_textures(repo_root: Path, entities: list[dict[str, Any]], sprite
         if target.name in copied:
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
-        if not target.exists() or target.read_bytes() != source.read_bytes():
-            shutil.copyfile(source, target)
+        shutil.copyfile(source, target)
+        # Sprites draw with the A5 RGB565 colour key (black is transparent).
+        key_rgb565_black(target)
         copied.append(target.name)
     return sorted(copied)
 

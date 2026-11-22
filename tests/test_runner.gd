@@ -173,6 +173,7 @@ func _run() -> void:
     await _test_player_slide_sound()
     await _test_lion_patrol_and_wake()
     await _test_enemy_cannot_hit_player_above()
+    _test_particle_and_sprite_transparency(assets)
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
     await _test_prototype_world()
@@ -949,6 +950,43 @@ func _test_enemy_cannot_hit_player_above() -> void:
             _expect(not bool(lion.call("can_touch_vertically", player)), "A player on a lion's head should be out of its body's reach.")
         world.queue_free()
         await process_frame
+
+
+## A5 particle / sprite transparency (sammypolish.exe sub_42C790, sub_42A9E0,
+## sub_448BE0): `My_Flare` bitmaps take their alpha from brightness, plain
+## sprites key out RGB565 black.
+func _test_particle_and_sprite_transparency(assets: Node) -> void:
+    var particles: GDScript = load("res://src/effects/wdl_particles.gd")
+    _expect(is_zero_approx(float(particles.call("flare_alpha", 0))), "Black flare texels should be fully transparent.")
+    _expect(is_equal_approx(float(particles.call("flare_alpha", 765)), 1.0), "White flare texels should be opaque.")
+    _expect(is_equal_approx(float(particles.call("flare_alpha", 191)), 3.0 / 15.0), "Flare alpha should be the 4-bit min(15, (r+g+b)*16/765).")
+    var heart := assets.load_asset("texture.particle.heart_1") as Texture2D
+    var flare := particles.call("flare_texture", heart) as Texture2D
+    _expect(flare != null, "Particle bitmaps should get a brightness-alpha flare copy.")
+    if flare != null:
+        var image := flare.get_image()
+        _expect(is_zero_approx(image.get_pixel(0, 0).a), "The black corners of PartHearth1 should be transparent, not a black square.")
+        _expect(absf(image.get_pixel(8, 8).a - 3.0 / 15.0) < 0.01, "The PartHearth1 centre (191, 0, 0) should be 3/15 opaque.")
+    var material := particles.call("flare_material", heart) as StandardMaterial3D
+    _expect(material != null and material.albedo_texture == flare, "Flare particle materials should draw the brightness-alpha texture.")
+
+    var opaque_key_texels := 0
+    for directory in ["res://assets/textures/sprites", "res://assets/textures/key_diamonds", "res://assets/textures/score", "res://assets/textures/heart"]:
+        for file_name in DirAccess.get_files_at(directory):
+            if not file_name.ends_with(".png"):
+                continue
+            var texture := load("%s/%s" % [directory, file_name]) as Texture2D
+            if texture == null:
+                continue
+            var sprite_image := texture.get_image()
+            if sprite_image.is_compressed():
+                sprite_image.decompress()
+            for y in sprite_image.get_height():
+                for x in sprite_image.get_width():
+                    var color := sprite_image.get_pixel(x, y)
+                    if color.a > 0.0 and color.r8 < 8 and color.g8 < 4 and color.b8 < 8:
+                        opaque_key_texels += 1
+    _expect(opaque_key_texels == 0, "Sprite textures should key out RGB565 black like the A5 colour key (%d opaque)." % opaque_key_texels)
 
 
 func _tuned_sfx_players(audio: Node) -> Array:

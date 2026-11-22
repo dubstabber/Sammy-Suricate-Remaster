@@ -172,6 +172,7 @@ func _run() -> void:
     await _test_tutorial_title_flow()
     await _test_player_slide_sound()
     await _test_lion_patrol_and_wake()
+    await _test_enemy_cannot_hit_player_above()
     ProjectSettings.set_setting("sammy/test/skip_music", true)
     await _test_main_scene()
     await _test_prototype_world()
@@ -893,6 +894,61 @@ func _test_lion_patrol_and_wake() -> void:
         mapped.free()
     level.queue_free()
     await process_frame
+
+
+## lion.wdl Lion_Hit only fires on a real collision: a lion below Sammy (he
+## stands on its head or on a ledge above it) must not hit or push him.
+func _test_enemy_cannot_hit_player_above() -> void:
+    for scenario in ["head", "ledge"]:
+        var world := Node3D.new()
+        world.position = Vector3(0.0, 0.0, -600.0)
+        root.add_child(world)
+        var slabs := [[Vector3(0.0, -0.1, 0.0), Vector3(30.0, 0.2, 30.0)]]
+        if scenario == "ledge":
+            slabs.append([Vector3(-1.5, 2.1, 0.0), Vector3(3.0, 0.2, 3.0)])
+        for spec: Array in slabs:
+            var body := StaticBody3D.new()
+            var shape := CollisionShape3D.new()
+            var box := BoxShape3D.new()
+            box.size = spec[1]
+            shape.shape = box
+            body.add_child(shape)
+            world.add_child(body)
+            body.position = spec[0]
+        var lion := (load("res://scenes/enemies/rasta_enemy.tscn") as PackedScene).instantiate() as CharacterBody3D
+        lion.set("react_range", 6.0)
+        lion.set("attack_sound_asset_id", "")
+        if scenario == "head":
+            # Keep the lion under Sammy instead of wandering out from beneath him.
+            lion.set("move_speed", 0.0)
+            lion.set("run_speed", 0.0)
+            lion.set("random_run_chance", 0.0)
+        world.add_child(lion)
+        var player := (load(PLAYER_SCENE_PATH) as PackedScene).instantiate() as CharacterBody3D
+        world.add_child(player)
+        if scenario == "head":
+            # Capsule on capsule is not a stable perch, so hold Sammy exactly on
+            # the lion's head and make the lion chase him from below.
+            lion.position = Vector3.ZERO
+            player.position = Vector3(0.0, 1.41, 0.0)
+            player.set_physics_process(false)
+            await physics_frame
+            lion.call("_enter_state", 2)
+        else:
+            lion.position = Vector3(0.5, 0.0, 2.0)
+            player.position = Vector3(-0.15, 2.22, 0.0)
+        var hits := [0]
+        lion.connect("attack_landed", func(_target: Node, _damage: float) -> void: hits[0] += 1)
+        var pushed := false
+        for frame in 150:
+            await physics_frame
+            pushed = pushed or not (player.get("_enemy_push_velocity") as Vector3).is_zero_approx()
+        _expect(hits[0] == 0 and not pushed, "A lion below Sammy (%s) should not hit or push him (hits %d, pushed %s)." % [scenario, hits[0], pushed])
+        _expect(is_equal_approx(float(player.call("get_health")), float(player.call("get_max_health"))), "A lion below Sammy (%s) should not hurt him." % scenario)
+        if scenario == "head":
+            _expect(not bool(lion.call("can_touch_vertically", player)), "A player on a lion's head should be out of its body's reach.")
+        world.queue_free()
+        await process_frame
 
 
 func _tuned_sfx_players(audio: Node) -> Array:

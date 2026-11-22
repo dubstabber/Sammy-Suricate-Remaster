@@ -40,6 +40,12 @@ const PATROL_SCAN_CONE := 90.0
 const PATROL_WALK_MAX_TURN_STEP_DEGREES := 10.0
 ## English lion.wdl: closer than 32 quants (3D) while attacking -> U-turn.
 const TOO_CLOSE_UNITS := 32.0
+## lion.wdl LionEtat 1 -> 2: the player must be within 45 degrees of tilt.
+const ENGAGE_MAX_TILT_DEGREES := 45.0
+## Lion_Hit only fires when the bodies collide: their heights must overlap by
+## more than this for a swing or a hit (a player standing on the head, or on a
+## ledge above, is out of reach).
+const BODY_CONTACT_VERTICAL_MARGIN := 0.1
 const ENEMY_VISIBILITY_RANGE_SCRIPT := preload("res://src/effects/enemy_visibility_range.gd")
 
 # WDL lion.wdl LionEtat parity. Numeric values match the original states so
@@ -635,7 +641,7 @@ func _tick_chase(delta: float) -> Vector3:
 	var dist := to_target.length()
 	_turn_toward(to_target, delta)
 	var yaw_delta := _yaw_delta_to(to_target)
-	if dist <= get_attack_trigger_range(_target) and absf(yaw_delta) <= deg_to_rad(attack_yaw_threshold_deg):
+	if dist <= get_attack_trigger_range(_target) and absf(yaw_delta) <= deg_to_rad(attack_yaw_threshold_deg) and can_touch_vertically(_target):
 		_enter_state(EnemyState.ATTACK_SWING)
 		return _attack_lunge_velocity()
 	if dist > get_chase_disengage_range():
@@ -772,7 +778,9 @@ func _begin_attack_swing() -> void:
 	_play_sfx(attack_sound_asset_id)
 	_attack_target = _target
 	_attack_started_in_range = _attack_started_from_contact or (
-			_target != null and _target_horizontal_offset().length() <= get_attack_trigger_range(_target)
+			_target != null
+			and _target_horizontal_offset().length() <= get_attack_trigger_range(_target)
+			and can_touch_vertically(_target)
 	)
 	_attack_started_from_contact = false
 	_attack_push_direction = Vector3.ZERO
@@ -941,6 +949,8 @@ func _should_begin_chase() -> bool:
 		if _chase_start_scan_remaining > 0.0:
 			return false
 		_chase_start_scan_remaining = scan_interval
+	if not _is_within_engage_tilt(_target):
+		return false
 	var chance := clampf(chase_start_chance, 0.0, 1.0)
 	if chance <= 0.0:
 		return false
@@ -1103,6 +1113,8 @@ func _resolve_attack_hit() -> bool:
 	var hit_target := _current_attack_hit_target()
 	if not _is_attackable_target(hit_target):
 		return false
+	if not can_touch_vertically(hit_target):
+		return false
 	if not _attack_started_in_range and _horizontal_offset_to(hit_target).length() > get_attack_trigger_range(hit_target):
 		return false
 	if not hit_target.has_method("take_damage"):
@@ -1120,7 +1132,7 @@ func _resolve_attack_hit() -> bool:
 func _resolve_attack_contact(hit_target: Node3D) -> void:
 	if _contact_resolved_this_swing:
 		return
-	if not _is_attackable_target(hit_target):
+	if not _is_attackable_target(hit_target) or not can_touch_vertically(hit_target):
 		return
 	_contact_resolved_this_swing = true
 	if not hit_target.has_method("take_damage"):
@@ -1149,6 +1161,56 @@ func _apply_push_to_target(target: Node3D, source_velocity: Vector3) -> void:
 
 func _apply_post_hit_range_boost() -> void:
 	_post_hit_range_multiplier *= maxf(post_hit_range_multiplier, 1.0)
+
+
+## True when this enemy's body and the target's overlap in height, so they can
+## actually touch side to side.
+func can_touch_vertically(target: Node3D) -> bool:
+	var own := _vertical_extent(self)
+	var other := _vertical_extent(target)
+	if own.x >= own.y or other.x >= other.y:
+		return true
+	return other.x < own.y - BODY_CONTACT_VERTICAL_MARGIN and other.y > own.x + BODY_CONTACT_VERTICAL_MARGIN
+
+
+## lion.wdl `Abs(DistLionPlayer.Tilt) < 45` before a lion starts attacking.
+func _is_within_engage_tilt(target: Node3D) -> bool:
+	if target == null:
+		return false
+	var offset := target.global_position - global_position
+	var horizontal := Vector2(offset.x, offset.z).length()
+	return absf(rad_to_deg(atan2(offset.y, horizontal))) < ENGAGE_MAX_TILT_DEGREES
+
+
+## Global (bottom, top) height of a body's collision shapes; (0, 0) when unknown.
+func _vertical_extent(node: Node3D) -> Vector2:
+	if node == null:
+		return Vector2.ZERO
+	var bottom := INF
+	var top := -INF
+	for child in node.get_children():
+		var collision_shape := child as CollisionShape3D
+		if collision_shape == null or collision_shape.disabled or collision_shape.shape == null:
+			continue
+		var half_height := 0.0
+		var shape := collision_shape.shape
+		if shape is CapsuleShape3D:
+			half_height = (shape as CapsuleShape3D).height * 0.5
+		elif shape is CylinderShape3D:
+			half_height = (shape as CylinderShape3D).height * 0.5
+		elif shape is BoxShape3D:
+			half_height = (shape as BoxShape3D).size.y * 0.5
+		elif shape is SphereShape3D:
+			half_height = (shape as SphereShape3D).radius
+		else:
+			continue
+		half_height *= collision_shape.global_transform.basis.y.length()
+		var center := collision_shape.global_position.y
+		bottom = minf(bottom, center - half_height)
+		top = maxf(top, center + half_height)
+	if bottom == INF:
+		return Vector2.ZERO
+	return Vector2(bottom, top)
 
 
 func _combined_horizontal_collision_radius(target: Node3D) -> float:

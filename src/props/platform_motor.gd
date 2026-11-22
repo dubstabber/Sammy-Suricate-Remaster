@@ -48,6 +48,10 @@ enum UnlockResult { REJECTED, ALREADY_OPEN, UNLOCKED, UNLOCKED_SILENT }
 @export var pan_degrees: float = 0.0
 @export var tilt_degrees: float = 0.0
 @export_flags_3d_physics var sweep_mask: int = WORLD_LAYER
+## The motor starts inside solid BSP space (converter `start_in_solid`): A5
+## blocks every move from there, so it only turns and pauses (verified live on
+## the 178d_t lift, whose motor sits inside a hill).
+@export var start_in_solid: bool = false
 
 var _platforms: Array[Node3D] = []
 var _offsets: Array[Vector3] = []
@@ -159,6 +163,9 @@ func advance(delta: float) -> void:
 
 func _move(step: Vector3) -> void:
 	if step.is_zero_approx():
+		return
+	if start_in_solid:
+		_on_blocked()
 		return
 	var direction := step.normalized()
 	var hit := _sweep(global_position, global_position + step + direction * CONTACT_SKIN)

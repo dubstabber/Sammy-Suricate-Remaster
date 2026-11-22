@@ -142,6 +142,48 @@ def read_planes(data: bytes) -> list[Plane]:
     return planes
 
 
+# BSP point hull (nodes + leaves). A node is 40 bytes: plane index, parent
+# pointer, int16 bounds, an unused int, the two child indices (negative =
+# leaf -(index + 1)) and its face range. A leaf is 36 bytes starting with its
+# contents: -128 is solid (only leaf 0), -256 empty. Space outside the level is
+# empty (A5 levels are not sealed).
+NODE_SIZE = 40
+LEAF_SIZE = 36
+CONTENTS_SOLID = -128
+CONTENTS_EMPTY = -256
+
+
+class BspTree:
+    """Point contents of the level BSP (hull 0)."""
+
+    def __init__(self, data: bytes) -> None:
+        self._planes = read_planes(data)
+        nodes_entry = list_entry(data, LIST_NODES)
+        self._nodes = [
+            struct.unpack_from("<10i", data, nodes_entry.offset + index * NODE_SIZE)
+            for index in range(nodes_entry.length // NODE_SIZE)
+        ]
+        leaves_entry = list_entry(data, LIST_LEAVES)
+        self._leaf_contents = [
+            struct.unpack_from("<i", data, leaves_entry.offset + index * LEAF_SIZE)[0]
+            for index in range(leaves_entry.length // LEAF_SIZE)
+        ]
+
+    def contents(self, point: tuple[float, float, float] | list[float]) -> int:
+        if not self._nodes:
+            return CONTENTS_EMPTY
+        node_index = 0
+        while node_index >= 0:
+            node = self._nodes[node_index]
+            plane = self._planes[node[0]]
+            side = plane.normal[0] * point[0] + plane.normal[1] * point[1] + plane.normal[2] * point[2] - plane.distance
+            node_index = node[6] if side >= 0.0 else node[7]
+        return self._leaf_contents[-node_index - 1]
+
+    def is_solid(self, point: tuple[float, float, float] | list[float]) -> bool:
+        return self.contents(point) == CONTENTS_SOLID
+
+
 def read_vertices(data: bytes) -> list[tuple[float, float, float]]:
     entry = list_entry(data, LIST_VERTICES)
     return [struct.unpack_from("<3f", data, entry.offset + index * VERTEX_SIZE) for index in range(entry.length // VERTEX_SIZE)]

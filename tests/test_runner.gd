@@ -7747,6 +7747,7 @@ func _test_level_entities_json() -> void:
         _expect(overlay_props == 102, "All 102 178d_t InitMDL grates should use the black-keyed overlay skin.")
 
     _test_baked_level_enemy_prefabs(builder.call("converted_level_stems") as PackedStringArray)
+    _test_level_engine_origins(builder)
     _test_baked_level_platforms(builder.call("converted_level_stems") as PackedStringArray)
 
 
@@ -7797,6 +7798,53 @@ func _test_level_enemy_family_stats() -> void:
     _expect(caller_enemy != null and bool(caller_enemy.get("roar_calls_friends")), "InitLion Flag7 should make the lion roar to call friends.")
     if caller_enemy != null:
         caller_enemy.free()
+
+
+## Live in the original (178d_t, Cheat Engine): the engine raises each entity
+## by its model's depth below the origin, and a lift motor that starts inside
+## solid BSP space never moves.
+func _test_level_engine_origins(builder: GDScript) -> void:
+    var data: Dictionary = builder.call("load_level_data", "178d_t")
+    var offsets := {}
+    for entity: Dictionary in data.get("entities", []):
+        offsets[int(entity.get("index", -1))] = entity
+    var column: Dictionary = offsets.get(448, {})
+    _expect(is_equal_approx(float(column.get("origin_offset_z", 0.0)), 896.0), "The 178d_t platfor2 column should sit 896 quants above its WMB record (engine z -32).")
+    _expect(is_equal_approx(float((offsets.get(30, {}) as Dictionary).get("origin_offset_z", 0.0)), 83.517), "A x2.05 grate1 should be raised by its 40.74-quant frame-0 depth.")
+    _expect(is_zero_approx(float((offsets.get(450, {}) as Dictionary).get("origin_offset_z", 0.0))), "WMB pads starting at z 0 keep their record height.")
+    _expect(bool((offsets.get(15, {}) as Dictionary).get("start_in_solid", false)), "The 178d_t magenta lift motor starts inside the hill.")
+    var solid_motors := 0
+    for stem in builder.call("converted_level_stems") as PackedStringArray:
+        for entity: Dictionary in (builder.call("load_level_data", stem) as Dictionary).get("entities", []):
+            if bool(entity.get("start_in_solid", false)):
+                solid_motors += 1
+    _expect(solid_motors == 5, "Exactly 5 shipped lift motors start inside solid BSP space (got %d)." % solid_motors)
+
+    var level := load("res://scenes/levels/generated/178d_t.tscn") as PackedScene
+    if level == null:
+        return
+    var state := level.get_state()
+    for node_index in state.get_node_count():
+        if String(state.get_node_name(node_index)) != "E448_initplatform":
+            continue
+        for property_index in state.get_node_property_count(node_index):
+            if state.get_node_property_name(node_index, property_index) == &"transform":
+                var transform: Transform3D = state.get_node_property_value(node_index, property_index)
+                _expect(absf(transform.origin.y + 0.32) < 0.001, "The baked platfor2 column should sit right under its magenta plate (y -0.32, got %.2f)." % transform.origin.y)
+
+    var motor := (load("res://src/props/platform_motor.gd") as GDScript).new() as Node3D
+    motor.set("speed_units", 6.0)
+    motor.set("tilt_degrees", 90.0)
+    motor.set("tilt_step_degrees", 180.0)
+    motor.set("pause_ticks", 40.0)
+    motor.set("start_in_solid", true)
+    motor.set_physics_process(false)
+    root.add_child(motor)
+    motor.call("advance", 1.0)
+    motor.call("advance", 0.25)
+    _expect((motor.call("get_last_displacement") as Vector3).is_zero_approx() and motor.position.is_zero_approx(), "A motor that starts inside solid should never move.")
+    _expect(is_equal_approx(float(motor.get("tilt_degrees")), 270.0), "A blocked motor should still flip its tilt on each attempt, like the original.")
+    motor.free()
 
 
 ## Every InitLion model file has its own prefab; none may fall back to the

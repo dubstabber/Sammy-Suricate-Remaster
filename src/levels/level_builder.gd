@@ -22,7 +22,8 @@ const PLAYER_START_NODE := "PlayerStart"
 const LEVEL_10_NUMBER := 10
 const LEVEL_10_STARTING_LIVES := 4
 ## Converted platform WMBs span +-64 quants around their origin; the column
-## platforms (platfor2/3) top out at +16, the others at +32.
+## platforms (platfor2/3) top out at +16 above their engine origin, the others
+## at +32.
 const PLATFORM_HALF_FOOTPRINT := 64.0
 const PLATFORM_TOPS := {"platfor2.wmb": 16.0, "platfor3.wmb": 16.0}
 const PLATFORM_DEFAULT_TOP := 32.0
@@ -175,7 +176,7 @@ static func _ground_entities_on_platforms(entities: Array) -> void:
 	var platform_tops: Array[Vector3] = []
 	for entity: Variant in entities:
 		if entity is Dictionary and String((entity as Dictionary).get("action", "")) == "initplatform":
-			var position: Vector3 = AcknexCoordsScript.array_to_vector3((entity as Dictionary).get("position", []))
+			var position: Vector3 = MapperScript.acknex_engine_position(entity as Dictionary)
 			var file := String((entity as Dictionary).get("file", "")).to_lower()
 			platform_tops.append(Vector3(position.x, position.y, position.z + float(PLATFORM_TOPS.get(file, PLATFORM_DEFAULT_TOP))))
 	if platform_tops.is_empty():
@@ -187,7 +188,7 @@ static func _ground_entities_on_platforms(entities: Array) -> void:
 		var action := String(record.get("action", ""))
 		if action == "initplatform" or action == "initengineplatform":
 			continue
-		var position: Vector3 = AcknexCoordsScript.array_to_vector3(record.get("position", []))
+		var position: Vector3 = MapperScript.acknex_engine_position(record)
 		var ground := float(record.get("ground_z"))
 		for top in platform_tops:
 			if absf(position.x - top.x) > PLATFORM_HALF_FOOTPRINT or absf(position.y - top.y) > PLATFORM_HALF_FOOTPRINT:

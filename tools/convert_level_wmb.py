@@ -33,6 +33,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
+
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parent
 sys.path.insert(0, str(TOOLS_DIR))
@@ -44,6 +46,8 @@ ACKNEX_TO_GODOT_SCALE = 0.01
 POLISH_DIR = Path("extract-sammy-assets/sammy-suricate")
 ENGLISH_DIR = Path("extract-sammy-assets/sammy-suricate-eng")
 EXTRACTED_TEXTURE_DIR = Path("extract-sammy-assets/extracted/godot/textures")
+EXTRACTED_MODEL_DIR = Path("extract-sammy-assets/extracted/godot/models")
+RAW_WMB_DIR = Path("extract-sammy-assets/extracted/godot/raw/levels")
 LEVEL_ROOT = Path("assets/levels")
 LEVEL_TEXTURE_ROOT = Path("assets/textures/levels")
 SPRITE_TEXTURE_ROOT = Path("assets/textures/sprites")
@@ -433,10 +437,76 @@ class GroundTracer:
         return best
 
 
+class EntityModelBounds:
+    """Lowest point (unscaled Acknex z) of each entity file.
+
+    The engine puts an entity's origin at its WMB record position minus the
+    model's lowest point times scale_z (verified live in 178d_t: platfor2 896
+    and grate1 x2.05 83.5 higher; tiledeat/telelion, whose geometry starts at
+    0, unchanged). MDL uses frame 0, WMB its lowest vertex, a sprite half its
+    bitmap height.
+    """
+
+    def __init__(self, repo_root: Path) -> None:
+        self._repo_root = repo_root
+        self._cache: dict[str, float | None] = {}
+
+    def min_z(self, file_name: str) -> float | None:
+        key = file_name.lower()
+        if key not in self._cache:
+            self._cache[key] = self._lookup(key)
+        return self._cache[key]
+
+    def _lookup(self, key: str) -> float | None:
+        stem, _, extension = key.rpartition(".")
+        if extension == "mdl":
+            model_dir = self._find(self._repo_root / EXTRACTED_MODEL_DIR, stem)
+            if model_dir is None:
+                return None
+            gltf = self._find(model_dir, f"{stem}.gltf")
+            if gltf is None:
+                return None
+            data = json.loads(gltf.read_text(encoding="utf-8"))
+            minimums = [
+                data["accessors"][primitive["attributes"]["POSITION"]]["min"][1]
+                for mesh in data.get("meshes", [])
+                for primitive in mesh.get("primitives", [])
+            ]
+            return min(minimums) if minimums else None
+        if extension == "wmb":
+            wmb = self._find(self._repo_root / RAW_WMB_DIR, key)
+            if wmb is None:
+                return None
+            vertices = wmb4.read_vertices(wmb.read_bytes())
+            return min(vertex[2] for vertex in vertices) if vertices else None
+        if extension == "pcx":
+            texture = find_extracted_texture(self._repo_root, stem)
+            if texture is None:
+                return None
+            with Image.open(texture) as image:
+                return -image.size[1] / 2.0
+        return None
+
+    @staticmethod
+    def _find(directory: Path, name: str) -> Path | None:
+        if not directory.is_dir():
+            return None
+        lowered = name.lower()
+        for candidate in directory.iterdir():
+            if candidate.name.lower() == lowered:
+                return candidate
+        return None
+
+
 # --- entities -----------------------------------------------------------------
 
 
-def build_entity_records(objects: list[dict[str, Any]], tracer: GroundTracer) -> dict[str, Any]:
+def build_entity_records(
+    objects: list[dict[str, Any]],
+    tracer: GroundTracer,
+    bounds: EntityModelBounds | None = None,
+    bsp: wmb4.BspTree | None = None,
+) -> dict[str, Any]:
     entities: list[dict[str, Any]] = []
     lights: list[dict[str, Any]] = []
     positions: list[dict[str, Any]] = []
@@ -445,9 +515,13 @@ def build_entity_records(objects: list[dict[str, Any]], tracer: GroundTracer) ->
     for record in objects:
         object_type = int(record["type"])
         if object_type == wmb4.OBJECT_TYPE_ENTITY:
-            ground_z = tracer.trace(record["position"])
-            entities.append(
-                {
+            min_z = bounds.min_z(str(record["file"])) if bounds is not None else None
+            origin_offset_z = round(-min_z * float(record["scale"][2]), 4) if min_z is not None else 0.0
+            if origin_offset_z == 0.0:
+                origin_offset_z = 0.0
+            engine_position = (record["position"][0], record["position"][1], record["position"][2] + origin_offset_z)
+            ground_z = tracer.trace(engine_position)
+            entity = {
                     "index": record["index"],
                     "name": record["name"],
                     "file": record["file"],
@@ -459,11 +533,16 @@ def build_entity_records(objects: list[dict[str, Any]], tracer: GroundTracer) ->
                     "skills": rounded(record["skills"], 5),
                     "flags": record["flags"],
                     "extra_0x84": round(record["extra_0x84"], 4),
-                    "godot_position": rounded(acknex_to_godot(record["position"])),
+                    "origin_offset_z": origin_offset_z,
+                    "godot_position": rounded(acknex_to_godot(engine_position)),
                     "ground_z": None if ground_z is None else round(ground_z, 4),
                     "godot_ground_y": None if ground_z is None else round(ground_z * ACKNEX_TO_GODOT_SCALE, 5),
                 }
-            )
+            # A5 blocks every move that starts inside solid BSP space (verified
+            # live: the 178d_t lift motor, inside a hill, never moves).
+            if bsp is not None and entity["action"] == "initengineplatform" and bsp.is_solid(engine_position):
+                entity["start_in_solid"] = True
+            entities.append(entity)
         elif object_type == wmb4.OBJECT_TYPE_LIGHT:
             lights.append(
                 {
@@ -549,7 +628,7 @@ def convert_level(
     output_dir = repo_root / LEVEL_ROOT / stem
     geometry = build_level_gltf(stem, faces, textures, texture_files, output_dir, texture_root)
     objects = wmb4.read_objects(data)
-    records = build_entity_records(objects, GroundTracer(faces))
+    records = build_entity_records(objects, GroundTracer(faces), EntityModelBounds(repo_root), wmb4.BspTree(data))
     sprite_files = copy_sprite_textures(repo_root, records["entities"], repo_root / SPRITE_TEXTURE_ROOT)
     sprite_texture_names.update(sprite_files)
 

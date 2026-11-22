@@ -245,7 +245,16 @@ static func _pan(entity: Dictionary) -> float:
 
 
 static func _acknex_position(entity: Dictionary) -> Vector3:
-	return AcknexCoordsScript.array_to_vector3(entity.get("position", []))
+	return acknex_engine_position(entity)
+
+
+## Where the engine puts the entity origin: the WMB record position raised by
+## the model's depth below its origin (`origin_offset_z`, see
+## tools/convert_level_wmb.py EntityModelBounds).
+static func acknex_engine_position(entity: Dictionary) -> Vector3:
+	var position := AcknexCoordsScript.array_to_vector3(entity.get("position", []))
+	position.z += float(entity.get("origin_offset_z", 0.0))
+	return position
 
 
 static func _acknex_scale(entity: Dictionary) -> Vector3:
@@ -446,6 +455,7 @@ static func _make_platform_motor(entity: Dictionary) -> Node3D:
 	motor.set("tilt_step_degrees", _skill(entity, 5))
 	motor.set("lock_key_id", int(_skill(entity, 6)))
 	motor.set("exact_key", _flag(entity, 7))
+	motor.set("start_in_solid", bool(entity.get("start_in_solid", false)))
 	var angles := AcknexCoordsScript.array_to_vector3(entity.get("angles", []))
 	motor.set("pan_degrees", angles.x)
 	motor.set("tilt_degrees", angles.y)
